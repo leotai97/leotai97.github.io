@@ -6,9 +6,26 @@
 
 body
 {
- background-color: #15364b;
- border: 1px solid #07f6d9;
+ font-family: Arial, Helvetica, sans-serif;
+ font-weight: lighter;
+ background-color:#2d808d;
  color: #59f6f6;
+}
+
+.div-box
+{
+ border: 1px solid #76cfd7;
+ background-color:#081e2f;
+}
+
+.button-bar
+{
+ margin:4px 4px 4px 4px;
+ background-color: #0a262f;
+ border:1px solid #2d5556;
+ border-radius:6px;
+ color:#59f6f6;
+ background-image: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#264d5c), to(#030705)); 
 }
 
 .button
@@ -17,9 +34,21 @@ body
  color: #59f6f6;
 }
 
+.button-info
+{
+ margin:6px 2px 2px 4px;
+}
+
+.tdHead
+{
+ font-size:small;
+}
+
 .tdLight
 {
  color:white;
+ text-align:right;
+ font-size:small;
 }
 
 .option-norm
@@ -28,19 +57,28 @@ body
 }
 .option-jobe
 {
- background-color:lightgreen;
+ background-color:#38b362;
 }
 
 select
 {
- width:130px;
+ width:140px;
+}
+a
+{
+ color:#219cff;
 }
 
 .modal-button 
 {
+ margin:2px 2px 2px 2px;
  background-color: #0a262f;
- color: #59f6f6;
+ border:1px solid #2d5556;
+ border-radius:9px;
+ color:#59f6f6;
+ background-image: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#264d5c), to(#030705)); 
  width: 110px;
+ height: 24px;
 }
 
 .modal-list 
@@ -62,7 +100,7 @@ select
  height:100%;
  overflow:auto;
  background-color: rgb(0,0,0);
- background-color: rgba(0,0,0,0.4);
+ background-color: rgba(0,0,0,0.5);
 }
 .modal-content
 {
@@ -97,129 +135,146 @@ select
 </head>
 <body>
 <form id="Main" action="" method="get">
-<div id="divToolBar">
- AO Implants Actions: 
- <input type="button" class="button" id="btnClear" value="Clear Implants" onclick="btnClear_Click();">
- <input type="button" class="button" id="btnSpec"  value="Find Clusters" onclick="divSpecific_Open();">
- <input type="submit" class="button" value="Prepare Bookmark">
- </div>
-
-<div id="divCBO">
-<table id="tblCBO">
- <tr>
-  <td>
-   <table id="tblImplants">
-    <tr><td>Implants</td></tr>
-    <tr><td class="tdLight">Chest</td></tr>
-    <tr><td class="tdLight">Ear</td></tr>
-    <tr><td class="tdLight">Eye</td></tr>
-    <tr><td class="tdLight">Feet</td></tr>
-    <tr><td class="tdLight">Head</td></tr>
-    <tr><td class="tdLight">Left Arm</td></tr>
-    <tr><td class="tdLight">Left Hand</td></tr>
-    <tr><td class="tdLight">Left Wrist</td></tr>
-    <tr><td class="tdLight">Legs</td></tr>
-    <tr><td class="tdLight">Right Arm</td></tr>
-    <tr><td class="tdLight">Right Hand</td></tr>
-    <tr><td class="tdLight">Right Wrist</td></tr>
-    <tr><td class="tdLight">Waist</td></tr>
-   </table>   
-  </td>
-  <td>
-   <table id="tblFaded">
-    <tr><td align="center">Faded</td></tr>
-    <tr><td><select name="cf1" id="cboFadeChest" onchange="DropDown_Change();"/></td></tr>
-    <tr><td><select name="cf2" id="cboFadeEar" onchange="DropDown_Change();"/></td></tr>
-    <tr><td><select name="cf3" id="cboFadeEye" onchange="DropDown_Change();"/></td></tr>
-    <tr><td><select name="cf4" id="cboFadeFeet" onchange="DropDown_Change();"/></td></tr>
-    <tr><td><select name="cf5" id="cboFadeHead" onchange="DropDown_Change();"/></td></tr>
-    <tr><td><select name="cf6" id="cboFadeLArm" onchange="DropDown_Change();"/></td></tr>
-    <tr><td><select name="cf7" id="cboFadeLHand" onchange="DropDown_Change();"/></td></tr>
-    <tr><td><select name="cf8" id="cboFadeLWrist" onchange="DropDown_Change();"/></td></tr>
-    <tr><td><select name="cf9" id="cboFadeLeg" onchange="DropDown_Change();"/></td></tr>
-    <tr><td><select name="cf10" id="cboFadeRArm" onchange="DropDown_Change();"/></td></tr>
-    <tr><td><select name="cf11" id="cboFadeRHand" onchange="DropDown_Change();"/></td></tr>
-    <tr><td><select name="cf12" id="cboFadeRWrist" onchange="DropDown_Change();"/></td></tr>
-    <tr><td><select name="cf13" id="cboFadeWaist" onchange="DropDown_Change();"/></td></tr>
-   </table>
-  </td>
-  <td>
-   <table id="tblBright">
-    <tr><td align="center">Bright</td></tr>
-    <tr><td><select name="cb1" id="cboBrightChest" onchange="DropDown_Change();"/></td></tr>
-    <tr><td><select name="cb2" id="cboBrightEar" onchange="DropDown_Change();"/></td></tr>
-    <tr><td><select name="cb3" id="cboBrightEye" onchange="DropDown_Change();"/></td></tr>
-    <tr><td><select name="cb4" id="cboBrightFeet" onchange="DropDown_Change();"/></td></tr>
-    <tr><td><select name="cb5" id="cboBrightHead" onchange="DropDown_Change();"/></td></tr>
-    <tr><td><select name="cb6" id="cboBrightLArm" onchange="DropDown_Change();"/></td></tr>
-    <tr><td><select name="cb7" id="cboBrightLHand" onchange="DropDown_Change();"/></td></tr>
-    <tr><td><select name="cb8" id="cboBrightLWrist" onchange="DropDown_Change();"/></td></tr>
-    <tr><td><select name="cb9" id="cboBrightLeg" onchange="DropDown_Change();"/></td></tr>
-    <tr><td><select name="cb10" id="cboBrightRArm" onchange="DropDown_Change();"/></td></tr>
-    <tr><td><select name="cb11" id="cboBrightRHand" onchange="DropDown_Change();"/></td></tr>
-    <tr><td><select name="cb12" id="cboBrightRWrist" onchange="DropDown_Change();"/></td></tr>
-    <tr><td><select name="cb13" id="cboBrightWaist" onchange="DropDown_Change();"/></td></tr>
-   </table>
-  </td>
-  <td>
-   <table id="tblShine">
-    <tr><td align="center">Shining</td></tr>
-    <tr><td><select name="cs1" id="cboShineChest" onchange="DropDown_Change();"/></td></tr>
-    <tr><td><select name="cs2" id="cboShineEar" onchange="DropDown_Change();"/></td></tr>
-    <tr><td><select name="cs3" id="cboShineEye" onchange="DropDown_Change();"/></td></tr>
-    <tr><td><select name="cs4" id="cboShineFeet" onchange="DropDown_Change();"/></td></tr>
-    <tr><td><select name="cs5" id="cboShineHead" onchange="DropDown_Change();"/></td></tr>
-    <tr><td><select name="cs6" id="cboShineLArm" onchange="DropDown_Change();"/></td></tr>
-    <tr><td><select name="cs7" id="cboShineLHand" onchange="DropDown_Change();"/></td></tr>
-    <tr><td><select name="cs8" id="cboShineLWrist" onchange="DropDown_Change();"/></td></tr>
-    <tr><td><select name="cs9" id="cboShineLeg" onchange="DropDown_Change();"/></td></tr>
-    <tr><td><select name="cs10" id="cboShineRArm" onchange="DropDown_Change();"/></td></tr>
-    <tr><td><select name="cs11" id="cboShineRHand" onchange="DropDown_Change();"/></td></tr>
-    <tr><td><select name="cs12" id="cboShineRWrist" onchange="DropDown_Change();"/></td></tr>
-    <tr><td><select name="cs13" id="cboShineWaist" onchange="DropDown_Change();"/></td></tr>
-   </table>
-  </td>
-  <td valign="top">
-   <table id="tblShopping">
-    <tr><td colspan="4" align="center">Shopping List</td></tr>
-    <tr>
-     <td>
-      <table>
-       <tr><td>Implants</td></tr>
-       <tr><td><select style="width:150px;" id="listShopImplants" size="13"/>
-       </table>
-     </td>
-     <td>
-      <table>
-       <tr><td>Faded</td></tr>
-       <tr><td><select style="width:150px;" id="listShopFaded" size="13"/>
-      </table>
-     </td>
-     <td>
-      <table>
-       <tr><td>Bright</td></tr>
-       <tr><td><select style="width:150px;" id="listShopBright" size="13"/>
-      </table>
-     </td>
-     <td>
-      <table>
-       <tr><td>Shining</td></tr>
-       <tr><td><select style="width:150px;" id="listShopShining" size="13"/>
-      </table>
-     </td>
-    </tr>
-    </table>
-   </td>
+<div id="divToolBar" class="div-box" style="width:1200px;">
+ <table>
+  <tr>
+   <td><img src="info.jpg" class="button-info" onclick="divInfo_Open();"></td>
+   <td><input type="button" class="button-bar" id="btnClear" value="Clear Implants" onclick="btnClear_Click();"></td>
+   <td><input type="button" class="button-bar" id="btnSpec"  value="Find Clusters" onclick="divSpecific_Open();"></td>
+   <td><input type="submit" class="button-bar" value="Prepare Bookmark"></td>
   </tr>
-</table> 
-</div><!-- divCBO -->
+ </table>
+</div>
 
-<div id="divSpecific" class="modal">
-<div class="modal-content">
+<div id="divCBO" class="div-box" style="width:1200px;">
 <table>
  <tr>
   <td>
    <table>
+    <tr>
+     <td class="tdHead" align="right">Implants</td>
+     <td class="tdHead" align="center">Faded</td>
+     <td class="tdHead" align="center">Bright</td>
+     <td class="tdHead" align="center">Shining</td>
+    </tr>
+    <tr>
+     <td class="tdLight">Chest</td>
+     <td><select name="cf1" id="cboFadeChest" onchange="DropDown_Change();"/></td>
+     <td><select name="cb1" id="cboBrightChest" onchange="DropDown_Change();"/></td>
+     <td><select name="cs1" id="cboShineChest" onchange="DropDown_Change();"/></td>
+    </tr>
+    <tr>
+     <td class="tdLight" nowrap>Ear</td>
+     <td><select name="cf2" id="cboFadeEar" onchange="DropDown_Change();"/></td>
+     <td><select name="cb2" id="cboBrightEar" onchange="DropDown_Change();"/></td>
+     <td><select name="cs2" id="cboShineEar" onchange="DropDown_Change();"/></td>
+    </tr>
+    <tr>
+     <td class="tdLight" nowrap>Eye</td>
+     <td><select name="cf3" id="cboFadeEye" onchange="DropDown_Change();"/></td>
+     <td><select name="cb3" id="cboBrightEye" onchange="DropDown_Change();"/></td>
+     <td><select name="cs3" id="cboShineEye" onchange="DropDown_Change();"/></td>
+    </tr>
+    <tr>
+     <td class="tdLight" nowrap>Feet</td>
+     <td><select name="cf4" id="cboFadeFeet" onchange="DropDown_Change();"/></td>
+     <td><select name="cb4" id="cboBrightFeet" onchange="DropDown_Change();"/></td>
+     <td><select name="cs4" id="cboShineFeet" onchange="DropDown_Change();"/></td>
+    </tr>
+    <tr>
+     <td class="tdLight" nowrap>Head</td>
+     <td><select name="cf5" id="cboFadeHead" onchange="DropDown_Change();"/></td>
+     <td><select name="cb5" id="cboBrightHead" onchange="DropDown_Change();"/></td>
+     <td><select name="cs5" id="cboShineHead" onchange="DropDown_Change();"/></td>
+    </tr>
+    <tr>
+     <td class="tdLight" nowrap>Left Arm</td>
+     <td><select name="cf6" id="cboFadeLArm" onchange="DropDown_Change();"/></td>
+     <td><select name="cb6" id="cboBrightLArm" onchange="DropDown_Change();"/></td>
+     <td><select name="cs6" id="cboShineLArm" onchange="DropDown_Change();"/></td>
+    </tr>
+    <tr>
+     <td class="tdLight" nowrap>Left Hand</td>
+     <td><select name="cf7" id="cboFadeLHand" onchange="DropDown_Change();"/></td>
+     <td><select name="cb7" id="cboBrightLHand" onchange="DropDown_Change();"/></td>
+     <td><select name="cs7" id="cboShineLHand" onchange="DropDown_Change();"/></td>
+    </tr>
+    <tr>
+     <td class="tdLight" nowrap>Left Wrist</td>
+     <td><select name="cf8" id="cboFadeLWrist" onchange="DropDown_Change();"/></td>
+     <td><select name="cb8" id="cboBrightLWrist" onchange="DropDown_Change();"/></td>
+     <td><select name="cs8" id="cboShineLWrist" onchange="DropDown_Change();"/></td>
+    </tr>
+    <tr>
+     <td class="tdLight" nowrap>Leg</td>
+     <td><select name="cf9" id="cboFadeLeg" onchange="DropDown_Change();"/></td>
+     <td><select name="cb9" id="cboBrightLeg" onchange="DropDown_Change();"/></td>
+     <td><select name="cs9" id="cboShineLeg" onchange="DropDown_Change();"/></td>
+    </tr>
+    <tr>
+     <td class="tdLight" nowrap>Right Arm</td>
+     <td><select name="cf10" id="cboFadeRArm" onchange="DropDown_Change();"/></td>
+     <td><select name="cb10" id="cboBrightRArm" onchange="DropDown_Change();"/></td>
+     <td><select name="cs10" id="cboShineRArm" onchange="DropDown_Change();"/></td>
+    </tr>
+    <tr>
+     <td class="tdLight" nowrap>Right Hand</td>
+     <td><select name="cf11" id="cboFadeRHand" onchange="DropDown_Change();"/></td>
+     <td><select name="cb11" id="cboBrightRHand" onchange="DropDown_Change();"/></td>
+     <td><select name="cs11" id="cboShineRHand" onchange="DropDown_Change();"/></td>
+    </tr>
+    <tr>
+     <td class="tdLight" nowrap>Right Wrist</td>
+     <td><select name="cf12" id="cboFadeRWrist" onchange="DropDown_Change();"/></td>
+     <td><select name="cb12" id="cboBrightRWrist" onchange="DropDown_Change();"/></td>
+     <td><select name="cs12" id="cboShineRWrist" onchange="DropDown_Change();"/></td>
+    </tr>
+    <tr>
+     <td class="tdLight" nowrap>Waist</td>
+     <td><select name="cf13" id="cboFadeWaist" onchange="DropDown_Change();"/></td>
+     <td><select name="cb13" id="cboBrightWaist" onchange="DropDown_Change();"/></td> 
+     <td><select name="cs13" id="cboShineWaist" onchange="DropDown_Change();"/></td>
+    </tr>
+   </table>   
+  </td>
+  <td>
+   <table style="color:#38b362;">
+    <tr><td>S</td></tr><tr><td>H</td></tr><tr><td>O</td></tr><tr><td>P</td></tr><tr><td>P</td></tr><tr><td align="center">I</td></tr><tr><td>N</td></tr><tr><td>G</td></tr>
+   </table>
+  <td valign="top">
+   <table>
+    <tr><td class="tdHead" align="center">Implants</td></tr>
+    <tr><td><select style="width:150px;" id="listShopImplants" size="17"/>
+   </table>
+  </td>
+  <td valign="top">
+   <table>
+    <tr><td class="tdHead" align="center">Faded</td></tr>
+    <tr><td><select style="width:150px;" id="listShopFaded" size="17"/>
+   </table>
+  </td>
+  <td valign="top">
+   <table>
+    <tr><td class="tdHead" align="center">Bright</td></tr>
+    <tr><td><select style="width:150px;" id="listShopBright" size="17"/>
+   </table>
+  </td>
+  <td valign="top">
+   <table>
+    <tr><td class="tdHead" align="center">Shining</td></tr>
+    <tr><td><select style="width:150px;" id="listShopShining" size="17"/>
+   </table>
+  </td>
+ </tr>
+</table>
+</div><!-- divCBO -->
+
+<div id="divSpecific" class="modal">
+<div class="modal-content" style="padding:4px 6px 4px 2px;">
+<table>
+ <tr>
+  <td>
+   <table cellspacing="0">
     <tr><td><input type="button" class="modal-button" value="Abilities" onclick="LoadSpecific(ImprovementTypeAbility);"></td></tr>
     <tr><td><input type="button" class="modal-button" value="Body&Def" onclick="LoadSpecific(ImprovementTypeBodyDef);"></td></tr>
     <tr><td><input type="button" class="modal-button" value="Melee" onclick="LoadSpecific(ImprovementTypeMelee);"></td></tr>
@@ -236,7 +291,7 @@ select
    </table>
   </td>
   <td valign="top">
-   <select id="listSpecifics" class="modal-list" size="20" onchange="listSpecifics_Change();" />
+   <select id="listSpecifics" class="modal-list" size="23" onchange="listSpecifics_Change();" />
   </td>
   </tr>
   <tr><td colspan="2" align="right"><input type="button" class="modal-button" value="Close" style="width:60px;" onclick="divSpecific_Close();"></td></tr>
@@ -244,8 +299,20 @@ select
 </div>
 </div>
 
-<div id="divShop" style="visibility:hidden;">
-</div><!-- divShop -->
+<div id="divInfo" class="modal">
+<div class="modal-content" style="padding:4px;">
+<table style="color:white;">
+ <tr><td>Anarchy Online Implant Designer</td></tr>
+ <tr><td>Version: V1.3</td></tr>
+ <tr><td>Date: 9/23/2020</td></tr>
+ <tr><td>GitHub: <a target="_blank" href="https://github.com/leotai97/"> https://github.com/leotai97/ </a></td></tr>
+ <tr><td>Discord: <a target="_blank" href="https://discord.gg/6auAGhj"> https://discord.gg/6auAGhj </a></td></tr>
+ <tr><td>YouTube: <a target="_blank" href="https://www.youtube.com/channel/UCpDF1Mn6gDMjEy8Nh-Mzh7A"> Channel B Hughes </a></td></tr>
+ <tr><td> </td></tr>
+ <tr><td align="right"><input type="button" class="modal-button" value="Close" style="width:60px;" onclick="divInfo_Close();"></td></tr>
+</table>
+</div>
+</div><!-- divInfo -->
 </form>
 <script language="javascript">
 
@@ -254,6 +321,8 @@ var IsLoading=true;
 // Elements
 
 var divSpecific=document.getElementById("divSpecific");
+var divInfo=document.getElementById("divInfo");
+
 
 // Events
 
@@ -306,10 +375,23 @@ function divSpecific_Close()
  divSpecific.style.display="none";
 }
 
+function divInfo_Open()
+{
+ divInfo.style.display="block";
+}
+
+function divInfo_Close()
+{
+ divInfo.style.display="none";
+}
+
 window.onclick = function(event)
 {
  if (event.target == divSpecific)
    divSpecific.style.display="none";
+
+ if (event.target == divInfo)
+   divInfo.style.display="none";
 }
 
 function listSpecifics_Change()
@@ -942,7 +1024,6 @@ function PopulateClusters()
  Clusters[i++]=new Cluster("Sneak Attack", Feet, RWrist, Eye, ImprovementTypeMeleeSpec);
  Clusters[i++]=new Cluster("Stamina", Chest, Leg, Waist, ImprovementTypeAbility);
  Clusters[i++]=new Cluster("Strength", RArm, LArm, Chest, ImprovementTypeAbility);
- Clusters[i++]=new Cluster("Swimming", Leg, RArm, LArm, ImprovementTypeNanos);
  Clusters[i++]=new Cluster("Time & Space", Head, RHand, Eye, ImprovementTypeNanos);
  Clusters[i++]=new Cluster("Trap Disarm", RHand, LHand, Head, ImprovementTypeCombatHeal);
  Clusters[i++]=new Cluster("Treatment", Head, Eye, RHand, ImprovementTypeCombatHeal);
@@ -955,12 +1036,12 @@ function PopulateClusters()
  Clusters[i++]=new Cluster("% Add All Def", LArm, RArm, Feet, ImprovementTypeJobe);
  Clusters[i++]=new Cluster("% Add All Off", LArm, RArm, Feet, ImprovementTypeJobe);
 
- Clusters[i++]=new Cluster("% Add. Chem Dam", RHand, LWrist, RWrist, ImprovementTypeJobe);
- Clusters[i++]=new Cluster("% Add. Energy Dam", RHand, LWrist, RWrist, ImprovementTypeJobe);
- Clusters[i++]=new Cluster("% Add. Fire Dam", RHand, LWrist, RWrist, ImprovementTypeJobe);
- Clusters[i++]=new Cluster("% Add. Melee Dam", RHand, LWrist, RWrist, ImprovementTypeJobe);
- Clusters[i++]=new Cluster("% Add. Poison Dam", RHand, LWrist, RWrist, ImprovementTypeJobe);
- Clusters[i++]=new Cluster("% Add. Proj Dam", RHand, LWrist, RWrist, ImprovementTypeJobe);
+ Clusters[i++]=new Cluster("% Add Chem Dam", RHand, LWrist, RWrist, ImprovementTypeJobe);
+ Clusters[i++]=new Cluster("% Add Energy Dam", RHand, LWrist, RWrist, ImprovementTypeJobe);
+ Clusters[i++]=new Cluster("% Add Fire Dam", RHand, LWrist, RWrist, ImprovementTypeJobe);
+ Clusters[i++]=new Cluster("% Add Melee Dam", RHand, LWrist, RWrist, ImprovementTypeJobe);
+ Clusters[i++]=new Cluster("% Add Poison Dam", RHand, LWrist, RWrist, ImprovementTypeJobe);
+ Clusters[i++]=new Cluster("% Add Proj Dam", RHand, LWrist, RWrist, ImprovementTypeJobe);
  Clusters[i++]=new Cluster("% Add.Rad Dam", RHand, LWrist, RWrist, ImprovementTypeJobe);
 
  Clusters[i++]=new Cluster("% Add XP", Ear, Feet, Leg, ImprovementTypeJobe);
@@ -968,21 +1049,21 @@ function PopulateClusters()
  Clusters[i++]=new Cluster("Max NCU", Ear, RWrist, Leg, ImprovementTypeJobe);
  Clusters[i++]=new Cluster("Nano Delta", RWrist, RArm, Feet, ImprovementTypeJobe);
  Clusters[i++]=new Cluster("Nano Point Cost", Waist, Ear, LArm, ImprovementTypeJobe);
- Clusters[i++]=new Cluster("Nano Forumla INTR", Leg, LHand, Chest, ImprovementTypeJobe);
+ Clusters[i++]=new Cluster("Nano Form intr", Leg, LHand, Chest, ImprovementTypeJobe);
  Clusters[i++]=new Cluster("RangeInc NF", Eye, Feet, RArm, ImprovementTypeJobe);
  Clusters[i++]=new Cluster("RangeInc Weap", Eye, Feet, RArm, ImprovementTypeJobe);
 
- Clusters[i++]=new Cluster("Shield Chemical AC", LHand, Feet, LWrist, ImprovementTypeJobe);
+ Clusters[i++]=new Cluster("Shield Chem AC", LHand, Feet, LWrist, ImprovementTypeJobe);
  Clusters[i++]=new Cluster("Shield Cold AC", LHand, Feet, LWrist, ImprovementTypeJobe);
  Clusters[i++]=new Cluster("Shield Melee AC", LHand, Feet, LWrist, ImprovementTypeJobe);
  Clusters[i++]=new Cluster("Shield Poison AC", LHand, Feet, LWrist, ImprovementTypeJobe);
 
  Clusters[i++]=new Cluster("Shield Energy AC", LWrist, LHand, Leg, ImprovementTypeJobe);
  Clusters[i++]=new Cluster("Shield Fire AC", LWrist, LHand, Leg, ImprovementTypeJobe);
- Clusters[i++]=new Cluster("Shield Projectile AC", LWrist, LHand, Leg, ImprovementTypeJobe);
- Clusters[i++]=new Cluster("Shield Radiation AC", LWrist, LHand, Leg, ImprovementTypeJobe);
+ Clusters[i++]=new Cluster("Shield Proj AC", LWrist, LHand, Leg, ImprovementTypeJobe);
+ Clusters[i++]=new Cluster("Shield Rad AC", LWrist, LHand, Leg, ImprovementTypeJobe);
 
- Clusters[i++]=new Cluster("Skill Time Lock Mod", Leg, LHand, Chest, ImprovementTypeJobe);
+ Clusters[i++]=new Cluster("Skill Time Lock", Leg, LHand, Chest, ImprovementTypeJobe);
 }
 
 // Initialization
