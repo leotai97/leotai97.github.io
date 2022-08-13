@@ -1,0 +1,1714 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en-us">
+<head>
+<title>Music Reference</title>
+<style type="text/css">
+ .stylePianoIvory  { background-Color:white; color:black; }
+ .stylePianoIvorySide { background-Color:white; color:black; border-left:1px solid black; }
+ .stylePianoIvoryEnd { background-Color:white; color:black; border-left:1px solid black; border-bottom:1px solid black; width:27px; }
+ .stylePianoEbony  { background-Color:black; color:white; }
+</style>
+<script type="text/javascript">
+
+var sharp='\u266F'; // Arial unicode MS
+var flat='\u266D';  
+var dim7='\u00F8';  // 0 with slash
+var fdim='\u00B0';  // degree symbol
+var major='\u25B3'; // delta symbol
+
+////////////////////////////////////////
+//  Logical Constants
+////////////////////////////////////////
+
+var m_nFrets=-1;
+
+////////////////////////////////////////
+// Globals
+////////////////////////////////////////
+
+var m_nCurrentMode=0;
+var m_nCurrentKey=-1;
+var m_arrChords;
+
+////////////////////////////////////////
+//            C o l o r s
+//////////////////////////////////////// 
+
+var m_arrBGChord=new Array();
+
+m_arrBGChord[0]=getScaleColor(2,0); //  "#B8B8FF"; // blue 
+m_arrBGChord[1]=getScaleColor(3,0); // "#B8DCFF"; // blue cyan
+m_arrBGChord[2]=getScaleColor(4,0); // "#B8FFFF"; // cyan
+m_arrBGChord[3]=getScaleColor(5,0); // "#B8FFDC"; // cyan green
+m_arrBGChord[4]=getScaleColor(6,0); // "#B8DCB8"; // green
+m_arrBGChord[5]=getScaleColor(7,0); // "#E3F2C6"; // green yellow
+
+////////////////////////////////////////
+//  Notes
+////////////////////////////////////////
+function constrNote(nNote,sText)
+{
+ var bNat=false;
+ 
+ this.note=nNote;
+ this.text=sText;
+ if (sText.length==1)
+   bNat=true;
+ this.natural=bNat;
+}
+////////////////////////////////////////
+var m_arrNote=new Array();
+
+//  C  D  E F  G  A  B
+//  0  2  4 5  7  9  11
+
+m_arrNote[0]=new constrNote(0,'C');
+m_arrNote[1]=new constrNote(1,'C'+sharp+'/D'+flat);
+m_arrNote[2]=new constrNote(2,'D');
+m_arrNote[3]=new constrNote(3,'D'+sharp+'/E'+flat);
+m_arrNote[4]=new constrNote(4,'E');
+m_arrNote[5]=new constrNote(5,'F');
+m_arrNote[6]=new constrNote(6,'F'+sharp+'/G'+flat);
+m_arrNote[7]=new constrNote(7,'G');
+m_arrNote[8]=new constrNote(8,'G'+sharp+'/A'+flat);
+m_arrNote[9]=new constrNote(9,'A');
+m_arrNote[10]=new constrNote(10,'A'+sharp+'/B'+flat);
+m_arrNote[11]=new constrNote(11,'B');
+/////////////////////////////////////////
+//  Tunings 
+/////////////////////////////////////////
+function constrTuning(sName)
+{
+ this.name=sName;
+ this.arrStrings=new Array();
+}
+//////////////////////////////////////////////
+function constrTuningString(nOct,nNote,nMidi)
+{
+ this.octave=nOct;
+ this.note=nNote;
+ this.midi=nMidi;
+}
+
+///////////////////////////////////////////////  
+//        G u i t a r    T u n i n g 
+///////////////////////////////////////////////
+var m_arrTuneGuitar=new Array();
+
+m_arrTuneGuitar[0]=new constrTuning('Standard Tuning');
+m_arrTuneGuitar[0].arrStrings[0]=new constrTuningString(4,4,64); // E
+m_arrTuneGuitar[0].arrStrings[1]=new constrTuningString(3,11,59); // B
+m_arrTuneGuitar[0].arrStrings[2]=new constrTuningString(3,7,55); // G
+m_arrTuneGuitar[0].arrStrings[3]=new constrTuningString(3,2,50); // D
+m_arrTuneGuitar[0].arrStrings[4]=new constrTuningString(2,9,45); // A
+m_arrTuneGuitar[0].arrStrings[5]=new constrTuningString(2,4,40); // E
+
+m_arrTuneGuitar[1]=new constrTuning('Half-step down');
+m_arrTuneGuitar[1].arrStrings[0]=new constrTuningString(4,3,63); // Eb
+m_arrTuneGuitar[1].arrStrings[1]=new constrTuningString(3,10,58); // Bb
+m_arrTuneGuitar[1].arrStrings[2]=new constrTuningString(3,6,54); // Gb
+m_arrTuneGuitar[1].arrStrings[3]=new constrTuningString(3,1,49); // Db
+m_arrTuneGuitar[1].arrStrings[4]=new constrTuningString(2,8,44); // Ab
+m_arrTuneGuitar[1].arrStrings[5]=new constrTuningString(2,3,39); // Eb
+
+m_arrTuneGuitar[2]=new constrTuning('Full-step down');
+m_arrTuneGuitar[2].arrStrings[0]=new constrTuningString(4,2,62); // D
+m_arrTuneGuitar[2].arrStrings[1]=new constrTuningString(3,9,57); // A
+m_arrTuneGuitar[2].arrStrings[2]=new constrTuningString(3,5,53); // F
+m_arrTuneGuitar[2].arrStrings[3]=new constrTuningString(3,0,48); // C
+m_arrTuneGuitar[2].arrStrings[4]=new constrTuningString(2,7,43); // G
+m_arrTuneGuitar[2].arrStrings[5]=new constrTuningString(2,2,38); // D
+
+m_arrTuneGuitar[3]=new constrTuning('Drop-D');
+m_arrTuneGuitar[3].arrStrings[0]=new constrTuningString(4,4,64); // E
+m_arrTuneGuitar[3].arrStrings[1]=new constrTuningString(3,11,59); // B
+m_arrTuneGuitar[3].arrStrings[2]=new constrTuningString(3,7,55); // G
+m_arrTuneGuitar[3].arrStrings[3]=new constrTuningString(3,2,50); // D
+m_arrTuneGuitar[3].arrStrings[4]=new constrTuningString(2,9,45); // A
+m_arrTuneGuitar[3].arrStrings[5]=new constrTuningString(2,2,38); // D
+
+m_arrTuneGuitar[4]=new constrTuning('Double-D');
+m_arrTuneGuitar[4].arrStrings[0]=new constrTuningString(4,2,62); // D
+m_arrTuneGuitar[4].arrStrings[1]=new constrTuningString(3,11,59); // B
+m_arrTuneGuitar[4].arrStrings[2]=new constrTuningString(3,7,55); // G
+m_arrTuneGuitar[4].arrStrings[3]=new constrTuningString(3,2,50); // D
+m_arrTuneGuitar[4].arrStrings[4]=new constrTuningString(2,9,45); // A
+m_arrTuneGuitar[4].arrStrings[5]=new constrTuningString(2,2,38); // D
+
+//  C C#/Db D D#/Eb E F F#/Gb G G#/Ab A A#/Bb B
+//  0   1   2   3   4 5   6   7   8   9   10  11
+
+m_arrTuneGuitar[5]=new constrTuning('D-Suspended (modal)'); // 6th, 2nd, & 1st strings down whole-step
+m_arrTuneGuitar[5].arrStrings[0]=new constrTuningString(4,2,62); // D
+m_arrTuneGuitar[5].arrStrings[1]=new constrTuningString(3,9,57); // A
+m_arrTuneGuitar[5].arrStrings[2]=new constrTuningString(3,7,55); // G
+m_arrTuneGuitar[5].arrStrings[3]=new constrTuningString(3,2,50); // D
+m_arrTuneGuitar[5].arrStrings[4]=new constrTuningString(2,9,45); // A
+m_arrTuneGuitar[5].arrStrings[5]=new constrTuningString(2,2,38); // D
+
+m_arrTuneGuitar[6]=new constrTuning('Open-D (fingerstyle)'); // 6th, 2nd, & 1st strings down whole-step, 3rd string down half-step
+m_arrTuneGuitar[6].arrStrings[0]=new constrTuningString(4,2,62); // D
+m_arrTuneGuitar[6].arrStrings[1]=new constrTuningString(3,9,57); // A
+m_arrTuneGuitar[6].arrStrings[2]=new constrTuningString(3,6,54); // Gb
+m_arrTuneGuitar[6].arrStrings[3]=new constrTuningString(3,2,50); // D
+m_arrTuneGuitar[6].arrStrings[4]=new constrTuningString(2,9,45); // A
+m_arrTuneGuitar[6].arrStrings[5]=new constrTuningString(2,2,38); // D
+
+m_arrTuneGuitar[7]=new constrTuning('Open-C (fingerstyle)'); // 6th string down 2 steps, 5th & 4th stgrings down whole-step, 2nd string up half-step
+m_arrTuneGuitar[7].arrStrings[0]=new constrTuningString(4,4,64); // E
+m_arrTuneGuitar[7].arrStrings[1]=new constrTuningString(4,0,60); // C
+m_arrTuneGuitar[7].arrStrings[2]=new constrTuningString(3,7,55); // G
+m_arrTuneGuitar[7].arrStrings[3]=new constrTuningString(3,0,48); // C
+m_arrTuneGuitar[7].arrStrings[4]=new constrTuningString(2,7,43); // G
+m_arrTuneGuitar[7].arrStrings[5]=new constrTuningString(2,0,36); // C
+
+m_arrTuneGuitar[8]=new constrTuning('Open-G (slide)'); // 6th, 5th, & 1st strings down whole-step
+m_arrTuneGuitar[8].arrStrings[0]=new constrTuningString(4,2,62); // D
+m_arrTuneGuitar[8].arrStrings[1]=new constrTuningString(3,11,59); // B
+m_arrTuneGuitar[8].arrStrings[2]=new constrTuningString(3,7,55); // G
+m_arrTuneGuitar[8].arrStrings[3]=new constrTuningString(3,2,50); // D
+m_arrTuneGuitar[8].arrStrings[4]=new constrTuningString(2,7,43); // G
+m_arrTuneGuitar[8].arrStrings[5]=new constrTuningString(2,2,38); // D
+
+m_arrTuneGuitar[9]=new constrTuning('Open-E (blues)');              // 5th, & 4th strings up whole-step, 3rd string up a half-step
+m_arrTuneGuitar[9].arrStrings[0]=new constrTuningString(4,4,64); // E
+m_arrTuneGuitar[9].arrStrings[1]=new constrTuningString(3,11,59); // B
+m_arrTuneGuitar[9].arrStrings[2]=new constrTuningString(3,8,56); // G#
+m_arrTuneGuitar[9].arrStrings[3]=new constrTuningString(3,4,52); // E
+m_arrTuneGuitar[9].arrStrings[4]=new constrTuningString(2,11,47); // B
+m_arrTuneGuitar[9].arrStrings[5]=new constrTuningString(2,4,40); // E
+
+m_arrTuneGuitar[10]=new constrTuning('Open-D minor');        // 6th, 3rd, 2nd, & 1st strings down whole-step
+m_arrTuneGuitar[10].arrStrings[0]=new constrTuningString(4,2,62); // D
+m_arrTuneGuitar[10].arrStrings[1]=new constrTuningString(3,9,57); // A
+m_arrTuneGuitar[10].arrStrings[2]=new constrTuningString(3,5,53); // F
+m_arrTuneGuitar[10].arrStrings[3]=new constrTuningString(3,2,50); // D
+m_arrTuneGuitar[10].arrStrings[4]=new constrTuningString(2,9,45); // A
+m_arrTuneGuitar[10].arrStrings[5]=new constrTuningString(2,2,38); // D
+
+m_arrTuneGuitar[11]=new constrTuning('Open-G minor');       // 6th, 5th, & 1st strings down whole-step, 2nd string down half-step
+m_arrTuneGuitar[11].arrStrings[0]=new constrTuningString(4,2,62); // D
+m_arrTuneGuitar[11].arrStrings[1]=new constrTuningString(3,10,58); // Bb
+m_arrTuneGuitar[11].arrStrings[2]=new constrTuningString(3,7,55); // G
+m_arrTuneGuitar[11].arrStrings[3]=new constrTuningString(3,2,50); // D
+m_arrTuneGuitar[11].arrStrings[4]=new constrTuningString(2,7,43); // G
+m_arrTuneGuitar[11].arrStrings[5]=new constrTuningString(2,2,38); // D
+
+///////////////////////////////////////////////  
+//          B a s s      T u n i n g
+///////////////////////////////////////////////
+var m_arrTuneBass=new Array();
+
+m_arrTuneBass[0]=new constrTuning('Standard Tuning');
+m_arrTuneBass[0].arrStrings[0]=new constrTuningString(2,7,43);    // G
+m_arrTuneBass[0].arrStrings[1]=new constrTuningString(2,2,38);    // D
+m_arrTuneBass[0].arrStrings[2]=new constrTuningString(1,9,33);    // A
+m_arrTuneBass[0].arrStrings[3]=new constrTuningString(1,4,28);    // E
+
+m_arrTuneBass[1]=new constrTuning('Half-step down');  // Half-step down
+m_arrTuneBass[1].arrStrings[0]=new constrTuningString(2,6,42);  // Gb
+m_arrTuneBass[1].arrStrings[1]=new constrTuningString(2,1,37);  // Db
+m_arrTuneBass[1].arrStrings[2]=new constrTuningString(1,8,32);  // Ab
+m_arrTuneBass[1].arrStrings[3]=new constrTuningString(1,3,27);  // Eb
+
+m_arrTuneBass[2]=new constrTuning('Full-step down');  // Full-step down
+m_arrTuneBass[2].arrStrings[0]=new constrTuningString(2,5,41);  // F
+m_arrTuneBass[2].arrStrings[1]=new constrTuningString(2,0,36);  // C
+m_arrTuneBass[2].arrStrings[2]=new constrTuningString(1,7,31);  // G
+m_arrTuneBass[2].arrStrings[3]=new constrTuningString(1,2,26);  // D
+
+m_arrTuneBass[3]=new constrTuning('Fifths (extended range)');  // Fifths
+m_arrTuneBass[3].arrStrings[0]=new constrTuningString(2,9,45);    // A
+m_arrTuneBass[3].arrStrings[1]=new constrTuningString(2,2,38);    // D
+m_arrTuneBass[3].arrStrings[2]=new constrTuningString(1,7,31);    // G
+m_arrTuneBass[3].arrStrings[3]=new constrTuningString(1,0,24);    // C
+
+m_arrTuneBass[4]=new constrTuning('Drop-D');           // Drop-D
+m_arrTuneBass[4].arrStrings[0]=new constrTuningString(2,7,43);  // G
+m_arrTuneBass[4].arrStrings[1]=new constrTuningString(2,2,38);  // D
+m_arrTuneBass[4].arrStrings[2]=new constrTuningString(1,9,33);  // A
+m_arrTuneBass[4].arrStrings[3]=new constrTuningString(1,2,26);    // D
+
+m_arrTuneBass[5]=new constrTuning('Drop-C');           // Drop-C
+m_arrTuneBass[5].arrStrings[0]=new constrTuningString(2,7,43);    // G
+m_arrTuneBass[5].arrStrings[1]=new constrTuningString(2,2,38);    // D
+m_arrTuneBass[5].arrStrings[2]=new constrTuningString(1,9,33);    // A
+m_arrTuneBass[5].arrStrings[3]=new constrTuningString(1,0,24);    // C
+
+m_arrTuneBass[6]=new constrTuning('Big bottom');           // Big Bottom
+m_arrTuneBass[6].arrStrings[0]=new constrTuningString(2,5,41);    // F
+m_arrTuneBass[6].arrStrings[1]=new constrTuningString(2,0,36);    // C
+m_arrTuneBass[6].arrStrings[2]=new constrTuningString(1,7,31);    // G
+m_arrTuneBass[6].arrStrings[3]=new constrTuningString(1,0,24);    // C
+
+m_arrTuneBass[7]=new constrTuning('Drop-B');           // Drop-B
+m_arrTuneBass[7].arrStrings[0]=new constrTuningString(2,4,40);    // E
+m_arrTuneBass[7].arrStrings[1]=new constrTuningString(1,11,35);    // B
+m_arrTuneBass[7].arrStrings[2]=new constrTuningString(1,6,30);    // F#
+m_arrTuneBass[7].arrStrings[3]=new constrTuningString(0,11,23);    // B
+
+m_arrTuneBass[8]=new constrTuning('Low-B');           // Low-B
+m_arrTuneBass[8].arrStrings[0]=new constrTuningString(2,2,38);    // D
+m_arrTuneBass[8].arrStrings[1]=new constrTuningString(1,9,33);    // A
+m_arrTuneBass[8].arrStrings[2]=new constrTuningString(1,4,28);    // E
+m_arrTuneBass[8].arrStrings[3]=new constrTuningString(0,11,23);    // B
+
+////////////////////////////////////////////////  
+//      M a n d o l i n    T u n i n g
+////////////////////////////////////////////////
+var m_arrTuneMandolin=new Array();
+
+m_arrTuneMandolin[0]=new constrTuning('Standard Tuning');
+m_arrTuneMandolin[0].arrStrings[0]=new constrTuningString(5,4,76);  // E <> G D A E
+m_arrTuneMandolin[0].arrStrings[1]=new constrTuningString(4,9,69);  // A
+m_arrTuneMandolin[0].arrStrings[2]=new constrTuningString(4,2,62);  // D
+m_arrTuneMandolin[0].arrStrings[3]=new constrTuningString(3,7,55);  // G
+
+m_arrTuneMandolin[1]=new constrTuning('Half-step down');
+m_arrTuneMandolin[1].arrStrings[0]=new constrTuningString(5,3,75);  // Eb
+m_arrTuneMandolin[1].arrStrings[1]=new constrTuningString(4,8,68);  // Ab
+m_arrTuneMandolin[1].arrStrings[2]=new constrTuningString(4,1,61); // Db
+m_arrTuneMandolin[1].arrStrings[3]=new constrTuningString(3,6,54);  // Gb
+
+m_arrTuneMandolin[2]=new constrTuning('Full-step down');
+m_arrTuneMandolin[2].arrStrings[0]=new constrTuningString(5,2,74);  // D
+m_arrTuneMandolin[2].arrStrings[1]=new constrTuningString(4,7,67);  // G
+m_arrTuneMandolin[2].arrStrings[2]=new constrTuningString(4,0,60);  // C
+m_arrTuneMandolin[2].arrStrings[3]=new constrTuningString(3,5,53);  // F
+
+m_arrTuneMandolin[3]=new constrTuning('Drop-D');
+m_arrTuneMandolin[3].arrStrings[0]=new constrTuningString(5,2,74);  // D
+m_arrTuneMandolin[3].arrStrings[1]=new constrTuningString(4,9,69);  // A
+m_arrTuneMandolin[3].arrStrings[2]=new constrTuningString(4,2,62);  // D
+m_arrTuneMandolin[3].arrStrings[3]=new constrTuningString(3,7,55);  // G
+
+m_arrTuneMandolin[4]=new constrTuning('D (modal)');
+m_arrTuneMandolin[4].arrStrings[0]=new constrTuningString(5,2,74);  // D
+m_arrTuneMandolin[4].arrStrings[1]=new constrTuningString(4,9,69);  // A
+m_arrTuneMandolin[4].arrStrings[2]=new constrTuningString(4,7,67);  // G
+m_arrTuneMandolin[4].arrStrings[3]=new constrTuningString(4,2,62);  // D
+
+m_arrTuneMandolin[5]=new constrTuning('Fourths');
+m_arrTuneMandolin[5].arrStrings[0]=new constrTuningString(4,5,65);  // F
+m_arrTuneMandolin[5].arrStrings[1]=new constrTuningString(4,0,60);  // C
+m_arrTuneMandolin[5].arrStrings[2]=new constrTuningString(3,7,55);  // G
+m_arrTuneMandolin[5].arrStrings[3]=new constrTuningString(3,2,50);  // D
+
+m_arrTuneMandolin[6]=new constrTuning('Open-D');
+m_arrTuneMandolin[6].arrStrings[0]=new constrTuningString(5,2,74);  // D
+m_arrTuneMandolin[6].arrStrings[1]=new constrTuningString(4,6,66);  // Gb
+m_arrTuneMandolin[6].arrStrings[2]=new constrTuningString(4,2,62);  // D
+m_arrTuneMandolin[6].arrStrings[3]=new constrTuningString(3,9,57);  // A
+
+m_arrTuneMandolin[7]=new constrTuning('Open-E');
+m_arrTuneMandolin[7].arrStrings[0]=new constrTuningString(5,4,76);  // E
+m_arrTuneMandolin[7].arrStrings[1]=new constrTuningString(4,11,67);  // B
+m_arrTuneMandolin[7].arrStrings[2]=new constrTuningString(4,4,64);  // E
+m_arrTuneMandolin[7].arrStrings[3]=new constrTuningString(3,8,56);  // G#
+
+m_arrTuneMandolin[8]=new constrTuning('Open-G');
+m_arrTuneMandolin[8].arrStrings[0]=new constrTuningString(5,2,74);  // D
+m_arrTuneMandolin[8].arrStrings[1]=new constrTuningString(4,11,71);  // B
+m_arrTuneMandolin[8].arrStrings[2]=new constrTuningString(4,2,62);  // D
+m_arrTuneMandolin[8].arrStrings[3]=new constrTuningString(3,7,55);  // G
+
+////////////////////////////////////////////////  
+//      P i a n o    T u n i n g
+////////////////////////////////////////////////
+var m_arrTunePiano=new Array();
+
+m_arrTunePiano[0]=new constrTuning('Standard Tuning');
+m_arrTunePiano[0].arrStrings[0]=new constrTuningString(3,0,48);  // E <> G D A E
+
+////////////////////////////////////////////////////////////////////////////////
+//                        I n s t r u m e n t s
+////////////////////////////////////////////////////////////////////////////////
+var m_arrStrings;  // Instrument string array
+///////////////////////////////////////////////////////////////////////////
+function makeGuitar(nTuneNdx)
+{
+ m_nFrets=23;
+ m_arrStrings=new Array(); // ndx, octave, note, midi
+
+ m_arrStrings[0]=new constrString(0,m_arrTuneGuitar[nTuneNdx].arrStrings[0].octave,m_arrTuneGuitar[nTuneNdx].arrStrings[0].note,m_arrTuneGuitar[nTuneNdx].arrStrings[0].midi);
+ m_arrStrings[1]=new constrString(1,m_arrTuneGuitar[nTuneNdx].arrStrings[1].octave,m_arrTuneGuitar[nTuneNdx].arrStrings[1].note,m_arrTuneGuitar[nTuneNdx].arrStrings[1].midi);
+ m_arrStrings[2]=new constrString(2,m_arrTuneGuitar[nTuneNdx].arrStrings[2].octave,m_arrTuneGuitar[nTuneNdx].arrStrings[2].note,m_arrTuneGuitar[nTuneNdx].arrStrings[2].midi);
+ m_arrStrings[3]=new constrString(3,m_arrTuneGuitar[nTuneNdx].arrStrings[3].octave,m_arrTuneGuitar[nTuneNdx].arrStrings[3].note,m_arrTuneGuitar[nTuneNdx].arrStrings[3].midi);
+ m_arrStrings[4]=new constrString(4,m_arrTuneGuitar[nTuneNdx].arrStrings[4].octave,m_arrTuneGuitar[nTuneNdx].arrStrings[4].note,m_arrTuneGuitar[nTuneNdx].arrStrings[4].midi);
+ m_arrStrings[5]=new constrString(5,m_arrTuneGuitar[nTuneNdx].arrStrings[5].octave,m_arrTuneGuitar[nTuneNdx].arrStrings[5].note,m_arrTuneGuitar[nTuneNdx].arrStrings[5].midi);
+}
+//////////////////////////////////////////////////////////////////////////
+// adds the bass inst
+//////////////////////////////////////////////////////////////////////////
+function makeBass(nTuneNdx)
+{
+ m_nFrets=23;
+ m_arrStrings=new Array();
+
+ m_arrStrings[0]=new constrString(0,m_arrTuneBass[nTuneNdx].arrStrings[0].octave,m_arrTuneBass[nTuneNdx].arrStrings[0].note,m_arrTuneBass[nTuneNdx].arrStrings[0].midi);
+ m_arrStrings[1]=new constrString(1,m_arrTuneBass[nTuneNdx].arrStrings[1].octave,m_arrTuneBass[nTuneNdx].arrStrings[1].note,m_arrTuneBass[nTuneNdx].arrStrings[1].midi);
+ m_arrStrings[2]=new constrString(2,m_arrTuneBass[nTuneNdx].arrStrings[2].octave,m_arrTuneBass[nTuneNdx].arrStrings[2].note,m_arrTuneBass[nTuneNdx].arrStrings[2].midi);
+ m_arrStrings[3]=new constrString(3,m_arrTuneBass[nTuneNdx].arrStrings[3].octave,m_arrTuneBass[nTuneNdx].arrStrings[3].note,m_arrTuneBass[nTuneNdx].arrStrings[3].midi);
+}
+//////////////////////////////////////////////////////////////////////////
+// adds a 4 string inst
+//////////////////////////////////////////////////////////////////////////
+function makeMandolin(nTuneNdx)
+{
+ m_nFrets=23;
+ m_arrStrings=new Array();
+
+ m_arrStrings[0]=new constrString(0,m_arrTuneMandolin[nTuneNdx].arrStrings[0].octave,m_arrTuneMandolin[nTuneNdx].arrStrings[0].note,m_arrTuneMandolin[nTuneNdx].arrStrings[0].midi);
+ m_arrStrings[1]=new constrString(1,m_arrTuneMandolin[nTuneNdx].arrStrings[1].octave,m_arrTuneMandolin[nTuneNdx].arrStrings[1].note,m_arrTuneMandolin[nTuneNdx].arrStrings[1].midi);
+ m_arrStrings[2]=new constrString(2,m_arrTuneMandolin[nTuneNdx].arrStrings[2].octave,m_arrTuneMandolin[nTuneNdx].arrStrings[2].note,m_arrTuneMandolin[nTuneNdx].arrStrings[2].midi);
+ m_arrStrings[3]=new constrString(3,m_arrTuneMandolin[nTuneNdx].arrStrings[3].octave,m_arrTuneMandolin[nTuneNdx].arrStrings[3].note,m_arrTuneMandolin[nTuneNdx].arrStrings[3].midi);
+}
+//////////////////////////////////////////////////////////////////////////
+// adds a 4 string inst
+//////////////////////////////////////////////////////////////////////////
+function makePiano(nTuneNdx)
+{
+ m_nFrets=48;
+ m_arrStrings=new Array();
+
+ m_arrStrings[0]=new constrString(0,m_arrTunePiano[nTuneNdx].arrStrings[0].octave,m_arrTunePiano[nTuneNdx].arrStrings[0].note,m_arrTunePiano[nTuneNdx].arrStrings[0].midi);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                    I n s t r u m e n t    S t r i n g     C o n s t r u c t o r
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+function constrString(nStr,nOct,nNote,nMidi)
+{
+ var i,n,o,m;
+
+ this.string=nStr; // index to itself
+ this.octave=nOct; // octave
+ this.note=nNote;  // note, index to the m_arrNote array
+ this.midi=nMidi;  // the MIDI note number
+ 
+ this.arrFrets=new Array(); // Setup array to hold each fret
+
+ m=nMidi;
+ n=nNote;
+ o=nOct;
+ for (i=0;i<m_nFrets;i++)
+  {
+   this.arrFrets[i]=new constrFret(nStr,o,n,m);
+   n+=1;
+   if (n>11)
+    {
+     n=0;
+     o+=1; // increment the octave when the note switches from B to C
+    }
+   m+=1; // midi is easy, just increment
+  }
+}
+///////////////////////////////////////////////////////////////////
+//   I n d i v i d u a l    F r e t     C o n s t r u c t o r
+///////////////////////////////////////////////////////////////////
+function constrFret(nStr,nOct,nNote,nMidi)
+{
+ this.objString=m_arrStrings[nStr];    // this is the entire string object
+ this.octave=nOct;
+ this.objNote=m_arrNote[nNote];        // is is the entire note object
+ this.midi=nMidi;
+ this.isNut=false;
+ this.isMarker=false;
+}
+////////////////////////////////////////////////////////////////
+//      C h o r d     T y p e    D e f i n i t i o n s
+////////////////////////////////////////////////////////////////
+var m_arrChordTypes=new Array();
+
+var cMaj=0; // note: these are global, not in a function
+var cMin=1;
+var cSus=2;
+var cAug=3;
+var cDim=4;
+var cMaj6=5;
+var cMin6=6;
+var cMaj7=7;
+var cMin7=8;
+var cDom7=9;
+var cHDim7=10;
+var cDim7=11;
+var cMaj9=12;
+var cMin9=13;
+var cDom9=14;
+
+m_arrChordTypes[cMaj]=new constrChordType(cMaj,     "#7BBDFF", "Major",        "",        new Array(0,4,7,0,0));
+m_arrChordTypes[cMin]=new constrChordType(cMin,     "#7BBDFF", "Minor",        "m",       new Array(0,3,7,0,0));
+m_arrChordTypes[cSus]=new constrChordType(cSus,     "#7BBDFF", "Sus4",         "sus4",    new Array(0,5,7,0,0));
+m_arrChordTypes[cAug]=new constrChordType(cAug,     "#7BBDFF", "Aug+",         "+",       new Array(0,4,8,0,0));
+m_arrChordTypes[cDim]=new constrChordType(cDim,     "#7BBDFF", "Dim",          fdim,      new Array(0,3,6,0,0));
+m_arrChordTypes[cMaj6]=new constrChordType(cMaj6,   "#7BBDFF", "Major 6th",    major+"6", new Array(0,4,7,9,0)); // 1-3-5-6
+m_arrChordTypes[cMin6]=new constrChordType(cMin6,   "#7BBDFF", "Minor 6th",    "m6",      new Array(0,3,7,9,0)); // 1-b3-5-6
+m_arrChordTypes[cMaj7]=new constrChordType(cMaj7,   "#7BBDFF", "Major 7th",    major+"7", new Array(0,4,7,11,0));
+m_arrChordTypes[cMin7]=new constrChordType(cMin7,   "#7BBDFF", "Minor 7th",    "m7",      new Array(0,3,7,11,0));
+m_arrChordTypes[cDom7]=new constrChordType(cDom7,   "#7BBDFF", "Dom 7th",      "7",       new Array(0,4,7,10,0));
+m_arrChordTypes[cHDim7]=new constrChordType(cHDim7, "#7BBDFF", "Half Dim 7th", dim7+"7",  new Array(0,3,6,10,0));
+m_arrChordTypes[cDim7]=new constrChordType(cDim7,   "#7BBDFF", "Dim 7th",      fdim+"7",  new Array(0,3,6,9,0));
+m_arrChordTypes[cMaj9]=new constrChordType(cMaj9,   "#7BBDFF", "Major 9th",    major+"9", new Array(0,4,7,11,14));
+m_arrChordTypes[cMin9]=new constrChordType(cMin9,   "#7BBDFF", "Minor 9th",    "m9",      new Array(0,3,7,10,14));
+m_arrChordTypes[cDom9]=new constrChordType(cDom9,   "#7BBDFF", "Dom 9th",      "9",       new Array(0,4,7,10,14));
+
+// If any part is zero except root it is not played
+// power chords would be available for definition
+
+/////////////////////////////////////////////////////////////
+// chordType constructor
+/////////////////////////////////////////////////////////////
+function constrChordType(ndx,sColor,sName,abbrev,oArray)
+{
+ this.index=ndx;
+ this.color=sColor;
+ this.name=sName;
+ this.shortName=abbrev;
+ this.noteCount=oArray.length;
+ this.arrIntegers=oArray;
+
+ this.root="";
+ this.third="";
+ this.fifth="";
+ this.seventh="";
+ this.ninth="";
+
+ switch(oArray[0])
+  {
+   case 0: this.root="1";   break;
+   case 1: this.root="#1";  break;
+   case 2: this.root="##1"; break;
+  }
+
+ switch(oArray[1])
+  {
+   case 2: this.third="bb3"; break;
+   case 3: this.third="b3";  break;
+   case 4: this.third="3";   break;
+   case 5: this.third="#3";  break;
+   case 6: this.third="##3"; break;
+  }
+
+ switch(oArray[2])
+  {
+   case 5: this.fifth="bb5"; break;
+   case 6: this.fifth="b5";  break;
+   case 7: this.fifth="5";   break;
+   case 8: this.fifth="#5";  break;
+   case 9: this.fifth="##5"; break;
+  }
+
+ switch(oArray[3])
+  {
+   case 9: if (ndx==cDim7) this.seventh="bb7"; else this.seventh="6"; break;
+   case 10: this.seventh="b7";  break;
+   case 11: this.seventh="7";   break;
+   case 12: this.seventh="#7";  break;
+   case 13: this.seventh="##7"; break;
+  }
+
+ switch(oArray[4])
+  {
+   case 12: this.ninth="bb9"; break;
+   case 13: this.ninth="b9";  break;
+   case 14: this.ninth="9";   break;
+   case 15: this.ninth="#9";  break;
+   case 16: this.ninth="##9"; break;
+  }
+
+ this.formula=this.root;
+ 
+ if (this.third!="")   this.formula+="-"+this.third;
+ if (this.fifth!="")   this.formula+="-"+this.fifth;
+ if (this.seventh!="") this.formula+="-"+this.seventh;
+ if (this.ninth!="")   this.formula+="-"+this.ninth;
+
+}
+//////////////////////////////////////////////////////////////////////////
+//                        M o d e s    a r r a y
+//////////////////////////////////////////////////////////////////////////
+m_arrModes=new Array();
+
+m_arrModes[0]=new constrMode(0,"#7BBDFF","Ionian (Major)",new Array(2,2,1,2,2,2,1),new Array(cMaj,cMin,cMin,cMaj,cMaj,cMin,cDim));
+m_arrModes[1]=new constrMode(1,"#7BBDFF","Dorian",new Array(2,1,2,2,2,1,2),new Array(cMin,cMin,cMaj,cMaj,cMin,cDim,cMaj));
+m_arrModes[2]=new constrMode(2,"#7BBDFF","Phrygian",new Array(1,2,2,2,1,2,2),new Array(cMin,cMaj,cMaj,cMin,cDim,cMaj,cMin));
+m_arrModes[3]=new constrMode(3,"#7BBDFF","Lydian",new Array(2,2,2,1,2,2,1),new Array(cMaj,cMaj,cMin,cDim,cMaj,cMin,cMin));
+m_arrModes[4]=new constrMode(4,"#7BBDFF","Mixolydian",new Array(2,2,1,2,2,1,2),new Array(cMaj,cMin,cDim,cMaj,cMin,cMin,cMaj));
+m_arrModes[5]=new constrMode(5,"#7BBDFF","Aeolian (minor)",new Array(2,1,2,2,1,2,2),new Array(cMin,cDim,cMaj,cMin,cMin,cMaj,cMaj));
+m_arrModes[6]=new constrMode(6,"#7BBDFF","Locrian",new Array(1,2,2,1,2,2,2),new Array(cDim,cMaj,cMin,cMin,cMaj,cMaj,cMin));
+
+m_arrModes[7]=new constrMode(7,"#7BFFBD","Major 7th",new Array(2,2,1,2,2,2,1),new Array(cMaj7,cMin7,cMin7,cMaj7,cDom7,cMin7,cHDim7));
+m_arrModes[8]=new constrMode(8,"#7BFFBD","Minor 7th",new Array(2,1,2,2,1,2,2),new Array(cMin7,cHDim7,cMaj7,cMin7,cMin7,cMaj7,cDom7));
+
+m_arrModes[9]=new constrMode(9,"#FFFF7B","Harmonic Major",new Array(2,2,1,2,2,3,1),new Array(cMaj,cMin,cMin,cMaj,cMaj,cMin,cDim));
+m_arrModes[10]=new constrMode(10,"#FFFF7B","Harmonic minor",new Array(2,1,2,2,1,3,1),new Array(cMin,cDim,cAug,cMin,cMaj,cMaj,cDim));
+m_arrModes[11]=new constrMode(11,"#FFFF7B","Melodic minor (ascending)",new Array(2,1,2,2,2,2,1),new Array(cMin,cMin,cAug,cMaj,cMaj,cDim,cDim));
+m_arrModes[12]=new constrMode(12,"#FFFF7B","Gypsy minor",new Array(2,1,3,1,1,2,2),new Array(cMin,cDim,cMaj,cMin,cMin,cMaj,cMaj));
+m_arrModes[13]=new constrMode(13,"#FFFF7B","Hungarian minor",new Array(2,1,3,1,1,3,1),new Array(cMin,cDim,cMaj,cMin,cMin,cMaj,cMaj));
+m_arrModes[14]=new constrMode(14,"#FFFF7B","Persian minor",new Array(1,3,1,1,2,3,1),new Array(cMin,cDim,cMaj,cMin,cMin,cMaj,cMaj));
+m_arrModes[15]=new constrMode(15,"#FFFF7B","Spanish minor",new Array(1,3,1,2,1,2,2),new Array(cMin,cDim,cMaj,cMin,cMin,cMaj,cMaj));
+
+m_arrModes[16]=new constrMode(16,"#FFB8FF","Altered Dominant",new Array(1,2,1,2,2,2,2),new Array(cDim,cMaj,cMin,cMin,cMaj,cMaj,cMin));
+m_arrModes[17]=new constrMode(17,"#FFB8FF","Overtone Dominant",new Array(2,2,2,1,2,1,2),new Array(cMaj,cMaj,cMin,cDim,cMaj,cMin,cMin));
+m_arrModes[18]=new constrMode(18,"#FFB8FF","Augmented Whole Tone",new Array(2,2,2,2,2,2,2),new Array(cMin,cDim,cMaj,cMin,cMin,cMaj,cMaj));
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// mode constructor. nNdx=mode number, sName=visible text name, oArray=array of scale progressions (integer based), oChordType array=list of the chord types, major minor dim etc.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+function constrMode(nNdx,sBGColor,sName,oArray,oChordType)
+{
+ this.index=nNdx;
+ this.modeName=sName;
+ this.arrSequence=oArray;
+ this.arrChordType=oChordType;
+ this.background=sBGColor;
+}
+///////////////////////////////////////////////////////////////////////////////////////
+// M a k e    C h o r d s    specific traditional harmony "mode"
+///////////////////////////////////////////////////////////////////////////////////////
+function makeChords(nKey,nMode)  // Starting key note and the mode number
+{
+ var n,sText,sAdd,i;
+ 
+ m_arrChords=new Array();
+ n=nKey;
+
+ sText=m_arrNote[nKey].text;
+
+ if(sText.length>1)
+   sText=sText.substr(3,1);
+
+  // sText=m_arrNote[nKey].text.substr(0,1);
+
+ for (i=0;i<7;i++)
+  {
+   sAdd="Err";
+   if (m_arrNote[n].text.length==1)
+    {
+     if (m_arrNote[n].natural==true && sText==m_arrNote[n].text)
+      {
+       sAdd="";
+      }
+     else
+      {
+       if (sText<m_arrNote[n].text)
+        {
+         sAdd=sharp;
+        }
+       else
+        {
+         sAdd=flat;
+        }
+      }
+    }
+   else
+    {
+     if (sText==m_arrNote[n].text.substr(0,1))
+      {
+       sAdd=sharp;
+      }
+     else
+      {
+       if (sText==m_arrNote[n].text.substr(3,1))
+        {
+         sAdd=flat;
+        }
+      }
+    }    
+   m_arrChords[i]=new constrChord(n,sText+sAdd,m_arrChordTypes[m_arrModes[nMode].arrChordType[i]]);
+   n=addStep(n,m_arrModes[nMode].arrSequence[i]);
+   sText=String.fromCharCode(sText.charCodeAt(0)+1);
+   if (sText=="H")
+     sText="A";
+  }
+}
+////////////////////////////////////////////////////////////////////
+//               C h o r d    C o n s t r u c t o r
+////////////////////////////////////////////////////////////////////
+function constrChord(nNote,sText,oChordType)
+{
+ this.text=sText;
+ this.text+=oChordType.shortName;
+
+ this.root=addStep(nNote,oChordType.arrIntegers[0]);
+
+ if (oChordType.arrIntegers[1]!=0) this.third=addStep(nNote,oChordType.arrIntegers[1]);    else this.third=-1;
+ if (oChordType.arrIntegers[2]!=0) this.fifth=addStep(nNote,oChordType.arrIntegers[2]);    else this.fifth=-1;
+ if (oChordType.arrIntegers[3]!=0) this.seventh=addStep(nNote,oChordType.arrIntegers[3]);  else this.seventh=-1;
+ if (oChordType.arrIntegers[4]!=0) this.ninth=addStep(nNote,oChordType.arrIntegers[4]);    else this.ninth=-1;
+
+ this.rootText=oChordType.root;
+ this.thirdText=oChordType.third;
+ this.fifthText=oChordType.fifth;
+ this.seventhText=oChordType.seventh;
+ this.ninthText=oChordType.ninth;
+
+ this.rootInt=oChordType.arrIntegers[0];
+ this.thirdInt=oChordType.arrIntegers[1];
+ this.fifthInt=oChordType.arrIntegers[2];
+ this.seventhInt=oChordType.arrIntegers[3];
+ this.ninthInt=oChordType.arrIntegers[4];
+}
+/////////////////////////////////////////////////////////////////////////////
+//                            U t i l i t y 
+/////////////////////////////////////////////////////////////////////////////
+function getMarking(nFret)
+{
+ if (nFret==0) return  1;  // nut
+ if (nFret==12) return 2;  // double mark
+ if (nFret==3 || nFret==5 || nFret==9 || nFret==15 || nFret==17 || nFret==19 || nFret==21) return 3; // single mark
+ return 0; // normal 
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// VERY IMPORTANT FUNCTION -- It does note math, adding increments to notes and wrapping B back to C
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+function addStep(nOrigVal,nStep)  // nOrg is the original note
+{
+ var n=nOrigVal+nStep;
+
+ if (n>23) // sometimes increments pass into the 2nd octave beyond the root of "0"
+  {
+   n-=24;
+   return n;
+  }
+
+ if (n>11)
+   n-=12;
+
+ return n;
+}
+/////////////////////////////////////////////////////////////////////////////
+//           S c a l e      C o l o r     G e n e r a t o r
+/////////////////////////////////////////////////////////////////////////////
+function getScaleColor(nSet,nItem)
+{
+ switch(nSet)
+  {
+   case 0:
+    {
+     switch(nItem) 
+      {      
+       case 0: return "#FF3D3D";
+       case 1: return "#FF5050";
+       case 2: return "#FF6363";
+       case 3: return "#FF7676";
+       case 4: return "#FF8989";
+       case 5: return "#FF9C9C";
+       case 6: return "#FFAFAF";
+       case 7: return "#FFC2C2";
+       case 8: return "#FFD5D5";
+      }
+    }    
+   case 1: 
+    {
+     switch(nItem)
+      {
+       case 0: return "#FFFF47";
+       case 1: return "#FFFF59";
+       case 2: return "#FFFF6B";
+       case 3: return "#FFFF7D";
+       case 4: return "#FFFF8F";
+       case 5: return "#FFFFA1";
+       case 6: return "#FFFFB3";
+       case 7: return "#FFFFC5";
+       case 8: return "#FFFFD7";
+      }
+    }
+   case 2: 
+    {
+     switch(nItem)
+      {    
+       case 0: return "#28BC28";
+       case 1: return "#3EC33E";
+       case 2: return "#54CA54";
+       case 3: return "#6AD16A";
+       case 4: return "#80D880";
+       case 5: return "#96DF96";
+       case 6: return "#ACE6AC";
+       case 7: return "#C2EDC2";
+       case 8: return "#D8F4D8";
+      }
+    } 
+   case 3: 
+    {
+     switch(nItem)
+      {      
+       case 0: return "#3DFF9F";
+       case 1: return "#50FFA9";
+       case 2: return "#63FFB3";
+       case 3: return "#76FFBD";
+       case 4: return "#89FFC7";
+       case 5: return "#9CFFD1";
+       case 6: return "#AFFFDB";
+       case 7: return "#C2FFE5";
+       case 8: return "#D5FFEF";
+      }  
+    }
+   case 4: 
+    {
+     switch(nItem)
+      {        
+       case 0: return "#7BFFFF";
+       case 1: return "#88FFFF";
+       case 2: return "#95FFFF";
+       case 3: return "#A2FFFF";
+       case 4: return "#AFFFFF";
+       case 5: return "#BCFFFF";
+       case 6: return "#C9FFFF";
+       case 7: return "#D6FFFF";
+       case 8: return "#E3FFFF";
+      }  
+    }
+   case 5: 
+    {
+     switch(nItem)
+      {
+       case 0: return "#80BDFF";
+       case 1: return "#8DC4FF";
+       case 2: return "#9ACBFF";
+       case 3: return "#A7D2FF";
+       case 4: return "#B4D9FF";
+       case 5: return "#C1E0FF";
+       case 6: return "#CEE7FF";
+       case 7: return "#DBEEFF";
+       case 8: return "#E8F5FF";
+      }  
+    }
+   case 6: 
+    {
+     switch(nItem)
+      {
+//       case 0: return "#6464FF";
+       case 0: return "#7474FF";
+       case 1: return "#8484FF";
+       case 2: return "#9494FF";
+       case 3: return "#A4A4FF";
+       case 4: return "#B4B4FF";
+       case 5: return "#C4C4FF";
+       case 6: return "#D4D4FF";
+       case 7: return "#E4E4FF";
+       case 8: return "#F4F4FF";
+      }  
+    }     
+   case 7: 
+    {
+     switch(nItem)
+      {
+       case 0: return "#9F3DFF";
+       case 1: return "#A950FF";
+       case 2: return "#B363FF";
+       case 3: return "#BD76FF";
+       case 4: return "#C789FF";
+       case 5: return "#D19CFF";
+       case 6: return "#DBAFFF";
+       case 7: return "#E5C2FF";
+       case 8: return "#EFD5FF";
+      }  
+    } 
+   case 8: 
+    {
+     switch(nItem)
+      {
+       case 0: return "#FF7BFF";
+       case 1: return "#FF88FF";
+       case 2: return "#FF95FF";
+       case 3: return "#FFA2FF";
+       case 4: return "#FFAFFF";
+       case 5: return "#FFBCFF";
+       case 6: return "#FFC9FF";
+       case 7: return "#FFD6FF";
+       case 8: return "#FFE3FF";
+      }  
+    }     
+   case 9: 
+    {
+     switch(nItem)
+      {
+      case 0: return "#FF3D9F";
+      case 1: return "#FF50A9";
+      case 2: return "#FF63B3";
+      case 3: return "#FF76BD";
+      case 4: return "#FF89C7";
+      case 5: return "#FF9CD1";
+      case 6: return "#FFAFDB";
+      case 7: return "#FFC2E5";
+      case 8: return "#FFD5EF";
+
+      }  
+    } 
+  }
+ alert("color error, nSet="+nSet+", nItem="+nItem);
+}
+/////////////////////////////////////////////////////////////////////////////
+//       D Y N A M I C    C O N T E N T     G E N E R A T I O N
+/////////////////////////////////////////////////////////////////////////////
+function dynaModesLoader()
+{
+ var i,oOption;
+ 
+ document.getElementById('cboMode').options.length=0;
+ 
+ for (i=0;i<m_arrModes.length;i++)
+  {
+   oOption=document.createElement("OPTION");
+   oOption.style.backgroundColor=m_arrModes[i].background;
+   oOption.text=m_arrModes[i].modeName;
+   oOption.value=m_arrModes[i].index;
+   document.getElementById('cboMode').options.add(oOption);
+  }
+}
+/////////////////////////////////////////////////////////////////////////////
+function dynaFretBoardLoader(sID,nID,nFrets)
+{
+ var nMinSize=40;
+ var nSW,nWidth,s,i;
+ var n1,n2;
+ var w=document.body.offsetWidth-(nMinSize*2);
+ var sFG, nMark;
+ 
+ n1=nMinSize*nFrets;
+ n2=w-n1;
+ nSW=nMinSize+n2;
+ if (nSW>nFrets+nMinSize)
+   nSW=nFrets+nMinSize; 
+
+ s="<TABLE STYLE='background-Color:WHEAT;'>";
+ for (i=0;i<m_arrStrings.length;i++)
+  {
+   nWidth=nSW;
+   s+="\n <TR>";
+   for (j=0;j<nFrets;j++)
+    {
+     nMark=getMarking(j);
+     n1=nWidth;
+     if (j==0) 
+       n1=nMinSize;
+     s+="<TD ALIGN=CENTER WIDTH="+n1+" STYLE='background-Color:";
+     switch(nMark)
+      {
+       default:
+       case 0: s+="BISQUE;'>"; break; // normal
+       case 1: s+="SILVER;'>"; break; // nut
+       case 2: s+="AZURE;'>"; break; // 12th 
+       case 3: s+="WHITE;'>"; break; // marked
+      }
+     s+="<DIV ID='divFret_B"+nID+"_S"+i+"_F"+j+"' TITLE='"+m_arrStrings[i].arrFrets[j].midi+"' ";
+     s+="style='width:"+nMinSize+"; text-align:center; border:1px solid LightSteelBlue; font-size:10pt; color:BLACK;' ";
+     s+=">"+m_arrStrings[i].arrFrets[j].objNote.text;
+     s+="</DIV></TD>";
+     if (nWidth>nMinSize)
+       nWidth-=1;
+    }
+   s+="\n</TR>";
+  }
+ s+="\n</TABLE>";
+ 
+//alert(s);
+ 
+ document.getElementById(sID).innerHTML=s;
+}
+/////////////////////////////////////////////////////////////////////////////
+function dynaPianoLoader(sID,nID,nKeys)
+{
+ var i,nKey,s;
+ var nOctaves=nKeys/12;
+
+ s="<TABLE BORDER=0 CELLPADDING=5 CELLSPACING=0 STYLE='background-Color:white;'>";
+ s+="<TR>";
+ 
+ for (i=0;i<nOctaves;i++)
+  {
+   nKey=12*i;
+   s+="<TD class='stylePianoIvorySide'>&nbsp;</TD>";
+   s+="<TD class=stylePianoEbony COLSPAN=2 ROWSPAN=2 ALIGN=CENTER><div id='divFret_B"+nID+"_S0_F"+(1+nKey)+"'>C#<BR>Db</div></TD>";
+   s+="<TD class='stylePianoIvory'>&nbsp;</TD>";
+   s+="<TD class=stylePianoEbony COLSPAN=2 ROWSPAN=2 ALIGN=CENTER><div id='divFret_B"+nID+"_S0_F"+(3+nKey)+"'>D#<BR>Eb</div></TD>";
+   s+="<TD class='stylePianoIvory'>&nbsp;</TD>";
+   s+="<TD class='stylePianoIvorySide'>&nbsp;</TD>";
+   s+="<TD class=stylePianoEbony COLSPAN=2 ROWSPAN=2 ALIGN=CENTER><div id='divFret_B"+nID+"_S0_F"+(6+nKey)+"'>F#<BR>Gb</div></TD>";
+   s+="<TD class='stylePianoIvory'>&nbsp;</TD>";
+   s+="<TD class=stylePianoEbony COLSPAN=2 ROWSPAN=2 ALIGN=CENTER><div id='divFret_B"+nID+"_S0_F"+(8+nKey)+"'>G#<BR>Ab</div></TD>";
+   s+="<TD class='stylePianoIvory'>&nbsp;</TD>";
+   s+="<TD class=stylePianoEbony COLSPAN=2 ROWSPAN=2 ALIGN=CENTER><div id='divFret_B"+nID+"_S0_F"+(10+nKey)+"'>A#<BR>Bb</div></TD>";
+   s+="<TD class='stylePianoIvory'>&nbsp;</TD>";
+  }
+ 
+ s+="</TR>\n";
+ s+="<TR>";
+
+ for (i=0;i<nOctaves;i++)
+  {
+   s+="<TD class=stylePianoIvorySide>&nbsp;</TD>";
+   s+="<TD class=stylePianoIvory>&nbsp;</TD>";
+   s+="<TD class=stylePianoIvory>&nbsp;</TD>";
+   s+="<TD class=stylePianoIvorySide>&nbsp;</TD>";
+   s+="<TD class=stylePianoIvory>&nbsp;</TD>";
+   s+="<TD class=stylePianoIvory>&nbsp;</TD>";
+   s+="<TD class=stylePianoIvory>&nbsp;</TD>";
+  }
+ 
+ s+="</TR>\n";
+ s+="<TR>";
+
+ for (i=0;i<nOctaves;i++)
+  {
+   s+="<TD class=stylePianoIvorySide COLSPAN=2 ALIGN=CENTER>&nbsp;</TD>";
+   s+="<TD class=stylePianoIvorySide COLSPAN=3 ALIGN=CENTER>&nbsp;</TD>";
+   s+="<TD class=stylePianoIvorySide COLSPAN=2 ALIGN=CENTER>&nbsp;</TD>";
+   s+="<TD class=stylePianoIvorySide COLSPAN=2 ALIGN=CENTER>&nbsp;</TD>";
+   s+="<TD class=stylePianoIvorySide COLSPAN=3 ALIGN=CENTER>&nbsp;</TD>";
+   s+="<TD class=stylePianoIvorySide COLSPAN=3 ALIGN=CENTER>&nbsp;</TD>";
+   s+="<TD class=stylePianoIvorySide COLSPAN=2 ALIGN=CENTER>&nbsp;</TD>";
+  }
+ 
+ s+="</TR>\n";
+ s+="<TR>";
+
+ for (i=0;i<nOctaves;i++)  // 1 3 6 8 10
+  {
+   nKey=12*i; 
+   s+="<TD  class=stylePianoIvoryEnd COLSPAN=2 ALIGN=CENTER><DIV id='divFret_B"+nID+"_S0_F"+(0+nKey)+"' style='text-align:center;'>C</DIV></TD>";
+   s+="<TD  class=stylePianoIvoryEnd COLSPAN=3 ALIGN=CENTER><DIV id='divFret_B"+nID+"_S0_F"+(2+nKey)+"' style='text-align:center;'>D</DIV></TD>";
+   s+="<TD  class=stylePianoIvoryEnd COLSPAN=2 ALIGN=CENTER><DIV id='divFret_B"+nID+"_S0_F"+(4+nKey)+"' style='text-align:center;'>E</DIV></TD>";
+   s+="<TD  class=stylePianoIvoryEnd COLSPAN=2 ALIGN=CENTER><DIV id='divFret_B"+nID+"_S0_F"+(5+nKey)+"' style='text-align:center;'>F</DIV></TD>";
+   s+="<TD  class=stylePianoIvoryEnd COLSPAN=3 ALIGN=CENTER><DIV id='divFret_B"+nID+"_S0_F"+(7+nKey)+"' style='text-align:center;'>G</DIV></TD>";
+   s+="<TD  class=stylePianoIvoryEnd COLSPAN=3 ALIGN=CENTER><DIV id='divFret_B"+nID+"_S0_F"+(9+nKey)+"' style='text-align:center;'>A</DIV></TD>";
+   s+="<TD  class=stylePianoIvoryEnd COLSPAN=2 ALIGN=CENTER><DIV id='divFret_B"+nID+"_S0_F"+(11+nKey)+"' style='text-align:center;'>B</DIV></TD></TD>";
+   }
+
+ s+="</TABLE>";
+ 
+ // alert(s);
+ 
+ document.getElementById(sID).innerHTML=s;
+}
+/////////////////////////////////////////////////////////////////////////////
+function dynaSetupGuitar()
+{
+ var s,i;
+
+ makeGuitar(0); // start with standard tuning
+ dynaFretBoardLoader("divFBScales",1,m_nFrets);
+ dynaFretBoardLoader("divFBChords",2,m_nFrets);
+ 
+ dynaFretBoardLoader("divShortChord0",3,11);
+ dynaFretBoardLoader("divShortChord1",4,11);
+ dynaFretBoardLoader("divShortChord2",5,11);
+ dynaFretBoardLoader("divShortChord3",6,11);
+ dynaFretBoardLoader("divShortChord4",7,11);
+ dynaFretBoardLoader("divShortChord5",8,11);
+ dynaFretBoardLoader("divShortChord6",9,11);
+ 
+ eventModeChoice_Change();
+
+ s="<SELECT ID='cboTuning' ONCHANGE='cboTuneGuitar_Change();'>";
+ for (i=0;i<m_arrTuneGuitar.length;i++)
+  {
+   s+="<OPTION VALUE="+i+">"+m_arrTuneGuitar[i].name+"</OPTION>";
+  }
+ s+="</SELECT>";
+
+ document.getElementById('spanTuning').innerHTML=s;
+}
+///////////////////////////////
+function dynaSetupMandolin()
+{
+ var s,i;
+
+ makeMandolin(0);
+ dynaFretBoardLoader("divFBScales",1,m_nFrets);
+ dynaFretBoardLoader("divFBChords",2,m_nFrets);
+ 
+ dynaFretBoardLoader("divShortChord0",3,11);
+ dynaFretBoardLoader("divShortChord1",4,11);
+ dynaFretBoardLoader("divShortChord2",5,11);
+ dynaFretBoardLoader("divShortChord3",6,11);
+ dynaFretBoardLoader("divShortChord4",7,11);
+ dynaFretBoardLoader("divShortChord5",8,11);
+ dynaFretBoardLoader("divShortChord6",9,11);
+ 
+ eventModeChoice_Change();
+
+ s="<SELECT ID=cboTuning ONCHANGE='cboTuneMandolin_Change();'>";
+ for (i=0;i<m_arrTuneMandolin.length;i++)
+  {
+   s+="<OPTION VALUE="+i+">"+m_arrTuneMandolin[i].name+"</OPTION>";
+  }
+ s+="</SELECT>";
+
+ document.getElementById('spanTuning').innerHTML=s;
+}
+////////////////////////
+function dynaSetupBass()
+{
+ var s,i;
+
+ makeBass(0);
+ dynaFretBoardLoader("divFBScales",1,m_nFrets);
+ dynaFretBoardLoader("divFBChords",2,m_nFrets);
+ 
+ dynaFretBoardLoader("divShortChord0",3,11);
+ dynaFretBoardLoader("divShortChord1",4,11);
+ dynaFretBoardLoader("divShortChord2",5,11);
+ dynaFretBoardLoader("divShortChord3",6,11);
+ dynaFretBoardLoader("divShortChord4",7,11);
+ dynaFretBoardLoader("divShortChord5",8,11);
+ dynaFretBoardLoader("divShortChord6",9,11);
+ 
+ eventModeChoice_Change();
+
+ s="<SELECT ID=cboTuning ONCHANGE='cboTuneBass_Change();'>";
+ for (i=0;i<m_arrTuneBass.length;i++)
+  {
+   s+="<OPTION VALUE="+i+">"+m_arrTuneBass[i].name+"</OPTION>";
+  }
+ s+="</SELECT>";
+
+ document.getElementById('spanTuning').innerHTML=s;
+}
+////////////////////////
+function dynaSetupPiano()
+{
+ var s,i;
+
+ makePiano(0);
+ dynaPianoLoader("divFBScales",1,48);
+ dynaPianoLoader("divFBChords",2,48);
+ 
+ dynaPianoLoader("divShortChord0",3,24);
+ dynaPianoLoader("divShortChord1",4,24);
+ dynaPianoLoader("divShortChord2",5,24);
+ dynaPianoLoader("divShortChord3",6,24);
+ dynaPianoLoader("divShortChord4",7,24);
+ dynaPianoLoader("divShortChord5",8,24);
+ dynaPianoLoader("divShortChord6",9,24);
+ 
+ eventModeChoice_Change();
+
+ s="<SELECT ID=cboTuning ONCHANGE='cboTunePiano_Change();'>";
+ for (i=0;i<m_arrTunePiano.length;i++)
+  {
+   s+="<OPTION VALUE="+i+">"+m_arrTunePiano[i].name+"</OPTION>";
+  }
+ s+="</SELECT>";
+
+ document.getElementById('spanTuning').innerHTML=s;
+}
+///////////////////////////////////////////////////////////
+//  S p e c i f i c      C h o r d      L i s t
+///////////////////////////////////////////////////////////
+function dynaLoadSpecificChordCBO()
+{
+ var i,s,sn;
+
+ s="<SELECT ID=cboChordType STYLE='font-family:courier new; font-size:10pt;' ONCHANGE='eventSpecificChord_Change();'>";
+ s+="<OPTION VALUE='Z'>Off</OPTION>";
+
+ for (i=0;i<m_arrChordTypes.length;i++)
+  {
+   s+="<OPTION VALUE="+m_arrChordTypes[i].index+" ";
+   s+=" STYLE='background-Color:"+m_arrChordTypes[i].color+";'>";
+   sn=m_arrChordTypes[i].name+"_____________________________________";
+   s+=sn.substr(0,9);
+   s+="("+m_arrChordTypes[i].formula+")";
+   s+="</OPTION>";
+  }
+ s+="</SELECT>";
+
+ document.getElementById('divChordTypeCBO').innerHTML=s;
+
+}
+///////////////////////////////////////////////////////////////////////////////////////
+//          L o a d     C h o r d     F o r m u l a
+///////////////////////////////////////////////////////////////////////////////////////
+function dynaLoadFormula(oChord)
+{
+ var s,sText;
+
+ sText=oChord.text;
+ if (sText.length==1)
+   sText+=major;
+
+ s="<TABLE>";
+ 
+ s+="<TR><TD COLSPAN=6 ALIGN=CENTER STYLE='color:white;'>Formula "+sText+"</TD></TR>";
+ 
+ s+="<TR>";
+ s+="<TD>&nbsp;</TD>";
+ s+="<TD WIDTH=55 ALIGN=CENTER STYLE='background-Color:"+m_arrBGChord[0]+";'>Root</TD>";
+ s+="<TD WIDTH=55 ALIGN=CENTER STYLE='background-Color:"+m_arrBGChord[1]+";'>3rd</TD>";
+ s+="<TD WIDTH=55 ALIGN=CENTER STYLE='background-Color:"+m_arrBGChord[2]+";'>5th</TD>";
+ s+="<TD WIDTH=55 ALIGN=CENTER STYLE='background-Color:"+m_arrBGChord[3]+";'>7th</TD>";
+ s+="<TD WIDTH=55 ALIGN=CENTER STYLE='background-Color:"+m_arrBGChord[4]+";'>9th</TD>";
+ s+="</TR>";
+ 
+ s+="<TR>";
+ s+="<TD ALIGN=CENTER>Note</TD>";
+ s+="<TD ALIGN=CENTER>"+m_arrNote[oChord.root].text+"</TD>";
+ s+="<TD ALIGN=CENTER>"+m_arrNote[oChord.third].text+"</TD>";
+ s+="<TD ALIGN=CENTER>"+m_arrNote[oChord.fifth].text+"</TD>";
+ if (oChord.seventh>=0)
+   s+="<TD ALIGN=CENTER>"+m_arrNote[oChord.seventh].text+"</TD>";
+ else
+   s+="<TD>&nbsp;</TD>";
+ if (oChord.ninth>=0)
+   s+="<TD ALIGN=CENTER>"+m_arrNote[oChord.ninth].text+"</TD>";
+ else
+   s+="<TD>&nbsp;</TD>";
+ s+="</TR>";
+
+ s+="<TR><TD ALIGN=CENTER>Degree</TD>";
+ s+="<TD ALIGN=CENTER>"+oChord.rootText+"</TD>";
+ s+="<TD ALIGN=CENTER>"+oChord.thirdText+"</TD>";
+ s+="<TD ALIGN=CENTER>"+oChord.fifthText+"</TD>";
+  if (oChord.seventh>=0) s+="<TD ALIGN=CENTER>"+oChord.seventhText+"</TD>";
+ else
+   s+="<TD>&nbsp;</TD>";
+  if (oChord.ninth>=0) s+="<TD ALIGN=CENTER>"+oChord.ninthText+"</TD>";
+ else
+   s+="<TD>&nbsp;</TD>";
+ s+="</TR>";
+ 
+ s+="<TR>";
+ s+="<TD ALIGN=CENTER>Steps</TD>";
+ s+="<TD ALIGN=CENTER>"+oChord.rootInt+"</TD>";
+ s+="<TD ALIGN=CENTER>"+oChord.thirdInt+"</TD>";
+ s+="<TD ALIGN=CENTER>"+oChord.fifthInt+"</TD>";
+ if (oChord.seventh>=0)
+   s+="<TD ALIGN=CENTER>"+oChord.seventhInt+"</TD>";
+ else
+   s+="<TD>&nbsp;</TD>";
+ if (oChord.ninth>=0)
+   s+="<TD ALIGN=CENTER>"+oChord.ninthInt+"</TD>";
+ else
+   s+="<TD>&nbsp;</TD>";
+ s+="</TR></TABLE>";
+ s+="</TD></TR></TABLE>";
+
+  document.getElementById('divFormula').innerHTML=s;
+}
+///////////////////////////////////////////////////////
+// clears the formula area when in an undefined state
+///////////////////////////////////////////////////////
+function dynaClearFormula()
+{
+ var s;
+
+ 
+ s="<TABLE>";
+ s+="<TR><TD COLSPAN=6 ALIGN=CENTER>Formula</TD></TR>";
+ s+="<TR>";
+ s+="<TD>&nbsp;</TD>";
+ s+="<TD WIDTH=55 ALIGN=CENTER STYLE='background-Color:"+m_arrBGChord[0]+";'>Root</TD>";
+ s+="<TD WIDTH=55 ALIGN=CENTER STYLE='background-Color:"+m_arrBGChord[1]+";'>3rd</TD>";
+ s+="<TD WIDTH=55 ALIGN=CENTER STYLE='background-Color:"+m_arrBGChord[2]+";'>5th</TD>";
+ s+="<TD WIDTH=55 ALIGN=CENTER STYLE='background-Color:"+m_arrBGChord[3]+";'>7th</TD>";
+ s+="<TD WIDTH=55 ALIGN=CENTER STYLE='background-Color:"+m_arrBGChord[4]+";'>9th</TD>";
+ s+="</TR>";
+ 
+ s+="<TR>";
+ s+="<TD ALIGN=CENTER>Note</TD>";
+ s+="<TD>&nbsp;</TD>";
+ s+="<TD>&nbsp;</TD>";
+ s+="<TD>&nbsp;</TD>";
+ s+="<TD>&nbsp;</TD>";
+ s+="<TD>&nbsp;</TD>";
+ s+="</TR>";
+
+ s+="<TR>";
+ s+="<TD ALIGN=CENTER>Degree</TD>";
+ s+="<TD>&nbsp;</TD>";
+ s+="<TD>&nbsp;</TD>";
+ s+="<TD>&nbsp;</TD>";
+ s+="<TD>&nbsp;</TD>";
+ s+="<TD>&nbsp;</TD>";
+ s+="</TR>";
+ 
+ s+="<TR>";
+ s+="<TD ALIGN=CENTER>Steps</TD>";
+ s+="<TD>&nbsp;</TD>";
+ s+="<TD>&nbsp;</TD>";
+ s+="<TD>&nbsp;</TD>";
+ s+="<TD>&nbsp;</TD>";
+ s+="<TD>&nbsp;</TD>";
+ s+="</TR>";
+ 
+ s+="</TABLE>";
+
+  document.getElementById('divFormula').innerHTML=s;
+}
+//////////////////////////////////////////////////////////////////////////////
+//                  R e s e t      B o a r d      C o l o r
+//////////////////////////////////////////////////////////////////////////////
+function dynaClearBoard(nBoard,nFrets)
+{
+ var fi,si,w,sColor;
+ var bPiano=document.getElementById('radPian').checked;
+
+ for (si=0;si<m_arrStrings.length;si++)
+  {
+   for (fi=0;fi<nFrets;fi++)
+    {
+     if (bPiano==false)
+      {
+       switch(getMarking(fi))
+        {
+         default:
+         case 0: sColor="BISQUE"; break; // normal
+         case 1: sColor="SILVER"; break; // nut
+         case 2: sColor="AZURE"; break; // 12th 
+         case 3: sColor="WHITE"; break; // marked
+        }
+       document.getElementById("divFret_B"+nBoard+"_S"+si+"_F"+fi).style.backgroundColor=sColor;
+       document.getElementById("divFret_B"+nBoard+"_S"+si+"_F"+fi).style.borderStyle="none";
+       if (m_arrStrings[si].arrFrets[fi].objNote.natural==false && fi!=0)
+         document.getElementById("divFret_B"+nBoard+"_S"+si+"_F"+fi).style.color=sColor;
+       else
+         document.getElementById("divFret_B"+nBoard+"_S"+si+"_F"+fi).style.color="BLACK";
+      }
+     else
+      {
+       document.getElementById("divFret_B"+nBoard+"_S"+si+"_F"+fi).style.border="none";
+       if (m_arrStrings[si].arrFrets[fi].objNote.natural==false)
+        {
+         document.getElementById("divFret_B"+nBoard+"_S"+si+"_F"+fi).style.color="WHITE";
+         document.getElementById("divFret_B"+nBoard+"_S"+si+"_F"+fi).style.backgroundColor="BLACK";
+        }
+       else
+        {
+         document.getElementById("divFret_B"+nBoard+"_S"+si+"_F"+fi).style.color="BLACK";
+         document.getElementById("divFret_B"+nBoard+"_S"+si+"_F"+fi).style.backgroundColor="WHITE";
+        }
+      }
+    }
+  }
+}
+/////////////////////////////////////////////////////////////////////////////
+//                              E V E N T S
+/////////////////////////////////////////////////////////////////////////////
+function eventBodyLoad()
+{
+
+ document.getElementById('radGuit').checked=true; 
+ dynaModesLoader();
+ dynaSetupGuitar(); 
+ dynaLoadSpecificChordCBO();
+}
+/////////////////////////////////////////
+function cboTuneGuitar_Change()
+{
+ var nTune=document.getElementById('cboTuning').options[document.getElementById('cboTuning').selectedIndex].value;
+ makeGuitar(nTune); // use alt tuning
+ dynaFretBoardLoader("divFBScales",1,m_nFrets);
+ dynaFretBoardLoader("divFBChords",2,m_nFrets);
+ eventModeChoice_Change();
+}
+/////////////////////////////////////////
+function cboTuneMandolin_Change()
+{
+ var nTune=document.getElementById('cboTuning').options[document.getElementById('cboTuning').selectedIndex].value;
+ makeMandolin(nTune);
+ dynaFretBoardLoader("divFBScales",1,m_nFrets);
+ dynaFretBoardLoader("divFBChords",2,m_nFrets);
+ eventModeChoice_Change();
+}
+/////////////////////////////////////////
+function cboTuneBass_Change()
+{
+ var nTune=document.getElementById('cboTuning').options[document.getElementById('cboTuning').selectedIndex].value;
+ makeBass(nTune);
+ dynaFretBoardLoader("divFBScales",1,m_nFrets);
+ dynaFretBoardLoader("divFBChords",2,m_nFrets);
+ eventModeChoice_Change();
+}
+/////////////////////////////////////////
+function eventModeChoice_Change()
+{
+ if (document.getElementById('cboMode')==null) return;
+ if (document.getElementById('cboMode').options.length==0)
+   return;
+
+ m_nCurrentMode=document.getElementById('cboMode').options[document.getElementById('cboMode').selectedIndex].value;
+ eventKeyChoice_Click(m_nCurrentKey);
+}
+/////////////////////////////////////////
+function eventKeyChoice_Click(nKey)
+{
+ var nMode,nOct,nOctWork,nNote;
+ var nTDs,nItem,nColor;
+ var nShortCount;
+ 
+ var arrSeq=new Array("1st","2nd","3rd","4th","5th","6th","7th","8th","9th","10th","11th","12th","13th","14th","15th");
+ 
+ if (nKey<0)
+   return;
+   
+ if (document.getElementById('radPian').checked==true)
+   nShortCount=24;
+ else
+   nShortCount=11;  
+   
+ m_nCurrentKey=nKey;
+ 
+ for (i=0;i<12;i++)
+  {
+   document.getElementById("key"+i).style.backgroundColor="AZURE";
+   document.getElementById("key"+i).style.borderWidth="1px";
+  }
+
+ document.getElementById("key"+nKey).style.backgroundColor="WHEAT";
+ document.getElementById("key"+nKey).style.borderWidth="3px";
+ 
+
+ if (document.getElementById('cboChordType')!=null)
+  {
+   if (document.getElementById('cboChordType').options[document.getElementById('cboChordType').selectedIndex].value!="Z") 
+    {
+     eventSpecificChord_Change();
+     return;
+    }
+  }
+
+ nMode=document.getElementById('cboMode').options[document.getElementById('cboMode').selectedIndex].value;
+
+ makeChords(nKey,nMode);
+ 
+ nTDs=m_arrChords.length*2;
+
+ s="<TABLE>";
+ s+="<TR><TD COLSPAN="+nTDs+" ALIGN=CENTER>"+m_arrModes[nMode].modeName+" Progression</TD></TR><TR>";
+
+ for (i=0;i<m_arrChords.length;i++)
+  {
+   s+="<TD STYLE='border:1px solid LIGHTSTEELBLUE;' ID=tdChord"+i;
+   s+="><DIV STYLE='width:35px; text-align:center; cursor:pointer;' ONCLICK='eventChordChoice_Click("+i+");'>";
+   s+=m_arrChords[i].text;
+   
+   s+="<BR /><DIV STYLE='font-size:8pt;'>"+arrSeq[i]+"</DIV>";
+   
+   s+="</DIV></TD>";
+   s+="<TD ALIGN=CENTER STYLE='font-style:italic; font-size:10pt;'>"; 
+   switch(m_arrModes[nMode].arrSequence[i])
+    {
+     case 1: s+="h<BR />1"; break;
+     case 2: s+="W<BR />2"; break;
+     case 3: s+="m3<BR />3"; break;
+     case 4: s+="M 3<BR />4"; break;
+    }
+   s+="</TD>";
+  }
+ s+="</TR><TR><TD COLSPAN="+nTDs+" ALIGN=CENTER>(traditional harmony)</TD></TR></TABLE>";
+
+ document.getElementById('divChords').innerHTML=s;
+
+ dynaClearBoard(1,m_nFrets);
+
+ eventChordChoice_Click(0);
+
+ for (nOct=0;nOct<10;nOct++)
+  {
+   nWorkOct=nOct;
+   nNote=nKey;
+   for (i=0;i<m_arrModes[nMode].arrSequence.length;i++)
+    {
+     for (si=0;si<m_arrStrings.length;si++)
+      {
+       for (k=0;k<m_nFrets;k++)
+        {
+         if (m_arrStrings[si].arrFrets[k].objNote.note==nNote && m_arrStrings[si].arrFrets[k].octave==nWorkOct)
+          {         
+           document.getElementById("divFret_B1_S"+si+"_F"+k).style.backgroundColor=getScaleColor(nOct,i);
+           document.getElementById("divFret_B1_S"+si+"_F"+k).style.color="BLACK";
+           document.getElementById("divFret_B1_S"+si+"_F"+k).style.borderStyle="solid";
+          }
+        }
+      }
+     if (nNote+m_arrModes[nMode].arrSequence[i] > 11) 
+       nWorkOct=nOct+1;
+     nNote=addStep(nNote,m_arrModes[nMode].arrSequence[i]);      
+    } 
+  }
+ 
+ for (i=0;i<m_arrChords.length;i++)
+  {
+   dynaClearBoard(3+i,nShortCount);   // short chord boards
+  } 
+
+ for (i=0;i<m_arrChords.length;i++)
+  {
+   for (si=0;si<m_arrStrings.length;si++)
+    {
+     for (k=0;k<nShortCount;k++)  // short 
+      {
+       sBack="";
+       sFore="";
+       if (m_arrStrings[si].arrFrets[k].objNote.note==m_arrChords[i].root)
+        {
+         sBack=m_arrBGChord[0];
+        }
+       if (m_arrStrings[si].arrFrets[k].objNote.note==m_arrChords[i].third)
+        {
+         sBack=m_arrBGChord[1];
+        }
+       if (m_arrStrings[si].arrFrets[k].objNote.note==m_arrChords[i].fifth)
+        {
+         sBack=m_arrBGChord[2];
+        }
+       if (m_arrStrings[si].arrFrets[k].objNote.note==m_arrChords[i].seventh)
+        {
+         sBack=m_arrBGChord[3];
+        }
+       if (m_arrStrings[si].arrFrets[k].objNote.note==m_arrChords[i].ninth)
+        {
+         sBack=m_arrBGChord[4];
+        }
+
+       if (sBack!="") // ID='divFret_B"+nID+"_S"+i+"_F"+j+"'
+        {
+         document.getElementById("divFret_B"+(i+3)+"_S"+si+"_F"+k).style.backgroundColor=sBack;
+         document.getElementById("divFret_B"+(i+3)+"_S"+si+"_F"+k).style.color="BLACK";
+         document.getElementById("divFret_B"+(i+3)+"_S"+si+"_F"+k).style.borderStyle="solid";
+        }
+      }
+    }
+   s="<table><tr><td width=40 style='border:1px solid LIGHTSTEELBLUE; text-align:center;'>"+(i+1)+". "+m_arrChords[i].text;
+   if (m_arrChords[i].text.length==1)
+     s+=major;
+   s+="</td>";
+   s+="<td width=35 style='border:1px solid LIGHTSTEELBLUE; text-align:center; background-Color:"+m_arrBGChord[0]+";'>"+m_arrNote[m_arrChords[i].root].text+"</td>";
+   s+="<td width=35 style='border:1px solid LIGHTSTEELBLUE; text-align:center; background-Color:"+m_arrBGChord[1]+";'>"+m_arrNote[m_arrChords[i].third].text+"</td>";
+   s+="<td width=35 style='border:1px solid LIGHTSTEELBLUE; text-align:center; background-Color:"+m_arrBGChord[2]+";'>"+m_arrNote[m_arrChords[i].fifth].text+"</td>";
+   if (m_arrChords[i].seventh>=0)
+     s+="<td width=35 style='border:1px solid LIGHTSTEELBLUE; text-align:center; background-Color:"+m_arrBGChord[3]+";'>"+m_arrNote[m_arrChords[i].seventh].text+"</td>";
+   if (m_arrChords[i].ninth>=0)
+     s+="<td width=35 style='border:1px solid LIGHTSTEELBLUE; text-align:center; background-Color:"+m_arrBGChord[4]+";'>"+m_arrNote[m_arrChords[i].third].text+"</td>";   
+   s+="</tr></table>";
+   document.getElementById("divFormula"+i).innerHTML=s;
+  }
+  
+// for (i=0;i<7;i++)
+//  {
+//   document.getElementById("divShortChord"+i).style.display="block";
+//   document.getElementById("divFormula"+i).style.display="block";
+//  }
+
+}
+///////////////////////////////////////////////////////////////////////////////////////////
+// Called when a chord is clicked on after a key change or mode choice change
+///////////////////////////////////////////////////////////////////////////////////////////
+function eventChordChoice_Click(nChord)
+{
+ var i,si,k;
+ var sBack;
+
+ for (i=0;i<m_arrChords.length;i++)
+  {
+   document.getElementById("tdChord"+i).style.backgroundColor="AZURE";
+   document.getElementById("tdChord"+i).style.borderWidth="1px";
+  }
+
+ document.getElementById("tdChord"+nChord).style.backgroundColor="WHEAT";
+ document.getElementById("tdChord"+nChord).style.borderWidth="3px";
+
+ dynaClearBoard(2,m_nFrets);   // chord board
+ dynaClearFormula();
+
+// for (i=0;i<m_string.length;i++)
+//  {
+//   document.getElementById("spanFB0_S"+i+"_F0").style.backgroundColor="BLACK";
+//   document.getElementById("spanFB0_S"+i+"_F0").style.color="MAROON";
+//  }
+
+ for (si=0;si<m_arrStrings.length;si++)
+  {
+   for (k=0;k<m_nFrets;k++)
+    {
+     sBack="";
+     sFore="";
+     if (m_arrStrings[si].arrFrets[k].objNote.note==m_arrChords[nChord].root)
+      {
+       sBack=m_arrBGChord[0];
+      }
+     if (m_arrStrings[si].arrFrets[k].objNote.note==m_arrChords[nChord].third)
+      {
+       sBack=m_arrBGChord[1];
+      }
+     if (m_arrStrings[si].arrFrets[k].objNote.note==m_arrChords[nChord].fifth)
+      {
+       sBack=m_arrBGChord[2];
+      }
+     if (m_arrStrings[si].arrFrets[k].objNote.note==m_arrChords[nChord].seventh)
+      {
+       sBack=m_arrBGChord[3];
+      }
+     if (m_arrStrings[si].arrFrets[k].objNote.note==m_arrChords[nChord].ninth)
+      {
+       sBack=m_arrBGChord[4];
+      }
+
+     if (sBack!="") // ID='divFret_B"+nID+"_S"+i+"_F"+j+"'
+      {
+       document.getElementById("divFret_B2_S"+si+"_F"+k).style.backgroundColor=sBack;
+       document.getElementById("divFret_B2_S"+si+"_F"+k).style.color="BLACK";
+       document.getElementById("divFret_B2_S"+si+"_F"+k).style.borderStyle="solid";
+      }
+    }
+  }
+ dynaLoadFormula(m_arrChords[nChord]);
+}
+//////////////////////////////////////////////////////////////////
+//  S p e c i f i c    C h o r d     C h a n g e    E v e n t   
+//////////////////////////////////////////////////////////////////
+function eventSpecificChord_Change()
+{
+ var sType,sText,oChord;
+ var nChord;
+ var i,nType,si,k,s;
+
+ if (m_nCurrentKey<0) 
+   return;
+
+ nChord=document.getElementById('cboChordType').options[document.getElementById('cboChordType').selectedIndex].index
+
+ if (document.getElementById('cboChordType').options[document.getElementById('cboChordType').selectedIndex].value=="Z")
+  {
+   eventKeyChoice_Click(m_nCurrentKey);
+   return;
+  }
+  
+ dynaClearBoard(2,m_nFrets);
+ dynaClearFormula();
+
+ nType=parseInt(document.getElementById('cboChordType').options[document.getElementById('cboChordType').selectedIndex].value);
+ oChord=new constrChord(m_nCurrentKey,m_arrNote[m_nCurrentKey].text,m_arrChordTypes[nType]);
+
+ for (si=0;si<m_arrStrings.length;si++)
+  {
+   for (k=0;k<23;k++)
+    {
+     if (m_arrStrings[si].arrFrets[k].objNote.note==oChord.root)
+      {
+       document.getElementById("divFret_B2_S"+si+"_F"+k).style.backgroundColor=m_arrBGChord[0];
+       document.getElementById("divFret_B2_S"+si+"_F"+k).style.color="BLACK";
+       document.getElementById("divFret_B2_S"+si+"_F"+k).style.borderStyle="solid";
+      }
+     if (m_arrStrings[si].arrFrets[k].objNote.note==oChord.third)
+      {
+       document.getElementById("divFret_B2_S"+si+"_F"+k).style.backgroundColor=m_arrBGChord[1];
+       document.getElementById("divFret_B2_S"+si+"_F"+k).style.color="BLACK";
+       document.getElementById("divFret_B2_S"+si+"_F"+k).style.borderStyle="solid";
+      }
+     if (m_arrStrings[si].arrFrets[k].objNote.note==oChord.fifth)
+      {
+       document.getElementById("divFret_B2_S"+si+"_F"+k).style.backgroundColor=m_arrBGChord[2];
+       document.getElementById("divFret_B2_S"+si+"_F"+k).style.color="BLACK";
+       document.getElementById("divFret_B2_S"+si+"_F"+k).style.borderStyle="solid";
+      }
+     if (m_arrStrings[si].arrFrets[k].objNote.note==oChord.seventh)
+      {
+       document.getElementById("divFret_B2_S"+si+"_F"+k).style.backgroundColor=m_arrBGChord[3];
+       document.getElementById("divFret_B2_S"+si+"_F"+k).style.color="BLACK";
+       document.getElementById("divFret_B2_S"+si+"_F"+k).style.borderStyle="solid";
+      }
+     if (m_arrStrings[si].arrFrets[k].objNote.note==oChord.ninth)
+      {
+       document.getElementById("divFret_B2_S"+si+"_F"+k).style.backgroundColor=m_arrBGChord[4];
+       document.getElementById("divFret_B2_S"+si+"_F"+k).style.color="BLACK";
+       document.getElementById("divFret_B2_S"+si+"_F"+k).style.borderStyle="solid";
+      }
+    }
+  }
+
+ s="<div style='border:3px solid LIGHTSTEELBLUE; text-align:center;'>&nbsp;<br />";
+ 
+ s+=m_arrNote[m_nCurrentKey].text+" "+m_arrChordTypes[nType].name+" &nbsp; &nbsp; ["+oChord.text+"]";
+ 
+ s+="<br />&nbsp;</div>";
+ 
+ document.getElementById('divChords').innerHTML=s;
+ 
+// for (i=0;i<7;i++)
+//  {
+//   document.getElementById("divShortChord"+i).style.display="none";
+//   document.getElementById("divFormula"+i).style.display="none";
+//  }
+
+ dynaLoadFormula(oChord);
+}
+
+</script>
+</head>
+<body onload="eventBodyLoad();" style="font-family:'Arial Unicode MS'; font-size:9pt;">
+
+<table>
+ <tr>
+  <td style="padding-right:10px;"><input type="radio" id="radGuit" name="radInst" onclick="dynaSetupGuitar();" />Guitar</td>
+  <td style="padding-right:10px;"><input type="radio" id="radBass" name="radInst" onclick="dynaSetupBass();" />Bass</td>
+  <td style="padding-right:10px;"><input type="radio" id="radMand" name="radInst" onclick="dynaSetupMandolin();" />Mandolin</td>
+  <td style="padding-right:10px;"><input type="radio" id="radPian" name="radInst" onclick="dynaSetupPiano();" />Keyboards</td>
+  <td><span id="spanTuning"></span></td>
+ </tr>
+</table>
+
+<br />
+
+<div id="divFBScales" style="border:1px solid LIGHTSTEELBLUE;"></div>
+
+<br />
+
+<table style='color:BLACK;'>
+ <tr>
+  <td>Key</td>
+  <td style='border:1px solid LIGHTSTEELBLUE;' id='key0'><div style='cursor:pointer; width:40px; text-align:center;' onclick='eventKeyChoice_Click(0);'>C</div></td>
+  <td style='border:1px solid LIGHTSTEELBLUE;' id='key1'><div style='cursor:pointer; width:40px; text-align:center;' onclick='eventKeyChoice_Click(1);'>C&#9839/D&#9837</div></td>
+  <td style='border:1px solid LIGHTSTEELBLUE;' id='key2'><div style='cursor:pointer; width:40px; text-align:center;' onclick='eventKeyChoice_Click(2);'>D</div></td>
+  <td style='border:1px solid LIGHTSTEELBLUE;' id='key3'><div style='cursor:pointer; width:40px; text-align:center;' onclick='eventKeyChoice_Click(3);'>D&#9839/E&#9837</div></td>
+  <td style='border:1px solid LIGHTSTEELBLUE;' id='key4'><div style='cursor:pointer; width:40px; text-align:center;' onclick='eventKeyChoice_Click(4);'>E</div></td>
+  <td style='border:1px solid LIGHTSTEELBLUE;' id='key5'><div style='cursor:pointer; width:40px; text-align:center;' onclick='eventKeyChoice_Click(5);'>F</div></td>
+  <td style='border:1px solid LIGHTSTEELBLUE;' id='key6'><div style='cursor:pointer; width:40px; text-align:center;' onclick='eventKeyChoice_Click(6);'>F&#9839/G&#9837</div></td>
+  <td style='border:1px solid LIGHTSTEELBLUE;' id='key7'><div style='cursor:pointer; width:40px; text-align:center;' onclick='eventKeyChoice_Click(7);'>G</div></td>
+  <td style='border:1px solid LIGHTSTEELBLUE;' id='key8'><div style='cursor:pointer; width:40px; text-align:center;' onclick='eventKeyChoice_Click(8);'>G&#9839/A&#9837</div></td>
+  <td style='border:1px solid LIGHTSTEELBLUE;' id='key9'><div style='cursor:pointer; width:40px; text-align:center;' onclick='eventKeyChoice_Click(9);'>A</div></td>
+  <td style='border:1px solid LIGHTSTEELBLUE;' id='key10'><div style='cursor:pointer; width:40px; text-align:center;' onclick='eventKeyChoice_Click(10);'>A&#9839/B&#9837</div></td>
+  <td style='border:1px solid LIGHTSTEELBLUE;' id='key11'><div style='cursor:pointer; width:40px; text-align:center;' onclick='eventKeyChoice_Click(11);'>B</div></td>
+  <td>Scales</td>
+  <td><select id="cboMode" onchange="eventModeChoice_Change();"></select></td>
+
+ <td>Specific Chords</td>
+  <td>
+   <div id="divChordTypeCBO"></div>
+  </td>
+ </tr>
+</table>
+
+<br />
+<br />
+<div id="divFBChords" style="border:1px solid LIGHTSTEELBLUE;"></div>
+<br />
+
+<table cellpadding="15">
+ <tr>
+  <td align="center"><div id="divChords"></div></td>
+  <td align="center"><div id="divFormula"></div></td>
+ </tr>
+ <tr>
+  <td><div id="divShortChord0" style="border:1px solid LIGHTSTEELBLUE;"></div><div id="divFormula0"></div></td>
+  <td><div id="divShortChord1" style="border:1px solid LIGHTSTEELBLUE;"></div><div id="divFormula1"></div></td>
+ </tr>
+ <tr>
+  <td><div id="divShortChord2" style="border:1px solid LIGHTSTEELBLUE;"></div><div id="divFormula2"></div></td>
+  <td><div id="divShortChord3" style="border:1px solid LIGHTSTEELBLUE;"></div><div id="divFormula3"></div></td>
+ </tr>
+ <tr>
+  <td><div id="divShortChord4" style="border:1px solid LIGHTSTEELBLUE;"></div><div id="divFormula4"></div></td>
+  <td><div id="divShortChord5" style="border:1px solid LIGHTSTEELBLUE;"></div><div id="divFormula5"></div></td>
+ </tr>
+ <tr>
+  <td><div id="divShortChord6" style="border:1px solid LIGHTSTEELBLUE;"></div><div id="divFormula6"></div></td>
+  <td>&nbsp;</td>
+ </tr>
+</table>
+<a style='font-weight:bold;' href="http://www.bhughes.com/">Copyright © 2019 Brian L Hughes</a><br />
+<div style='font-weight:bold;'>Copyright © 2019 DeFrag - All rights reserved</div>
+</body>
+</html>
