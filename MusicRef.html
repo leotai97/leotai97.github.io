@@ -1,0 +1,1235 @@
+﻿<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en-us">
+<head>
+<meta m_harset="utf-8" />
+<title>Music Reference</title>
+
+<script type="text/javascript">
+
+// special characters 
+
+var symSharp='\u266F'; // Arial unicode MS
+var symFlat='\u266D';  
+var symDim7='\u00F8';  // 0 with slash
+var symFDim='\u00B0';  // degree symbol
+var symMajor='\u25B3'; // delta symbol
+var symDot = '\u25CF'; // dot
+
+var noteCs = "C" + symSharp;
+var noteCb = "C" + symFlat;
+
+var noteDs = "D" + symSharp;
+var noteDb = "D" + symFlat;
+
+var noteEs = "E" + symSharp;
+var noteEb = "E" + symFlat;
+
+var noteFs = "F" + symSharp;
+var noteFb = "F" + symFlat;
+
+var noteGs = "G" + symSharp;
+var noteGb = "G" + symFlat;
+
+var noteAs = "A" + symSharp;
+var noteAb = "A" + symFlat;
+
+var noteBs = "B" + symSharp;
+var noteBb = "B" + symFlat;
+
+/////////////////////////////
+//    Global Variables
+/////////////////////////////
+
+var m_CurrentChordPattern = -1;
+var m_CurrentKey = -1;
+var m_CurrentMode = -1;
+var m_CurrentInstrument = -1;
+
+var m_Guitar = 0;
+var m_Bass = 1;
+var m_Mandolin = 2;
+var m_Ukulele = 3;
+var m_Keyboard = 4;
+
+var m_cpMajor=0;  // these variables can be used to access the specific elements of the m_arrChordPatterns array
+var m_cpMinor=1;
+var m_cpSus=2;
+var m_cpAug=3;
+var m_cpDim=4;
+var m_cpMajor6=5;
+var m_cpMinor6=6;
+var m_cpMajor7=7;
+var m_cpMinor7=8;
+var m_cpDom7=9;
+var m_cpHalfDim7=10;
+var m_cpDim7=11;
+var m_cpMajor9=12;
+var m_cpMinor9=13;
+var m_cpDom9=14;
+
+// these variables can be used to access the specific elements of the m_arrModes array
+
+var m_modeIonian = 0;      // major
+var m_modeAeolian = 5;     // Minor
+
+
+var m_GuitarBarreChordE;  // the guitar barre chord pattern based on the open E chord
+var m_GuitarBarreChordEm;  // the guitar barre chord pattern based on the open A chord
+var m_GuitarBarreChordA;  // the guitar barre chord pattern based on the open A chord
+var m_GuitarBarreChordAm;  // the guitar barre chord pattern based on the open A minor chord
+
+var m_keyCMajor = 0;
+
+var m_keyGMajor = 1;
+var m_keyDMajor = 2;
+var m_keyAMajor = 3;
+var m_keyEMajor = 4;
+var m_keyBMajor = 5;
+var m_keyFsMajor = 6;
+var m_keyCsMajor = 7;
+
+var m_keyFMajor = 8;
+var m_keyBbMajor = 9;
+var m_keyEbMajor = 10;
+var m_keyAbMajor = 11;
+var m_keyDbMajor = 12;
+var m_keyGbMajor = 13;
+var m_keyCbMajor = 14;
+
+var m_keyAMinor = 15;
+
+var m_keyEMinor = 16;
+var m_keyBMinor = 17;
+var m_keyFsMinor = 18;
+var m_keyCsMinor = 19;
+var m_keyGsMinor = 20;
+var m_keyDsMinor = 21;
+var m_keyAsMinor = 22;
+
+var m_keyDMinor = 23;
+var m_keyGMinor = 24;
+var m_keyCMinor = 25;
+var m_keyFMinor = 26;
+var m_keyBbMinor = 27;
+var m_keyEbMinor = 28;
+var m_keyAbMinor = 29;
+
+// arrays
+
+var m_arrChordPatterns = new Array();    // ID, Name, ShortName, Pitches, PitchCount, Root, Third, Fifth, Seventh, Ninth, Formula
+var m_mapMidiNotes = new Map();
+var m_arrMidiNotesHL = new Array();      // ID, Number, Offset, Octave, Frequency, MidiName, Name
+var m_arrMidiNotesLH = new Array();      // Same as above
+var m_arrModes = new Array();            // ID, ModeName, Sequences (steps), ChordType (the pattern), Background (color)
+var m_arrKeys = new Array();             // ID, Opposite key,  Offset, mode (major or minor), sharps or flats (S, F, or N), array of notes
+var m_arrGuitar = new Array();           // 2D array of midi notes for guitar
+
+</script>
+
+<script type="text/javascript">
+
+//////////////////////////////////
+//   Object Class Construction
+//////////////////////////////////
+
+// chord pattern consists of a name and an array of pitches
+
+function ChordPattern(id, strName, strAbbrev, arrPitches)
+{
+ this.ID = id;                           // unique id
+ this.Name = strName;                    // Major, Minor
+ this.ShortName = strAbbrev;             // symbols etc
+ this.Pitches = arrPitches;              // array of steps, integers
+ this.PitchCount = arrPitches.length;    // length of pitches array
+ 
+ // Finger Placements
+
+ this.PatternGuitar = new Array();
+ this.PatternBass = new Array();
+ this.PatternMandolin = new Array();
+ this.PatternUkulele = new Array();
+ this.PatternKeyboard = new Array();
+
+ this.Root="";
+ this.Third="";
+ this.Fifth="";
+ this.Seventh="";
+ this.Ninth="";
+
+ switch(arrPitches[0])
+  {
+   case 0: this.Root="1";   break;
+   case 1: this.Root="#1";  break;
+   case 2: this.Root="##1"; break;
+  }
+
+ switch(arrPitches[1])
+  {
+   case 2: this.Third="bb3"; break;
+   case 3: this.Third="b3";  break;
+   case 4: this.Third="3";   break;
+   case 5: this.Third="#3";  break;
+   case 6: this.Third="##3"; break;
+  }
+
+ switch(arrPitches[2])
+  {
+   case 5: this.Fifth="bb5"; break;
+   case 6: this.Fifth="b5";  break;
+   case 7: this.Fifth="5";   break;
+   case 8: this.Fifth="#5";  break;
+   case 9: this.Fifth="##5"; break;
+  }
+
+ switch(arrPitches[3])
+  {
+   case 9: if (this.Name=="Dim 7th") this.Seventh="bb7"; else this.Seventh="6"; break;
+   case 10: this.Seventh="b7";  break;
+   case 11: this.Seventh="7";   break;
+   case 12: this.Seventh="#7";  break;
+   case 13: this.Seventh="##7"; break;
+  }
+
+ switch(arrPitches[4])
+  {
+   case 12: this.Ninth="bb9"; break;
+   case 13: this.Ninth="b9";  break;
+   case 14: this.Ninth="9";   break;
+   case 15: this.Ninth="#9";  break;
+   case 16: this.Ninth="##9"; break;
+  }
+
+ this.Formula=this.Root;
+ 
+ if (this.Third != "")   this.Formula+="-"+this.Third;
+ if (this.Fifth != "")   this.Formula+="-"+this.Fifth;
+ if (this.Seventh != "") this.Formula+="-"+this.Seventh;
+ if (this.Ninth != "")   this.Formula+="-"+this.Ninth;
+
+}
+
+// Fingering
+
+function Fingering(str, fret)
+{
+ this.Str = str;
+ this.Fret = fret;
+}
+
+// Fingering for the barre chord index finger
+
+function BarreIndex(str, fret, showNote)
+{
+ this.Str = str;
+ this.Fret = fret;
+ this.ShowNote = showNote;  // 1, show the note, it's part of the cord, 0, don't show the note, just show the "I"
+}
+
+// placements, chord fingerings
+
+function Placement(id, instrument, offset, midiRoot, arrIndex, arrMiddle, arrRing, arrPinky, arrOpen, arrNoPlay)
+{
+ this.ID = id;
+ this.Instrument = instrument;  // m_Guitar etc
+ this.Offset = offset;          // C = 0
+ this.MidiRoot = midiRoot;      // root midi note for the chord
+ this.Index = arrIndex;         // list of Fingering
+ this.Middle = arrMiddle;
+ this.Ring = arrRing;
+ this.Pinky = arrPinky;
+ this.Open = arrOpen;
+ this.NoPlay = arrNoPlay;
+}
+
+// E and A Barre pattern placement
+
+function BarrePlacement(id, offset, chordPattern, instrument, arrIndex, arrMiddle, arrRing, arrPinky, arrNoPlay)
+{
+ var i, k, fa;
+
+ this.ID = id;                  // unique id
+ this.Offset = offset;          // c=0
+ this.CP = chordPattern;        // m_cpMajor = 0
+ this.Instrument = instrument;  // m_Guitar etc
+ if (offset == 9) // is it the A pattern?
+   this.Offsets = [2,3,4,5,6,7,8,9,10,11,0,1,2,3];   // Bb B C  -  steps to take to wrap around to C
+ else 
+   this.Offsets = [7,8,9,10,11,0,1,2,3,4,5,6,7,8];   // F Gb G Ab A Bb B C, used to locate position on fretboard for the barre
+
+ this.Index = new Array();  // store finger positions for each barre chord starting with 1st barre above  Bb for the A pattern, F for the E pattern
+ this.Middle = new Array();
+ this.Ring = new Array();
+ this.Pinky = new Array();
+ this.NoPlay = new Array(); // no open strings
+
+ // Fingering objects are a bit different than the above placements
+ // Index Fingering.Fret = 0  and all others are # of frets past the Index 
+ // so the barre chord can moved about on the fretboard
+
+for (i=1; i<14; i++)
+  {
+   fa = new Array();
+   for (k=0; k<arrIndex.length; k++)
+     fa[k]= new BarreIndex(arrIndex[k].Str, arrIndex[k].Fret + i, arrIndex[k].ShowNote);
+   this.Index[i-1] = fa;
+  }
+ for (i=1; i<14; i++)
+  {
+   fa = new Array();
+   for (k=0; k<arrMiddle.length; k++)
+     fa[k]= new Fingering(arrMiddle[k].Str, arrMiddle[k].Fret + i);
+   this.Middle[i-1] = fa;
+  }
+ for (i=1; i<14; i++)
+  {
+   fa = new Array();
+   for (k=0; k<arrRing.length; k++)
+     fa[k]= new Fingering(arrRing[k].Str, arrRing[k].Fret + i);
+   this.Ring[i-1] = fa;
+  }
+ for (i=1; i<14; i++)
+  {
+   fa = new Array();
+   for (k=0; k<arrPinky.length; k++)
+     fa[k]= new Fingering(arrPinky[k].Str, arrPinky[k].Fret + i);
+   this.Pinky[i-1] = fa;
+  }
+ for (i=1; i<14; i++)
+  {
+   fa = new Array();
+   for (k=0; k<arrNoPlay.length; k++)
+     fa[k]= new Fingering(arrNoPlay[k].Str, arrNoPlay[k].Fret + i);
+   this.NoPlay[i-1] = fa;
+  }
+}
+
+// a midi note consists of the midi number, offset distance from "C", the octive, and frequency
+
+function MidiNote(id, nMidi, nOffset, nOctive, fFreq)
+{
+ var sfn;
+
+ this.ID = id;             // unique id
+ this.Number = nMidi;      // midi note C4 = 60
+ this.Offset = nOffset;    // C = 0
+ this.Octave = nOctive;    // 4 is middle C
+ this.Frequency = fFreq;   // in hertz
+ this.MidiName = "";       // midi name contains octive D#6/Eb6
+ this.Name = function(key)     { return m_arrKeys[key].OffsetNote(this.Offset); };  // name does not contain octive numbers  D#/Eb
+ this.MidiName = function(key) { return m_arrKeys[key].OffsetNote(this.Offset) + this.Octave.toString(); };
+}
+
+// modes: ionian, dorian etc
+
+function Mode(nNdx,sBGColor,sName,Pitches,oChordType)
+{
+ this.ID=nNdx;                // unique id
+ this.ModeName=sName;         // ionian, dorian etc
+ this.Sequences=Pitches;      // list of steps, pitches between chords, Major is 2,2,1,2,2,2,1
+ this.ChordType=oChordType;   // list of chord types for each chord in the mode, Major is m_cpMajor,m_cpMinor,m_cpMinor,m_cpMajor,m_cpMajor,m_cpMinor,cDim
+ this.Background=sBGColor;    // background color in the combo box drop down
+}
+
+</script>
+
+<script type="text/javascript">
+
+// key signatures
+
+function Key(id, opposite, offset, mode, sharpsFlats, arrNotes) // offset C = 0, opposite key, pattern e.g. m_cpMajor, sharps, flats or neither, list of note names
+{
+ this.ID = id;
+ this.Opposite = opposite;        // key that is opposite, e.g. C Major's opposite is A Minor
+ this.Offset = offset;            // c = 0
+ this.Mode = mode;
+ this.SharpsFlats = sharpsFlats;  // "S" key contains sharps, "F" key contains flats, "N" key contains neither sharps nor flats (only C and Am)
+ this.Notes = arrNotes;           // list of note names with special characters for sharps and flats
+ this.Offsets = new Array();      // offset notes of the key
+ this.LookUp = new Array();       // a way to find the note name in the key only knowing what the offset is C = 0
+ this.OffsetNote = function(offset) 
+  {
+   if (offset<0 || offset>11)
+     throw new Error("offset argument is out of range (0 to 11)");    
+
+   if (this.LookUp[offset] >=0)
+     return this.Notes[this.LookUp[offset]];
+   else
+    {
+    // s = "key error, offset not found in key";
+    // s += "\nKey ID: " + this.ID.toString();
+    // s += "\nOffset Not Found: " += offset.toString();
+     throw new Error("Offset Not Found - " + offset.toString());
+    }
+  };
+
+ var n, i, k, found;
+
+ n = offset;
+ for (i=0; i<7; i++)
+  {
+   this.Offsets[i] = n;
+   n += m_arrModes[mode].Sequences[i];
+   if (n>=12)
+     n -= 12;
+  }
+
+ for (i=0; i<12; i++) // build a list of all 12 offsets with the appropriate index of notes in this key, entries of offsets of notes not in this key will be -1 
+  {
+   found = false;
+   for (k=0; k<this.Offsets.length; k++) 
+    {
+     if (i == this.Offsets[k])
+      {
+       this.LookUp.push(k);  // save the index to the this.Notes array
+       found = true;
+      }
+    }
+   if (found == false)
+     this.LookUp.push(-1); // offset of note is not in this key
+  }
+}
+
+</script>
+
+<script type="text/javascript">
+
+//////////////////////////////////
+//   Array Building Functions
+//////////////////////////////////
+
+// make the chord patterns
+
+function makeChordPatterns()
+{
+ m_arrChordPatterns[m_cpMajor]  = new ChordPattern(m_cpMajor,   "Major",        symMajor,     [0,4,7]);
+ m_arrChordPatterns[m_cpMinor]  = new ChordPattern(m_cpMinor,   "Minor",        "m",          [0,3,7]);
+ m_arrChordPatterns[m_cpSus]    = new ChordPattern(m_cpSus,     "Sus4",         "sus4",       [0,5,7]);
+ m_arrChordPatterns[m_cpAug]    = new ChordPattern(m_cpAug,     "Aug+",         "+",          [0,4,8]);
+ m_arrChordPatterns[m_cpDim]    = new ChordPattern(m_cpDim,     "Dim",          symFDim,      [0,3,6]);
+ m_arrChordPatterns[m_cpMajor6] = new ChordPattern(m_cpMajor6,  "Major 6th",    symMajor+"6", [0,4,7,9]); // 1-3-5-6
+ m_arrChordPatterns[m_cpMinor6] = new ChordPattern(m_cpMinor6,  "Minor 6th",    "m6",         [0,3,7,9]); // 1-b3-5-6
+ m_arrChordPatterns[m_cpMajor7] = new ChordPattern(m_cpMajor7,  "Major 7th",    symMajor+"7", [0,4,7,11]);
+ m_arrChordPatterns[m_cpMinor7] = new ChordPattern(m_cpMinor7,  "Minor 7th",    "m7",         [0,3,7,11]);
+ m_arrChordPatterns[m_cpDom7]   = new ChordPattern(m_cpDom7,    "Dom 7th",      "7",          [0,4,7,10]);
+ m_arrChordPatterns[m_cpHalfDim7]  = new ChordPattern(m_cpHalfDim7,"Half Dim 7th", symDim7+"7",  [0,3,6,10]);
+ m_arrChordPatterns[m_cpDim7]   = new ChordPattern(m_cpDim7,    "Dim 7th",      symFDim+"7",  [0,3,6,9]);
+ m_arrChordPatterns[m_cpMajor9] = new ChordPattern(m_cpMajor9,  "Major 9th",    symMajor+"9", [0,4,7,11,14]);
+ m_arrChordPatterns[m_cpMinor9] = new ChordPattern(m_cpMinor9,  "Minor 9th",    "m9",         [0,3,7,10,14]);
+ m_arrChordPatterns[m_cpDom9]   = new ChordPattern(m_cpDom9,    "Dom 9th",      "9",          [0,4,7,10,14]);
+}
+
+// make all the midi notes, using the "Roland" naming standard
+// MidiNote arguments are id #, midi note #, "C" offset, the octave, frequency in hertz
+// requires that makeNotes is called first
+
+function makeMidiNotes()
+{
+ var i,k;
+
+ m_arrMidiNotesHL[0] = new  MidiNote(0, 127,	7, 9, 12543.85);
+ m_arrMidiNotesHL[1] = new MidiNote(1, 126, 6, 9, 11839.82);
+ m_arrMidiNotesHL[2] = new MidiNote(2, 125, 5, 9,	11175.30);
+ m_arrMidiNotesHL[3] = new MidiNote(3, 124, 4, 9, 10548.08);
+ m_arrMidiNotesHL[4] = new MidiNote(4, 123, 3, 9, 9956.06);
+ m_arrMidiNotesHL[5] = new MidiNote(5, 122, 2, 9,	9397.27);
+ m_arrMidiNotesHL[6] = new MidiNote(6, 121, 1, 9, 8869.84);
+ m_arrMidiNotesHL[7] = new MidiNote(7, 120, 0, 9, 8372.02);
+ m_arrMidiNotesHL[8] = new MidiNote(8, 119, 11, 8, 7902.13);
+ m_arrMidiNotesHL[9] = new MidiNote(9, 118, 10, 8, 7458.62);
+ m_arrMidiNotesHL[10] = new MidiNote(10, 117, 9, 8,7040.00);
+ m_arrMidiNotesHL[11] = new MidiNote(11, 116, 8, 8, 6644.88);
+ m_arrMidiNotesHL[12] = new MidiNote(12, 115, 7, 8,	6271.93);
+ m_arrMidiNotesHL[13] = new MidiNote(13, 114, 6, 8,	5919.91);
+ m_arrMidiNotesHL[14] = new MidiNote(14, 113, 5, 8,	5587.65);
+ m_arrMidiNotesHL[15] = new MidiNote(15, 112, 4, 8,	5274.04);
+ m_arrMidiNotesHL[16] = new MidiNote(16, 111, 3, 8,	4978.03);
+ m_arrMidiNotesHL[17] = new MidiNote(17, 110, 2, 8,	4698.64);
+ m_arrMidiNotesHL[18] = new MidiNote(18, 109, 1, 8,	4434.92);
+ m_arrMidiNotesHL[19] = new MidiNote(19, 108, 0, 8,	4186.01);
+ m_arrMidiNotesHL[20] = new MidiNote(20, 107, 11, 7, 3951.07);
+ m_arrMidiNotesHL[21] = new MidiNote(21, 106, 10, 7, 3729.31);
+ m_arrMidiNotesHL[22] = new MidiNote(22, 105, 9, 7, 3520.00);
+ m_arrMidiNotesHL[23] = new MidiNote(23, 104, 8, 7, 3322.44);
+ m_arrMidiNotesHL[24] = new MidiNote(24, 103, 7, 7,	3135.96);
+ m_arrMidiNotesHL[25] = new MidiNote(25, 102, 6, 7,	2959.96);
+ m_arrMidiNotesHL[26] = new MidiNote(26, 101, 5, 7,	2793.83);
+ m_arrMidiNotesHL[27] = new MidiNote(27, 100, 4, 7,	2637.02);
+ m_arrMidiNotesHL[28] = new MidiNote(28, 99,	3, 7, 2489.02);
+ m_arrMidiNotesHL[29] = new MidiNote(29, 98,	2, 7, 2349.32);
+ m_arrMidiNotesHL[30] = new MidiNote(30, 97,	1, 7, 2217.46);
+ m_arrMidiNotesHL[31] = new MidiNote(31, 96,	0, 7,	2093.00);
+ m_arrMidiNotesHL[32] = new MidiNote(32, 95, 11, 6,	1975.53);
+ m_arrMidiNotesHL[33] = new MidiNote(33, 94, 10, 6,	1864.66);
+ m_arrMidiNotesHL[34] = new MidiNote(34, 93, 9, 6, 1760.00);
+ m_arrMidiNotesHL[35] = new MidiNote(35, 92, 8, 6, 1661.22);
+ m_arrMidiNotesHL[36] = new MidiNote(36, 91, 7, 6, 1567.98);
+ m_arrMidiNotesHL[37] = new MidiNote(37, 90, 6, 6, 1479.98);
+ m_arrMidiNotesHL[38] = new MidiNote(38, 89, 5, 6, 1396.91);
+ m_arrMidiNotesHL[39] = new MidiNote(39, 88, 4, 6, 1318.51);
+ m_arrMidiNotesHL[40] = new MidiNote(40, 87, 3, 6, 1244.51);
+ m_arrMidiNotesHL[41] = new MidiNote(41, 86, 2, 6, 1174.66);
+ m_arrMidiNotesHL[42] = new MidiNote(42, 85, 1, 6, 1108.73);
+ m_arrMidiNotesHL[43] = new MidiNote(43, 84, 0,	6, 1046.50);
+ m_arrMidiNotesHL[44] = new MidiNote(44, 83, 11, 5, 987.77);
+ m_arrMidiNotesHL[45] = new MidiNote(45, 82, 10, 5,	932.33);
+ m_arrMidiNotesHL[46] = new MidiNote(46, 81, 9, 5, 880.00);
+ m_arrMidiNotesHL[47] = new MidiNote(47, 80, 8, 5, 830.61);
+ m_arrMidiNotesHL[48] = new MidiNote(48, 79, 7, 5, 783.99);
+ m_arrMidiNotesHL[49] = new MidiNote(49, 78, 6, 5, 739.99);
+ m_arrMidiNotesHL[50] = new MidiNote(50, 77, 5, 5, 698.46);
+ m_arrMidiNotesHL[51] = new MidiNote(51, 76, 4, 5, 659.26);
+ m_arrMidiNotesHL[52] = new MidiNote(52, 75, 3, 5, 622.25);
+ m_arrMidiNotesHL[53] = new MidiNote(53, 74, 2, 5, 587.33);
+ m_arrMidiNotesHL[54] = new MidiNote(54, 73, 1, 5, 554.37);
+ m_arrMidiNotesHL[55] = new MidiNote(55, 72, 0, 5, 523.25);
+ m_arrMidiNotesHL[56] = new MidiNote(56, 71, 11, 4, 493.88);
+ m_arrMidiNotesHL[57] = new MidiNote(57, 70, 10, 4, 466.16);
+ m_arrMidiNotesHL[58] = new MidiNote(58, 69, 9, 4, 440.00);
+ m_arrMidiNotesHL[59] = new MidiNote(59, 68, 8, 4, 415.30);
+ m_arrMidiNotesHL[60] = new MidiNote(60, 67, 7, 4, 392.00); 
+ m_arrMidiNotesHL[61] = new MidiNote(61, 66, 6, 4, 369.99);
+ m_arrMidiNotesHL[62] = new MidiNote(62, 65, 5, 4, 349.23);
+ m_arrMidiNotesHL[63] = new MidiNote(63, 64, 4, 4, 329.63);
+ m_arrMidiNotesHL[64] = new MidiNote(64, 63, 3, 4, 311.13);
+ m_arrMidiNotesHL[65] = new MidiNote(65, 62, 2, 4, 293.66);
+ m_arrMidiNotesHL[66] = new MidiNote(66, 61, 1, 4, 277.18);
+ m_arrMidiNotesHL[67] = new MidiNote(67, 60, 0, 4, 261.63);   // middle C
+ m_arrMidiNotesHL[68] = new MidiNote(68, 59, 11, 3, 246.94);
+ m_arrMidiNotesHL[69] = new MidiNote(69, 58, 10, 3, 233.08);
+ m_arrMidiNotesHL[70] = new MidiNote(70, 57, 9, 3, 220.00);
+ m_arrMidiNotesHL[71] = new MidiNote(71, 56, 8, 3, 207.65);
+ m_arrMidiNotesHL[72] = new MidiNote(72, 55, 7, 3, 196.00);
+ m_arrMidiNotesHL[73] = new MidiNote(73, 54, 6, 3, 185.00);
+ m_arrMidiNotesHL[74] = new MidiNote(74, 53, 5, 3, 174.61);
+ m_arrMidiNotesHL[75] = new MidiNote(75, 52, 4, 3, 164.81);
+ m_arrMidiNotesHL[76] = new MidiNote(76, 51, 3, 3, 155.56);
+ m_arrMidiNotesHL[77] = new MidiNote(77, 50, 2, 3, 146.83);
+ m_arrMidiNotesHL[78] = new MidiNote(78, 49, 1, 3, 138.59);
+ m_arrMidiNotesHL[79] = new MidiNote(79, 48, 0, 3, 130.81);
+ m_arrMidiNotesHL[80] = new MidiNote(80, 47, 11, 2, 123.47);
+ m_arrMidiNotesHL[81] = new MidiNote(81, 46, 10, 2, 116.54);
+ m_arrMidiNotesHL[82] = new MidiNote(82, 45, 9, 2, 110.00);
+ m_arrMidiNotesHL[83] = new MidiNote(83, 44, 8, 2, 103.83);
+ m_arrMidiNotesHL[84] = new MidiNote(84, 43, 7, 2, 98.00);
+ m_arrMidiNotesHL[85] = new MidiNote(85, 42, 6, 2, 92.50);
+ m_arrMidiNotesHL[86] = new MidiNote(86, 41, 5, 2, 87.31);
+ m_arrMidiNotesHL[87] = new MidiNote(87, 40, 4, 2, 82.41);
+ m_arrMidiNotesHL[88] = new MidiNote(88, 39, 3, 2, 77.78);
+ m_arrMidiNotesHL[89] = new MidiNote(89, 38, 2, 2, 73.42);
+ m_arrMidiNotesHL[90] = new MidiNote(90, 37, 1, 2, 69.30);
+ m_arrMidiNotesHL[91] = new MidiNote(91, 36, 0, 2, 65.41);
+ m_arrMidiNotesHL[92] = new MidiNote(92, 35, 11, 1, 61.74);
+ m_arrMidiNotesHL[93] = new MidiNote(93, 34, 10, 1, 58.27);
+ m_arrMidiNotesHL[94] = new MidiNote(94, 33, 9, 1, 55.00);
+ m_arrMidiNotesHL[95] = new MidiNote(95, 32, 8, 1, 51.91);
+ m_arrMidiNotesHL[96] = new MidiNote(96, 31, 7, 1, 49.00);
+ m_arrMidiNotesHL[97] = new MidiNote(97, 30, 6, 1, 46.25);
+ m_arrMidiNotesHL[98] = new MidiNote(98, 29, 5, 1, 43.65);
+ m_arrMidiNotesHL[99] = new MidiNote(99, 28, 4, 1, 41.20);
+ m_arrMidiNotesHL[100] = new MidiNote(100, 27, 3, 1, 38.89);
+ m_arrMidiNotesHL[101] = new MidiNote(101, 26, 2, 1, 36.71);
+ m_arrMidiNotesHL[102] = new MidiNote(102, 25, 1, 1, 34.65);
+ m_arrMidiNotesHL[103] = new MidiNote(103, 24, 0, 1, 32.70);
+ m_arrMidiNotesHL[104] = new MidiNote(104, 23, 11, 0, 30.87);
+ m_arrMidiNotesHL[105] = new MidiNote(105, 22, 10, 0, 29.14);
+ m_arrMidiNotesHL[106] = new MidiNote(106, 21, 9, 0, 27.50);
+
+ // copy notes to LH array in reverse order
+
+ k = 106;
+ for (i = 0; i<107; i++)
+  {
+   m_arrMidiNotesLH[i] = m_arrMidiNotesHL[k];
+   m_mapMidiNotes.set(m_arrMidiNotesHL[k].Number, m_arrMidiNotesHL[k]);
+   k--;
+  }
+}
+
+// Modes
+
+function makeModes()
+{
+ m_arrModes[0]=new Mode(0,"#7BBDFF","Ionian (Major)",[2,2,1,2,2,2,1],[m_cpMajor,m_cpMinor,m_cpMinor,m_cpMajor,m_cpMajor,m_cpMinor,m_cpDim]);
+ m_arrModes[1]=new Mode(1,"#7BBDFF","Dorian",[2,1,2,2,2,1,2],[m_cpMinor,m_cpMinor,m_cpMajor,m_cpMajor,m_cpMinor,m_cpDim,m_cpMajor]);
+ m_arrModes[2]=new Mode(2,"#7BBDFF","Phrygian",[1,2,2,2,1,2,2],[m_cpMinor,m_cpMajor,m_cpMajor,m_cpMinor,m_cpDim,m_cpMajor,m_cpMinor]);
+ m_arrModes[3]=new Mode(3,"#7BBDFF","Lydian",[2,2,2,1,2,2,1], [m_cpMajor,m_cpMajor,m_cpMinor,m_cpDim,m_cpMajor,m_cpMinor,m_cpMinor]);
+ m_arrModes[4]=new Mode(4,"#7BBDFF","Mixolydian",[2,2,1,2,2,1,2], [m_cpMajor,m_cpMinor,m_cpDim,m_cpMajor,m_cpMinor,m_cpMinor,m_cpMajor]);
+ m_arrModes[5]=new Mode(5,"#7BBDFF","Aeolian (Minor)",[2,1,2,2,1,2,2], [m_cpMinor,m_cpDim,m_cpMajor,m_cpMinor,m_cpMinor,m_cpMajor,m_cpMajor]);
+ m_arrModes[6]=new Mode(6,"#7BBDFF","Locrian",[1,2,2,1,2,2,2], [m_cpDim,m_cpMajor,m_cpMinor,m_cpMinor,m_cpMajor,m_cpMajor,m_cpMinor]);
+
+ m_arrModes[7]=new Mode(7,"#7BFFBD","Major 7th",[2,2,1,2,2,2,1], [m_cpMajor7,m_cpMinor7,m_cpMinor7,m_cpMajor7,m_cpDom7,m_cpMinor7,m_cpHalfDim7]);
+ m_arrModes[8]=new Mode(8,"#7BFFBD","Minor 7th",[2,1,2,2,1,2,2], [m_cpMinor7,m_cpHalfDim7,m_cpMajor7,m_cpMinor7,m_cpMinor7,m_cpMajor7,m_cpDom7]);
+
+ m_arrModes[9]=new Mode(9,"#FFFF7B","Harmonic Major",[2,2,1,2,2,3,1], [m_cpMajor,m_cpMinor,m_cpMinor,m_cpMajor,m_cpMajor,m_cpMinor,m_cpDim]);
+ m_arrModes[10]=new Mode(10,"#FFFF7B","Harmonic minor",[2,1,2,2,1,3,1], [m_cpMinor,m_cpDim,m_cpAug,m_cpMinor,m_cpMajor,m_cpMajor,m_cpDim]);
+ m_arrModes[11]=new Mode(11,"#FFFF7B","Melodic minor (ascending)",[2,1,2,2,2,2,1], [m_cpMinor,m_cpMinor,m_cpAug,m_cpMajor,m_cpMajor,m_cpDim,m_cpDim]);
+ m_arrModes[12]=new Mode(12,"#FFFF7B","Gypsy minor",[2,1,3,1,1,2,2], [m_cpMinor,m_cpDim,m_cpMajor,m_cpMinor,m_cpMinor,m_cpMajor,m_cpMajor]);
+ m_arrModes[13]=new Mode(13,"#FFFF7B","Hungarian minor",[2,1,3,1,1,3,1], [m_cpMinor,m_cpDim,m_cpMajor,m_cpMinor,m_cpMinor,m_cpMajor,m_cpMajor]);
+ m_arrModes[14]=new Mode(14,"#FFFF7B","Persian minor",[1,3,1,1,2,3,1], [m_cpMinor,m_cpDim,m_cpMajor,m_cpMinor,m_cpMinor,m_cpMajor,m_cpMajor]);
+ m_arrModes[15]=new Mode(15,"#FFFF7B","Spanish minor",[1,3,1,2,1,2,2], [m_cpMinor,m_cpDim,m_cpMajor,m_cpMinor,m_cpMinor,m_cpMajor,m_cpMajor]);
+
+ m_arrModes[16]=new Mode(16,"#FFB8FF","Altered Dominant",[1,2,1,2,2,2,2], [m_cpDim,m_cpMajor,m_cpMinor,m_cpMinor,m_cpMajor,m_cpMajor,m_cpMinor]);
+ m_arrModes[17]=new Mode(17,"#FFB8FF","Overtone Dominant",[2,2,2,1,2,1,2], [m_cpMajor,m_cpMajor,m_cpMinor,m_cpDim,m_cpMajor,m_cpMinor,m_cpMinor]);
+ m_arrModes[18]=new Mode(18,"#FFB8FF","Augmented Whole Tone",[2,2,2,2,2,2,2], [m_cpMinor,m_cpDim,m_cpMajor,m_cpMinor,m_cpMinor,m_cpMajor,m_cpMajor]);
+}
+
+
+// C C#/Db D D#/Eb E  F  F#/Gb G G#/Ab A A#/Bb B/Cb
+// 0   1   2   3   4  5    6   7   8   9  10    11
+// signatures that are not represented in sheet music:  A#
+
+function makeKeys()
+{
+ m_arrKeys[0] = new Key(m_keyCMajor, m_keyAMinor, 0, m_modeIonian, "N", ["C","D","E","F","G","A","B"]);
+
+ m_arrKeys[1] = new Key(m_keyGMajor, m_keyEMinor, 7, m_modeIonian, "S", ["G","A","B","C","D","E",noteFs]); 
+ m_arrKeys[2] = new Key(m_keyDMajor, m_keyBMinor, 2, m_modeIonian, "S", ["D","E",noteFs,"G","A","B",noteCs]); 
+ m_arrKeys[3] = new Key(m_keyAMajor, m_keyFsMinor, 9, m_modeIonian, "S", ["A","B",noteCs,"D","E",noteFs,"G"]); 
+ m_arrKeys[4] = new Key(m_keyEMajor, m_keyCsMinor, 4, m_modeIonian, "S", ["E",noteFs,noteGs,"A","B",noteCs,noteDs]); 
+ m_arrKeys[5] = new Key(m_keyBMajor, m_keyGsMinor, 11, m_modeIonian, "S", ["B",noteCs,noteDs,"E",noteFs,noteGs,noteAs]); 
+ m_arrKeys[6] = new Key(m_keyFsMajor, m_keyDsMinor, 6, m_modeIonian, "S", [noteFs,noteGs,noteAs,"B",noteCs,noteDs,noteEs]); 
+ m_arrKeys[7] = new Key(m_keyCsMajor, m_keyAsMinor, 1, m_modeIonian, "S", [noteCs,noteDs,noteEs,noteFs,noteGs,noteAs,noteBs]); 
+
+ m_arrKeys[8] = new Key(m_keyFMajor, m_keyDMinor, 5, m_modeIonian, "F", ["F","G","A",noteBb,"C","D","E"]); 
+ m_arrKeys[9] = new Key(m_keyBbMajor, m_keyGMinor, 10, m_modeIonian, "F", [noteBb,"C","D",noteEb,"F","G","A"]); 
+ m_arrKeys[10] = new Key(m_keyEbMajor, m_keyCMinor, 3, m_modeIonian, "F", [noteEb,"F","G",noteAb,noteBb,"C","D"]); 
+ m_arrKeys[11] = new Key(m_keyAbMajor, m_keyFMinor, 8, m_modeIonian, "F", [noteAb,noteBb,"C",noteDb,noteEb,"F","G"]); 
+ m_arrKeys[12] = new Key(m_keyDbMajor, m_keyBbMinor, 1, m_modeIonian, "F", [noteDb,noteEb,"F",noteGb,noteAb,noteBb,"C"]);        // same as Cs Major
+ m_arrKeys[13] = new Key(m_keyGbMajor, m_keyEbMinor, 6, m_modeIonian, "F", [noteGb,noteAb,noteBb,noteCb,noteDb,noteEb,"F"]);     // same as Fs Major
+ m_arrKeys[14] = new Key(m_keyCbMajor, m_keyAbMinor, 11, m_modeIonian, "F", [noteCb,noteDb,noteEb,noteFb,noteGb,noteAb,noteBb]); // same as B Major
+
+ m_arrKeys[15] = new Key(m_keyAMinor, m_keyCMajor, 9, m_modeAeolian, "N", ["A","B","C","D","E","F","G"]);
+
+ m_arrKeys[16] = new Key(m_keyEMinor, m_keyGMajor, 4, m_modeAeolian, "S", ["E",noteFs,"G","A","B","C","D"]); 
+ m_arrKeys[17] = new Key(m_keyBMinor, m_keyDMajor, 11, m_modeAeolian, "S", ["B",noteCs,"D","E",noteFs,"G","A"]); 
+ m_arrKeys[18] = new Key(m_keyFsMinor, m_keyAMajor, 6, m_modeAeolian, "S", [noteFs,"G","A","B",noteCs,"D","E"]); 
+ m_arrKeys[19] = new Key(m_keyCsMinor, m_keyEMajor, 1, m_modeAeolian, "S", [noteGs,"A","B",noteCs,noteDs,"E",noteFs]); 
+ m_arrKeys[20] = new Key(m_keyGsMinor, m_keyBMajor, 8, m_modeAeolian, "S", [noteGs,noteAs,"B",noteCs,noteDs,"E",noteFs]); 
+ m_arrKeys[21] = new Key(m_keyDsMinor, m_keyFsMajor, 3, m_modeAeolian, "S", [noteDs,noteEs,noteFs,noteGs,noteAs,"B",noteCs]); 
+ m_arrKeys[22] = new Key(m_keyAsMinor, m_keyCsMajor, 10, m_modeAeolian, "S", [noteAs,noteBs,noteCs,noteDs,noteEs,noteFs,noteGs]); 
+
+ m_arrKeys[23] = new Key(m_keyDMinor, m_keyFMajor, 2, m_modeAeolian, "F", ["D","E","F","G","A",noteBb,"C"]); 
+ m_arrKeys[24] = new Key(m_keyGMinor, m_keyBbMajor, 7, m_modeAeolian, "F", ["G","A",noteBb,"C","D",noteEb,"F"]); 
+ m_arrKeys[25] = new Key(m_keyCMinor, m_keyEbMajor, 0, m_modeAeolian, "F", ["C","D",noteEb,"F","G",noteAb,noteBb]); 
+ m_arrKeys[26] = new Key(m_keyFMinor, m_keyAbMajor, 5, m_modeAeolian, "F", ["F","G",noteAb,noteBb,"C",noteDb,noteEb]); 
+ m_arrKeys[27] = new Key(m_keyBbMinor, m_keyDbMajor, 10, m_modeAeolian, "F", [noteBb,"C",noteDb,noteEb,"F",noteGb,noteAb]); 
+ m_arrKeys[28] = new Key(m_keyEbMinor, m_keyGbMajor, 3, m_modeAeolian, "F", [noteEb,"F",noteGb,noteAb,noteBb,noteCb,noteDb]); 
+ m_arrKeys[29] = new Key(m_keyAbMinor, m_keyCbMajor, 8, m_modeAeolian, "F", [noteAb,noteBb,noteCb,noteDb,noteEb,noteFb,noteGb]); 
+
+}
+
+// C Db D Eb E F Gb G Ab A Bb B
+// 0 1  2 3  4 5 6  7 8  9 10 11
+
+// makeChordPatternPlacements generated by GuitarChord program at 12/29/2022 4:03:49 PM
+
+function makeChordPatternPlacements()
+{
+ m_arrChordPatterns[m_cpMajor].PatternGuitar[0] = new Placement(1, m_Guitar, 0, 48, [new Fingering(4, 1)], [new Fingering(2, 2)], [new Fingering(1, 3)], new Array(), [new Fingering(3, 0), new Fingering(5, 0)], [new Fingering(0, 0)], );
+ m_arrChordPatterns[m_cpMajor].PatternGuitar[1] = new Placement(2, m_Guitar, 2, 50, [new Fingering(3, 2)], [new Fingering(5, 2)], [new Fingering(4, 3)], new Array(), [new Fingering(1, 0), new Fingering(2, 0)], [new Fingering(0, 0)], );
+ m_arrChordPatterns[m_cpMajor].PatternGuitar[2] = new Placement(3, m_Guitar, 4, 44, new Array(), [new Fingering(3, 1)], [new Fingering(1, 2)], [new Fingering(2, 2)], [new Fingering(0, 0), new Fingering(4, 0), new Fingering(5, 0)], new Array(), );
+ m_arrChordPatterns[m_cpMajor].PatternGuitar[3] = new Placement(4, m_Guitar, 7, 47, [new Fingering(1, 2)], [new Fingering(0, 3)], new Array(), [new Fingering(5, 3)], [new Fingering(2, 0), new Fingering(3, 0), new Fingering(4, 0)], new Array(), );
+ m_arrChordPatterns[m_cpMajor].PatternGuitar[4] = new Placement(5, m_Guitar, 9, 49, [new Fingering(2, 2), new Fingering(3, 2)], [new Fingering(4, 2)], new Array(), new Array(), [new Fingering(1, 0), new Fingering(5, 0)], [new Fingering(0, 0)], );
+ m_arrChordPatterns[m_cpMinor].PatternGuitar[0] = new Placement(6, m_Guitar, 2, 50, [new Fingering(5, 1)], [new Fingering(4, 3)], [new Fingering(3, 2)], new Array(), [new Fingering(1, 0), new Fingering(2, 0)], [new Fingering(0, 0)], );
+ m_arrChordPatterns[m_cpMinor].PatternGuitar[1] = new Placement(7, m_Guitar, 4, 44, new Array(), new Array(), [new Fingering(1, 2)], [new Fingering(2, 2)], [new Fingering(0, 0), new Fingering(3, 0), new Fingering(4, 0), new Fingering(5, 0)], new Array(), );
+ m_arrChordPatterns[m_cpMinor].PatternGuitar[2] = new Placement(8, m_Guitar, 9, 49, new Array(), [new Fingering(4, 1)], [new Fingering(2, 2)], [new Fingering(3, 2)], [new Fingering(1, 0), new Fingering(5, 0)], [new Fingering(0, 0)], );
+}
+
+function makeBarreChordPatterns()
+{                                                                    //   index                                                                                                                                              // middle             // ring               // pinky         // no play          
+ m_GuitarBarreChordE = new BarrePlacement(1, 4, m_cpMajor, m_Guitar, [new BarreIndex(0, 0, 1), new BarreIndex(1, 0, 0), new BarreIndex(2, 0, 0), new BarreIndex(3, 0, 0), new BarreIndex(4, 0, 1), new BarreIndex(5, 0, 1)], [new Fingering(3, 1)], [new Fingering(1, 2)], [new Fingering(2, 2)], new Array());
+ m_GuitarBarreChordEm = new BarrePlacement(2, 4, m_cpMinor, m_Guitar, [new BarreIndex(0, 0, 1), new BarreIndex(1, 0, 0), new BarreIndex(2, 0, 0), new BarreIndex(3, 0, 1), new BarreIndex(4, 0, 1), new BarreIndex(5, 0, 1)], new Array(), [new Fingering(1, 2)], [new Fingering(2 ,2)], new Array());
+
+
+ m_GuitarBarreChordA = new BarrePlacement(3, 9, m_cpMajor, m_Guitar, [new BarreIndex(1, 0, 1), new BarreIndex(2, 0, 0), new BarreIndex(3, 0, 0), new BarreIndex(4, 0, 0), new BarreIndex(5, 0, 1)], new Array(), [new Fingering(2, 2), new Fingering(3, 2), new Fingering(4, 2)], new Array(), [new Fingering(0, 0)]);
+ m_GuitarBarreChordAm = new BarrePlacement(4, 9, m_cpMinor, m_Guitar, [new BarreIndex(1, 0, 1), new BarreIndex(2, 0, 0), new BarreIndex(3, 0, 0), new BarreIndex(4, 0, 0), new BarreIndex(5, 0, 1)], [new Fingering(4, 1)], [new Fingering(2, 2)], [new Fingering(3, 2)], [new Fingering(0, 0)]);
+}
+
+function makeGuitar(m0, m1, m2, m3, m4, m5) // midi notes of guitar strings, m0 is the thick string
+{
+ var i;
+
+ m_arrGuitar[0] = new Array();
+ m_arrGuitar[1] = new Array();
+ m_arrGuitar[2] = new Array();
+ m_arrGuitar[3] = new Array();
+ m_arrGuitar[4] = new Array();
+ m_arrGuitar[5] = new Array();
+
+ for (i=0; i<24; i++)
+  {
+   m_arrGuitar[0].push(m0 + i);
+   m_arrGuitar[1].push(m1 + i);
+   m_arrGuitar[2].push(m2 + i);
+   m_arrGuitar[3].push(m3 + i);
+   m_arrGuitar[4].push(m4 + i);
+   m_arrGuitar[5].push(m5 + i);  
+  }
+}
+
+</script>
+
+<script type="text/javascript">
+
+//////////////////////////////////////////////
+//            Load Combo Boxes
+//////////////////////////////////////////////
+
+function dynaLoadSpecificChordCBO(divName)
+{
+ var i,k,s,sn,lgnm;
+
+ s="<SELECT ID='cboChordType' STYLE='font-size:20px;' ONCHANGE='eventSpecificChord_Change();'>";
+ s+="<OPTION VALUE='Z'>Off</OPTION>";
+
+ // find longest name
+
+ lgnm = 0;
+ for (i=0;i<m_arrChordPatterns.length;i++)
+  {
+   k = m_arrChordPatterns[i].Name.length;
+   if (k > lgnm) 
+     lgnm = k;
+  }
+
+ for (i=0;i<m_arrChordPatterns.length;i++)
+  {
+   s+="<OPTION VALUE="+m_arrChordPatterns[i].ID+" ";
+   s+=" STYLE='background-Color:white; font-family:monospace;'>";
+   sn=m_arrChordPatterns[i].Name+"-----------------------------------"; // can't seem to keep spaces from getting truncated in the dropdown, using "-"s instead
+   s+=sn.substr(0,lgnm+1);
+   s+="("+m_arrChordPatterns[i].Formula+")";
+   s+="</OPTION>";
+  }
+ s+="</SELECT>";
+
+ document.getElementById(divName).innerHTML=s;
+
+}
+
+function dynaModesLoader(cboName)
+{
+ var i,oOption;
+ 
+ document.getElementById(cboName).options.length=0;
+ 
+ for (i=0;i<m_arrModes.length;i++)
+  {
+   oOption=document.createElement("OPTION");
+   oOption.style.backgroundColor=m_arrModes[i].Background;
+   oOption.text=m_arrModes[i].ModeName;
+   oOption.value=m_arrModes[i].ID;
+   document.getElementById(cboName).options.add(oOption);
+  }
+ m_CurrentMode = m_arrModes[0].ID;
+}
+
+////////////////////////////////////////////////
+//       G e n e r a t e    H T M L
+////////////////////////////////////////////////
+
+// generate guitar fretboard
+
+
+function GenGuitarStringElement(chord, offset, wstr, fret) // chord = chord pattern index, offset c=0, wstr is string #
+{
+ var i, k, fo, html;
+
+ html = "";
+
+ for (i=0; i<m_arrChordPatterns[chord].PatternGuitar.length; i++) // go thru the placements
+  {
+   if (m_arrChordPatterns[chord].PatternGuitar[i].Offset == offset) // see if offset is present C = 0
+    {
+     for(k=0; k<m_arrChordPatterns[chord].PatternGuitar[i].Index.length; k++) // go thru Index finger list
+      {
+       if (m_arrChordPatterns[chord].PatternGuitar[i].Index[k].Str == wstr && m_arrChordPatterns[chord].PatternGuitar[i].Index[k].Fret == fret)
+         return "I"; 
+      }
+     for(k=0; k<m_arrChordPatterns[chord].PatternGuitar[i].Middle.length; k++) // go thru middle finger list
+      {
+       if (m_arrChordPatterns[chord].PatternGuitar[i].Middle[k].Str == wstr && m_arrChordPatterns[chord].PatternGuitar[i].Middle[k].Fret == fret)
+         return "M"; 
+      }
+     for(k=0; k<m_arrChordPatterns[chord].PatternGuitar[i].Ring.length; k++) // go thru ring finger list
+      {
+       if (m_arrChordPatterns[chord].PatternGuitar[i].Ring[k].Str == wstr && m_arrChordPatterns[chord].PatternGuitar[i].Ring[k].Fret == fret)
+         return "R"; 
+      }
+     for(k=0; k<m_arrChordPatterns[chord].PatternGuitar[i].Pinky.length; k++) // go thru pinky finger list
+      {
+       if (m_arrChordPatterns[chord].PatternGuitar[i].Pinky[k].Str == wstr && m_arrChordPatterns[chord].PatternGuitar[i].Pinky[k].Fret == fret)
+         return "P"; 
+      }
+     for(k=0; k<m_arrChordPatterns[chord].PatternGuitar[i].Open.length; k++) // go thru open string list
+      {
+       if (m_arrChordPatterns[chord].PatternGuitar[i].Open[k].Str == wstr && m_arrChordPatterns[chord].PatternGuitar[i].Open[k].Fret == fret)
+         return "O"; 
+      }
+     for(k=0; k<m_arrChordPatterns[chord].PatternGuitar[i].NoPlay.length; k++) // go thru no play finger list
+      {
+       if (m_arrChordPatterns[chord].PatternGuitar[i].NoPlay[k].Str == wstr && m_arrChordPatterns[chord].PatternGuitar[i].NoPlay[k].Fret == fret)
+         return "X"; 
+      }
+    }
+  }
+ return "";
+}
+
+function GenGuitarBarreStringElement(chord, offset, wstr, fret)
+{ 
+ // for barre need to not return fingerings for open A and open E
+ if (chord == m_cpMajor)
+  {
+   fo = m_GuitarBarreChordA.Offsets[offset];
+   for (k=0; k<m_GuitarBarreChordA.Index[fo].length; k++)
+    {
+     if (m_GuitarBarreChordA.Index[fo][k].Str == wstr && m_GuitarBarreChordA.Index[fo][k].Fret == fret)
+       return "I";
+    }
+   for (k=0; k<m_GuitarBarreChordA.Middle[fo].length; k++)
+    {
+     if (m_GuitarBarreChordA.Middle[fo][k].Str == wstr && m_GuitarBarreChordA.Middle[fo][k].Fret == fret)
+       return "M";
+    }
+   for (k=0; k<m_GuitarBarreChordA.Ring[fo].length; k++)
+    {
+     if (m_GuitarBarreChordA.Ring[fo][k].Str == wstr && m_GuitarBarreChordA.Ring[fo][k].Fret == fret)
+       return "R";
+    }
+   for (k=0; k<m_GuitarBarreChordA.Pinky[fo].length; k++)
+    {
+     if (m_GuitarBarreChordA.Pinky[fo][k].Str == wstr && m_GuitarBarreChordA.Pinky[fo][k].Fret == fret)
+       return "P";
+    }
+   for (k=0; k<m_GuitarBarreChordA.NoPlay[fo].length; k++)
+    {
+     if (m_GuitarBarreChordA.NoPlay[fo][k].Str == wstr && m_GuitarBarreChordA.NoPlay[fo][k].Fret == fret)
+       return "X";
+    }
+   fo = m_GuitarBarreChordE.Offsets[offset];
+   for (k=0; k<m_GuitarBarreChordE.Index[fo].length; k++)
+    {
+     if (m_GuitarBarreChordE.Index[fo][k].Str == wstr && m_GuitarBarreChordE.Index[fo][k].Fret == fret)
+       return "I";
+    }
+   for (k=0; k<m_GuitarBarreChordE.Middle[fo].length; k++)
+    {
+     if (m_GuitarBarreChordE.Middle[fo][k].Str == wstr && m_GuitarBarreChordE.Middle[fo][k].Fret == fret)
+       return "M";
+    }
+   for (k=0; k<m_GuitarBarreChordE.Ring[fo].length; k++)
+    {
+     if (m_GuitarBarreChordE.Ring[fo][k].Str == wstr && m_GuitarBarreChordE.Ring[fo][k].Fret == fret)
+       return "R";
+    }
+   for (k=0; k<m_GuitarBarreChordE.Pinky[fo].length; k++)
+    {
+     if (m_GuitarBarreChordE.Pinky[fo][k].Str == wstr && m_GuitarBarreChordE.Pinky[fo][k].Fret == fret)
+       return "P";
+    }
+  }
+ if (chord == m_cpMinor)
+  {
+   fo = m_GuitarBarreChordAm.Offsets[offset];
+   for (k=0; k<m_GuitarBarreChordAm.Index[fo].length; k++)
+    {
+     if (m_GuitarBarreChordAm.Index[fo][k].Str == wstr && m_GuitarBarreChordAm.Index[fo][k].Fret == fret)
+       return "I";
+    }
+   for (k=0; k<m_GuitarBarreChordAm.Middle[fo].length; k++)
+    {
+     if (m_GuitarBarreChordAm.Middle[fo][k].Str == wstr && m_GuitarBarreChordAm.Middle[fo][k].Fret == fret)
+       return "M";
+    }
+   for (k=0; k<m_GuitarBarreChordAm.Ring[fo].length; k++)
+    {
+     if (m_GuitarBarreChordAm.Ring[fo][k].Str == wstr && m_GuitarBarreChordAm.Ring[fo][k].Fret == fret)
+       return "R";
+    }
+   for (k=0; k<m_GuitarBarreChordAm.Pinky[fo].length; k++)
+    {
+     if (m_GuitarBarreChordAm.Pinky[fo][k].Str == wstr && m_GuitarBarreChordAm.Pinky[fo][k].Fret == fret)
+       return "P";
+    }
+   for (k=0; k<m_GuitarBarreChordAm.NoPlay[fo].length; k++)
+    {
+     if (m_GuitarBarreChordAm.NoPlay[fo][k].Str == wstr && m_GuitarBarreChordAm.NoPlay[fo][k].Fret == fret)
+       return "X";
+    }
+   fo = m_GuitarBarreChordEm.Offsets[offset];
+   for (k=0; k<m_GuitarBarreChordEm.Index[fo].length; k++)
+    {
+     if (m_GuitarBarreChordEm.Index[fo][k].Str == wstr && m_GuitarBarreChordEm.Index[fo][k].Fret == fret)
+       return "I";
+    }
+   for (k=0; k<m_GuitarBarreChordEm.Middle[fo].length; k++)
+    {
+     if (m_GuitarBarreChordEm.Middle[fo][k].Str == wstr && m_GuitarBarreChordEm.Middle[fo][k].Fret == fret)
+       return "M";
+    }
+   for (k=0; k<m_GuitarBarreChordEm.Ring[fo].length; k++)
+    {
+     if (m_GuitarBarreChordEm.Ring[fo][k].Str == wstr && m_GuitarBarreChordEm.Ring[fo][k].Fret == fret)
+       return "R";
+    }
+   for (k=0; k<m_GuitarBarreChordEm.Pinky[fo].length; k++)
+    {
+     if (m_GuitarBarreChordEm.Pinky[fo][k].Str == wstr && m_GuitarBarreChordEm.Pinky[fo][k].Fret == fret)
+       return "P";
+    }
+  }
+ return "";
+}
+
+function GenGuitarBarreShowNote(chord, offset, wstr, fret)
+{ 
+ // for barre need to not return fingerings for open A and open E
+ if (chord == m_cpMajor)
+  {
+   fo = m_GuitarBarreChordA.Offsets[offset];
+   for (k=0; k<m_GuitarBarreChordA.Index[fo].length; k++)
+    {
+     if (m_GuitarBarreChordA.Index[fo][k].Str == wstr && m_GuitarBarreChordA.Index[fo][k].Fret == fret)
+       return m_GuitarBarreChordA.Index[fo][k].ShowNote;
+    }
+   fo = m_GuitarBarreChordE.Offsets[offset];
+   for (k=0; k<m_GuitarBarreChordE.Index[fo].length; k++)
+    {
+     if (m_GuitarBarreChordE.Index[fo][k].Str == wstr && m_GuitarBarreChordE.Index[fo][k].Fret == fret)
+       return m_GuitarBarreChordE.Index[fo][k].ShowNote;
+    }
+  }
+ if (chord == m_cpMinor)
+  {
+   fo = m_GuitarBarreChordAm.Offsets[offset];
+   for (k=0; k<m_GuitarBarreChordAm.Index[fo].length; k++)
+    {
+     if (m_GuitarBarreChordAm.Index[fo][k].Str == wstr && m_GuitarBarreChordAm.Index[fo][k].Fret == fret)
+       return m_GuitarBarreChordAm.Index[fo][k].ShowNote;
+    }
+   fo = m_GuitarBarreChordEm.Offsets[offset];
+   for (k=0; k<m_GuitarBarreChordEm.Index[fo].length; k++)
+    {
+     if (m_GuitarBarreChordEm.Index[fo][k].Str == wstr && m_GuitarBarreChordEm.Index[fo][k].Fret == fret)
+       return m_GuitarBarreChordEm.Index[fo][k].ShowNote;
+    }
+  }
+ return 1;
+}
+
+function GenGuitarCell(width, open, barre, midiNote, barreShowNote, key)
+{
+ var html;
+ var note;
+
+ if (m_arrKeys[key].LookUp[m_mapMidiNotes.get(midiNote).Offset] >= 0)
+   note = m_mapMidiNotes.get(midiNote).MidiName(key);
+ else 
+   note = ""; 
+
+ if (open == "" && barre == "")
+  {
+   note = "";
+  }
+ else 
+  {
+   if (open == "X" || barre == "X")
+     note = "";
+   else 
+    {
+     if (barre == "I")
+      {
+       if (barreShowNote == 0)
+         note = "";
+      }
+    }
+  }
+
+
+ html = "<div style='font-size:10px; position:relative; text-align:center; width:" + width.toString() + "px; height:27px;'>";
+ html += note;
+ 
+ if (open != "")
+   html += "<div style='font-size:9px; position:absolute; top:13px; left:0px;'>" + open + "</div>";
+
+ if (barre != "")
+   html += "<div style='font-size:9px; position:absolute; top:13px; right:0px;'>" + barre + "</div>";
+
+ html += "</div>";
+
+ return html;
+}
+
+
+function GenGuitarString(chord, offset, wstr, key)
+{
+ var midi;
+ var barre, fb, barreShowNote;
+ var html = "<tr>";
+ var fret;
+ var sw = 40; //pixels
+ var w;
+
+ for (fret=0; fret<15; fret++)
+  {
+   if (fret == 0) // before the nut
+     w = 25;
+   else  
+     w = sw;
+   html += "<td style='outline:thin solid;'>";
+
+   midi = m_arrGuitar[wstr][fret]; // get midi note of string and fret
+   fb = GenGuitarStringElement(chord, offset, wstr, fret);
+   barre = GenGuitarBarreStringElement(chord, offset, wstr, fret);
+   barreShowNote = GenGuitarBarreShowNote(chord, offset, wstr, fret);
+   html += GenGuitarCell(w, fb, barre, midi, barreShowNote, key);
+  
+   html += "</td>";
+   sw -= 1;
+  }
+ html += "</tr>";
+ return html;
+}
+
+function GenGuitarMarks()
+{
+ var barre, fb;
+ var html = "<tr>";
+ var fret;
+ var sw = 30; // pixels
+
+ for (fret=0; fret<15; fret++)
+  {
+   if (fret == 0) // before the nut
+     w = 15;
+   else  
+     w = sw;
+   html += "<td style='width:" + w.toString() + "px; text-align:center;'>";
+   if (fret == 3 || fret == 5 || fret ==7 || fret == 9 || fret == 15) 
+     html += symDot;
+   if (fret == 12)
+     html += symDot + symDot;
+   html += "</td>";
+   sw -= 1;
+  }
+
+ html += "</tr>";
+ return html;
+}
+
+
+function GenChordInfo(chord, offset, key) // chord pattern index
+{
+ var pattern;
+ var html;
+ var p, k;
+
+ pattern = m_arrChordPatterns[chord]; // grab ChordPattern from modes array so it can step up through the notes
+
+ html = "<table>";
+ html += "<tr>";  
+
+ html += "<td colspan=" + pattern.PitchCount + ">Chord " + m_arrKeys[key].OffsetNote(offset);
+ html += pattern.ShortName;
+ html += "</td></tr>";
+
+ html += "<tr>";
+ for (p=0; p<pattern.PitchCount; p++)
+  {
+   html += "<td padding='10px'>";
+   k = offset + pattern.Pitches[p];
+   if (k>11)
+     k -= 12;
+   html +=m_arrKeys[key].OffsetNote(k);
+   html += "</td>";
+  }
+
+ html += "</tr></table>";
+
+ return html;
+}
+function GenGuitar(chord, offset, key) // offset C=0
+{
+ var html = "<table>";
+
+ html += GenGuitarString(chord, offset, 5, key);
+ html += GenGuitarString(chord, offset, 4, key);
+ html += GenGuitarString(chord, offset, 3, key);
+ html += GenGuitarString(chord, offset, 2, key);
+ html += GenGuitarString(chord, offset, 1, key);
+ html += GenGuitarString(chord, offset, 0, key);
+ html += GenGuitarMarks();
+
+ html += "</table>";
+ 
+ html += GenChordInfo(chord, offset, key);
+
+ return html;
+}
+
+
+////////////////////////////////////////////////
+//               E v e n t s 
+////////////////////////////////////////////////
+
+function eventSpecificChord_Change()
+{
+ var nChord;
+
+ nChord=document.getElementById('cboChordType').options[document.getElementById('cboChordType').selectedIndex].index
+
+ if (document.getElementById('cboChordType').options[document.getElementById('cboChordType').selectedIndex].value=="Z")
+  {
+   m_CurrentChordPattern = -1;
+  }
+ else
+  {
+   m_CurrentChordPattern = parseInt(document.getElementById('cboChordType').options[document.getElementById('cboChordType').selectedIndex].index);
+  }
+}
+
+function eventKey_Change()
+{
+ m_CurrentKey = parseInt(document.getElementById("cboKey").options[document.getElementById("cboKey").selectedIndex].value);
+ showChords();
+}
+
+function eventCboModes_Change()
+{
+ m_CurrentMode = parseInt(document.getElementById("cboModes").options[document.getElementById("cboModes").selectedIndex].value);
+ showChords();
+}
+
+
+function showChords()
+{
+ var mode;
+ var pattern;
+ var i;
+ var cn, cni;
+ var note;
+
+ if (m_CurrentKey == -1)
+  {
+   for (i=0; i<7; i++)
+    {
+     document.getElementById("chord" + i.toString()).innerHTML="";
+    }
+   return;
+  }
+
+ mode = m_arrKeys[m_CurrentKey].Mode;
+ cn = m_arrKeys[m_CurrentKey].Offset;
+
+ for (i=0; i<7; i++)
+  {
+   pattern = m_arrModes[mode].ChordType[i];
+   s = GenGuitar(pattern, cn, m_CurrentKey);
+
+/*
+   s += "Chordy " + m_arrKeys[m_CurrentKey].Notes[cn];
+   s += m_arrChordPatterns[pattern].ShortName;
+   s += "<table><tr>";
+  
+   for (p=0; p<m_arrChordPatterns[pattern].PitchCount; p++)
+    {
+     cni = cn + m_arrChordPatterns[pattern].Pitches[p];
+     if (cni >= 12)
+       cni -= 12;
+     s += "<td>";
+     note = m_arrKeys[m_CurrentKey].OffsetNote(cni);
+     s += note;
+    }
+*/
+   document.getElementById('chord' + i.toString()).innerHTML = s;
+   cn += m_arrModes[mode].Sequences[i];
+   if (cn >= 12)
+     cn -= 12;
+  }
+
+}
+
+// call the constructors
+
+ makeModes();
+ makeKeys();   // requires modes
+ makeMidiNotes();
+ makeChordPatterns();
+ makeChordPatternPlacements();
+ makeBarreChordPatterns();
+ makeGuitar(40, 45, 50, 55, 59, 64); // E2, A2, D3, G3, B3, E4
+
+</script>
+
+<style>
+
+</style>
+
+</head>
+
+<body>
+<table>
+ <tr>
+  <td><div id="divCboKeys">keys</div>
+ </tr>
+</table>
+
+<table>
+ <tr>
+  <td><div id="chord0">chord 0</div>
+  <td><div id="chord1">chord 1</div>
+  <td><div id="chord2">chord 2</div>
+ </tr>
+ <tr><td></td></tr> 
+ <tr>
+  <td><div id="chord3">chord 3</div>
+  <td><div id="chord4">chord 4</div>
+  <td><div id="chord5">chord 5</div>
+ </tr>
+ <tr>
+  <td><div id="chord6">chord 6</div>
+ </tr>
+</table>
+
+<div id="divFretBoard1"></div>
+<br>
+<div id="divFretBoard2"></div>
+
+<script type="text/javascript">
+
+ // after document is loaded 
+
+ var s, n, i, o
+
+ m_CurrentKey = m_keyCMajor;
+ 
+ s = "<SELECT id='cboKey' STYLE='font-size:20px;' ONCHANGE='eventKey_Change();'>";
+ for(i=0; i<m_arrKeys.length; i++)
+  {
+   o = m_arrKeys[i].ID;
+   n = m_arrKeys[i].Notes[0];
+   if (m_arrKeys[i].Mode == m_modeIonian)
+     n += " Major";
+   else
+     n += " Minor";
+   s += "<OPTION value=" + o;
+   if (i==0)
+     s += " SELECTED";
+   s += ">" + n + "</OPTION>";
+  }
+ s += "</SELECT>";
+
+ document.getElementById("divCboKeys").innerHTML = s;
+
+ showChords();
+
+ // chord fingering test
+
+// document.getElementById("divFretBoard1").innerHTML = GenGuitar(m_cpMajor, 2); // D
+// document.getElementById("divFretBoard2").innerHTML = GenGuitar(m_cpMinor, 0); // C
+ 
+
+</script>
+</body>
+</html>
