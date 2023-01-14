@@ -13,11 +13,11 @@
      .guitarString { outline:thin solid; }
        .guitarMark { font-size:0.938vw; text-align:center; }
         .chordInfo { font-size:1.042vw; padding:0.521vw; }
-        .scaleName { font-size:1.042vw; padding:0.501vw; text-orientation:sideways; writing-mode:sideways-rl; }
         .scaleInfo { font-size:1.022vw; padding:0.501vw; }
         .modeChord { border:1px solid lightsteelblue; width:1.823vw; text-align:center; }
      .modeSequence { text-align:center; font-style:italic; font-size:0.938vw; }
-
+        .scaleName { font-size:1.042vw; padding:0.501vw; }
+                    
 </style>
 <script type="text/javascript">
 
@@ -1206,30 +1206,28 @@ function genModeChords()
 
 function GenGuitarScaleInfo(key) // chord pattern index, offset C = 0, Key object
 {
- var html;
- var p;
+ var s="";
+ var i;
 
- html = "<table><tr>";
-
- html += "<td><table><tr><td class='scaleName'>";
- html += key.OffsetNote(key.Offsets[0]).Text;
- html += " ";
- html += m_arrModes[m_CurrentMode].ModeName;
- html += " Scale";
- html += "</td>";
-
- html += "<td><table>";
-
- for (p=0; p<key.Offsets.length; p++)
+ for (i=0;i<m_arrModes[m_CurrentMode].Sequences.length;i++)
   {
-   html += "<tr><td class='scaleInfo'>";
-   html += key.Notes[p].Text;
-   html += "</td></tr>";
+   s += "<TD class='modeChord'>";
+   s += m_Key.Notes[i].Text;
+   s += "</TD>";
+
+   s+="<TD class='modeSequence'>"; 
+   switch(m_arrModes[m_CurrentMode].Sequences[i])
+    {
+     case 1: s+="h<BR />1"; break;
+     case 2: s+="W<BR />2"; break;
+     case 3: s+="m3<BR />3"; break;
+     case 4: s+="M 3<BR />4"; break;
+    }
+   s+="</TD>";
+
   }
 
- html += "</table></td></tr></table>";
-
- return html;
+ return s;
 }
 
 
@@ -1260,13 +1258,20 @@ function GenGuitarScale(key)
 {
  var html;
 
- html = "<table><tr valign='center'><td>";
+ html = "<table><tr><td><table><tr>" // holds scale name and table containing notes in scale then the fretboard table
 
- html += GenGuitarScaleInfo(key);
+ html += "<td class='scaleName'>";
+ html += key.OffsetNote(key.Offsets[0]).Text;
+ html += " ";
+ html += m_arrModes[m_CurrentMode].ModeName;
+ html += " Scale";
+ html += "</td>";
 
- html += "</td><td><table>";
+ html += GenGuitarScaleInfo(key);  // returns more TDs
 
- html += GenGuitarStringScale(5, key);
+ html += "</tr></table></tr></td><td><tr><table>";
+
+ html += GenGuitarStringScale(5, key); // returns TRs
  html += GenGuitarStringScale(4, key);
  html += GenGuitarStringScale(3, key);
  html += GenGuitarStringScale(2, key);
