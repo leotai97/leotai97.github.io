@@ -4,7 +4,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
 <meta m_harset="utf-8" />
 <title>Music Reference</title>
+<style>
 
+            select { font-size:1.60vw; }  
+       .guitarCell { font-size:1.042vw; position:relative; text-align:center; height:2.3vw; }
+   .guitarCellLeft { font-size:0.938vw; position:absolute; top:1.354vw; left:0vw; }
+  .guitarCellRight { font-size:0.938vw; position:absolute; top:1.354vw; right:0vw; } 
+     .guitarString { outline:thin solid; }
+       .guitarMark { font-size:0.938vw; text-align:center; }
+        .chordInfo { font-size:1.042vw; padding:0.521vw; }
+        .scaleName { font-size:1.042vw; padding:0.501vw; text-orientation:sideways; writing-mode:sideways-rl; }
+        .scaleInfo { font-size:1.022vw; padding:0.501vw; }
+        .modeChord { border:1px solid lightsteelblue; width:1.823vw; text-align:center; }
+     .modeSequence { text-align:center; font-style:italic; font-size:0.938vw; }
+
+</style>
 <script type="text/javascript">
 
 // special characters 
@@ -15,6 +29,12 @@ var symDim7='\u00F8';  // 0 with slash
 var symFDim='\u00B0';  // degree symbol
 var symMajor='\u25B3'; // delta symbol
 var symDot = '\u25CF'; // dot
+
+var fretStartSize = 4.166; // 80 pixels on 1920 x 1200
+var fretBeforeNut = 2.604; // 50 pixels
+var fretDecrease = 0.104;  // 2 pixel
+var fretMarkStart = 3.126; // 60 pixels, slid over to line up dots
+var fretMarkBeforeNut = 1.562; // 30 pixels
 
 /////////////////////////////
 //    Global Variables
@@ -968,14 +988,14 @@ function GenGuitarCell(width, open, barre, midiNote, barreShowNote, key)
   }
 
 
- html = "<div style='font-size:0.521vw; position:relative; text-align:center; width:" + width.toString() + "vw; height:1.406vw;'>";
+ html = "<div class='guitarCell' style='width:" + width.toString() + "vw;'>";
  html += note;
  
  if (open != "")
-   html += "<div style='font-size:0.469vw; position:absolute; top:0.677vw; left:0vw;'>" + open + "</div>";
+   html += "<div class='guitarCellLeft'>" + open + "</div>";
 
  if (barre != "")
-   html += "<div style='font-size:0.469vw; position:absolute; top:0.677vw; right:0vw;'>" + barre + "</div>";
+   html += "<div class='guitarCellRight'>" + barre + "</div>";
 
  html += "</div>";
 
@@ -998,11 +1018,11 @@ function GenGuitarCellScale(width, midiNote, scaleNum, key)
    note = "";
   }
 
- html = "<div style='font-size:0.521vw; position:relative; text-align:center; width:" + width.toString() + "vw; height:1.406vw;'>";
+ html = "<div class='guitarCell' style='width:" + width.toString() + "vw;'>";
  html += note;
 
  if (scaleNum > 0)
-   html += "<div style='font-size:0.469vw; position:absolute; top:0.677vw; right:0vw;'>" + scaleNum.toString() + "</div>";
+   html += "<div class='guitarCellRight'>" + scaleNum.toString() + "</div>";
 
  html += "</div>";
 
@@ -1016,16 +1036,16 @@ function GenGuitarString(chord, offset, wstr, key) // index to ChordPattern, off
  var barre, fb, barreShowNote;
  var html = "<tr>";
  var fret;
- var sw = 2.083; // 40 pixels
+ var sw = fretStartSize; // 40 pixels
  var w;
 
  for (fret=0; fret<15; fret++)
   {
    if (fret == 0) // before the nut
-     w = 1.302;   // 25 pixels
+     w = fretBeforeNut;   // 25 pixels
    else  
      w = sw;
-   html += "<td style='outline:thin solid;'>";
+   html += "<td class='guitarString'>";
 
    midi = m_arrGuitar[wstr][fret]; // get midi note of string and fret
    fb = GenGuitarStringElement(chord, offset, wstr, fret);
@@ -1034,7 +1054,7 @@ function GenGuitarString(chord, offset, wstr, key) // index to ChordPattern, off
    html += GenGuitarCell(w, fb, barre, midi, barreShowNote, key);
   
    html += "</td>";
-   sw -=  0.052; // 1 pixel
+   sw -=  fretDecrease; // 1 pixel
   }
  html += "</tr>";
  return html;
@@ -1047,7 +1067,7 @@ function GenGuitarStringScale(wstr, key) // index to ChordPattern, offset C=0, s
  var sn;
  var html = "<tr>";
  var fret;
- var sw = 2.083; //vw units about 40 pixels on a 1920 display, this is the size of area between the nut and fret 1
+ var sw = fretStartSize; //vw units about 40 pixels on a 1920 display, this is the size of area between the nut and fret 1
  var w;
 
  for (fret=0; fret<24; fret++)
@@ -1071,17 +1091,17 @@ function GenGuitarStringScale(wstr, key) // index to ChordPattern, offset C=0, s
      bg = "#EEEEEE";
      fg = "#000000";
     }
-   if (fret == 0) // before the nut
-     w = 1.302;   // 25 pixels
+   if (fret == 0)        // before the nut
+     w = fretBeforeNut;  // 25 pixels
    else  
      w = sw;
 
-   html += "<td style='outline:thin solid; color:" + fg + "; background-color:" + bg + ";'>";
+   html += "<td class='guitarString' style='color:" + fg + "; background-color:" + bg + ";'>";
 
    html += GenGuitarCellScale(w, midi, sn, key);
   
    html += "</td>";
-   sw -= 0.052; // subtract about a pixel on 1920 monitor
+   sw -= fretDecrease; // subtract about a pixel on 1920 monitor
   }
  html += "</tr>";
  return html;
@@ -1092,21 +1112,21 @@ function GenGuitarMarks(nFrets)
  var barre, fb;
  var html = "<tr>";
  var fret;
- var sw = 1.563; // 30 pixels, have to slide this over a bit to line up the dots like a fretboard
+ var sw = fretMarkStart; // 30 pixels, have to slide this over a bit to line up the dots like a fretboard
 
  for (fret=0; fret<nFrets; fret++)
   {
    if (fret == 0) // before the nut
-     w = 0.781;   // 15 pixels
+     w = fretMarkBeforeNut;   // 15 pixels
    else  
      w = sw;
-   html += "<td style='width:" + w.toString() + "vw; text-align:center;'>";
+   html += "<td class='guitarMark' style='width:" + w.toString() + "vw;'>";
    if (fret == 3 || fret == 5 || fret ==7 || fret == 9 || fret == 15 || fret==17 || fret==19) 
      html += symDot;
    if (fret == 12)
      html += symDot + symDot;
    html += "</td>";
-   sw -= 0.052;
+   sw -= fretDecrease;
   }
 
  html += "</tr>";
@@ -1122,27 +1142,66 @@ function GenChordInfo(chord, offset, key) // chord pattern index, offset C = 0, 
 
  pattern = m_arrChordPatterns[chord]; // grab ChordPattern from modes array so it can step up through the notes
 
- html = "<table>";
- html += "<tr>";  
+ html = "<table>"; 
 
- html += "<td colspan=" + pattern.PitchCount + ">Chord " + key.OffsetNote(offset).Text;
+ html += "<tr><td class='chordInfo'>" + key.OffsetNote(offset).Text;
  html += pattern.ShortName;
  html += "</td></tr>";
 
- html += "<tr>";
  for (p=0; p<pattern.PitchCount; p++)
   {
-   html += "<td padding='0.521vw'>";
+   html += "<tr><td class='chordInfo'>";
    k = offset + pattern.Pitches[p];
    if (k>11)
      k -= 12;
    html += key.OffsetNote(k).Text; // dm7 0-3-7-10 :  2 = d, 5 = f, 9 = a, 12  = c
-   html += "</td>";
+   html += "</td></tr>";
   }
 
- html += "</tr></table>";
+ html += "</table>";
 
  return html;
+}
+
+function genModeChords()
+{
+ var pattern;
+ var s;
+ var cn;
+ var nTDs = m_arrModes[m_CurrentMode].ChordType.length*2;
+ 
+ s="<TABLE>";
+ s+="<TR><TD COLSPAN="+nTDs+" ALIGN=CENTER>"+m_arrModes[m_CurrentMode].ModeName+" Progression</TD></TR><TR>";
+
+ cn = m_Key.Offset;
+
+ for (i=0;i<m_arrModes[m_CurrentMode].Sequences.length;i++)
+  {
+   pattern = m_arrModes[m_CurrentMode].ChordType[i];
+   s += "<TD class='modeChord'>";
+   
+   s += m_Key.OffsetNote(cn).Text;
+   s += m_arrChordPatterns[pattern].ShortName;
+  
+   s += "</TD>";
+
+   s+="<TD class='modeSequence'>"; 
+   switch(m_arrModes[m_CurrentMode].Sequences[i])
+    {
+     case 1: s+="h<BR />1"; break;
+     case 2: s+="W<BR />2"; break;
+     case 3: s+="m3<BR />3"; break;
+     case 4: s+="M 3<BR />4"; break;
+    }
+   s+="</TD>";
+
+   cn += m_arrModes[m_CurrentMode].Sequences[i];
+   if (cn >= 12)
+     cn -= 12;
+  }
+ s+="</TR><TR><TD COLSPAN="+nTDs+" ALIGN=CENTER>(traditional harmony)</TD></TR></TABLE>";
+
+ document.getElementById('divChords').innerHTML=s;
 }
 
 function GenGuitarScaleInfo(key) // chord pattern index, offset C = 0, Key object
@@ -1150,22 +1209,25 @@ function GenGuitarScaleInfo(key) // chord pattern index, offset C = 0, Key objec
  var html;
  var p;
 
- html = "<table>";
- html += "<tr>";  
+ html = "<table><tr>";
 
- html += "<td colspan=" + key.Offsets.length + ">Scale " + key.OffsetNote(key.Offsets[0]).Text + " ";
+ html += "<td><table><tr><td class='scaleName'>";
+ html += key.OffsetNote(key.Offsets[0]).Text;
+ html += " ";
  html += m_arrModes[m_CurrentMode].ModeName;
- html += "</td></tr>";
+ html += " Scale";
+ html += "</td>";
 
- html += "<tr>";
+ html += "<td><table>";
+
  for (p=0; p<key.Offsets.length; p++)
   {
-   html += "<td padding='0.521vw'>";
+   html += "<tr><td class='scaleInfo'>";
    html += key.Notes[p].Text;
-   html += "</td>";
+   html += "</td></tr>";
   }
 
- html += "</tr></table>";
+ html += "</table></td></tr></table>";
 
  return html;
 }
@@ -1173,7 +1235,13 @@ function GenGuitarScaleInfo(key) // chord pattern index, offset C = 0, Key objec
 
 function GenGuitar(chord, offset, key) // chord pattern index, offset C=0, Key object
 {
- var html = "<table>";
+ var html;
+
+ html = "<table><tr valign='center'><td>";
+
+ html += GenChordInfo(chord, offset, key);
+
+ html += "</td><td><table>";
 
  html += GenGuitarString(chord, offset, 5, key);
  html += GenGuitarString(chord, offset, 4, key);
@@ -1183,16 +1251,20 @@ function GenGuitar(chord, offset, key) // chord pattern index, offset C=0, Key o
  html += GenGuitarString(chord, offset, 0, key);
  html += GenGuitarMarks(15);
 
- html += "</table>";
- 
- html += GenChordInfo(chord, offset, key);
-
+ html += "</table></td></tr></table>";
+  
  return html;
 }
 
 function GenGuitarScale(key)
 {
- var html = "<table>";
+ var html;
+
+ html = "<table><tr valign='center'><td>";
+
+ html += GenGuitarScaleInfo(key);
+
+ html += "</td><td><table>";
 
  html += GenGuitarStringScale(5, key);
  html += GenGuitarStringScale(4, key);
@@ -1202,9 +1274,7 @@ function GenGuitarScale(key)
  html += GenGuitarStringScale(0, key);
  html += GenGuitarMarks(24);
 
- html += "</table>";
- 
- html += GenGuitarScaleInfo(key);
+ html += "</table></td></tr></table>";
 
  return html;
 }
@@ -1237,6 +1307,7 @@ function eventCboKeys_Change()
 
  showChords();
  showScale();
+ genModeChords();
 }
 
 function eventCboModes_Change()
@@ -1258,6 +1329,7 @@ function eventCboModes_Change()
  m_Key = new Key(m_CurrentMode, m_arrModes[m_CurrentMode].KeyList[m_CurrentKey]);
  showChords();
  showScale();
+ genModeChords();
 
 }
 
@@ -1317,20 +1389,14 @@ function showScale()
 
 </script>
 
-<style>
-
-  .fb {
-  } 
-
-</style>
-
 </head>
 
 <body>
 <table>
  <tr>
-  <td><select id="cboModes" style="font-size:1.042vw;" onchange="eventCboModes_Change();"></select></td>
-  <td><select id="cboKeys" style="font-size:1.042vw;" onchange="eventCboKeys_Change();"></select></td>
+  <td><select id="cboModes" onchange="eventCboModes_Change();"></select></td>
+  <td><select id="cboKeys" onchange="eventCboKeys_Change();"></select></td>
+  <td><div id='divChords'></div></td>
  </tr>
 </table>
 
