@@ -1171,7 +1171,7 @@ function genModeChords()
  var nTDs = m_arrModes[m_CurrentMode].ChordType.length*2;
  
  s="<TABLE>";
- s+="<TR><TD COLSPAN="+nTDs+" ALIGN=CENTER>"+m_arrModes[m_CurrentMode].ModeName+" Progression</TD></TR><TR>";
+ s+="<TR><TD class='scaleInfo'>"+m_arrModes[m_CurrentMode].ModeName+" Progression</TD>";
 
  cn = m_Key.Offset;
 
@@ -1199,7 +1199,7 @@ function genModeChords()
    if (cn >= 12)
      cn -= 12;
   }
- s+="</TR><TR><TD COLSPAN="+nTDs+" ALIGN=CENTER>(traditional harmony)</TD></TR></TABLE>";
+ s+="</TR><TR></TABLE>";
 
  document.getElementById('divChords').innerHTML=s;
 }
@@ -1398,22 +1398,20 @@ function showScale()
 
 <body>
 <table>
- <tr>
+ <tr valign=middle>
   <td><select id="cboModes" onchange="eventCboModes_Change();"></select></td>
   <td><select id="cboKeys" onchange="eventCboKeys_Change();"></select></td>
   <td><div id='divChords'></div></td>
  </tr>
 </table>
-
-<div id="chord0" class="fb">chord 0</div>
-<div id="chord1" class="fb">chord 1</div>
-<div id="chord2" class="fb">chord 2</div>
-<div id="chord3" class="fb">chord 3</div>
-<div id="chord4" class="fb">chord 4</div>
-<div id="chord5" class="fb">chord 5</div>
-<div id="chord6" class="fb">chord 6</div>
-<div id="scale"  class="fb">scale</div>
-
+<br><div id="chord0" class="fb">chord 0</div>
+<br><div id="chord1" class="fb">chord 1</div>
+<br><div id="chord2" class="fb">chord 2</div>
+<br><div id="chord3" class="fb">chord 3</div>
+<br><div id="chord4" class="fb">chord 4</div>
+<br><div id="chord5" class="fb">chord 5</div>
+<br><div id="chord6" class="fb">chord 6</div>
+<br><div id="scale"  class="fb">scale</div>
 
 <script type="text/javascript">
 
