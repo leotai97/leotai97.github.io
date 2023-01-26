@@ -1,0 +1,86 @@
+﻿<!DOCTYPE html>
+
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8" />
+<title></title>
+<style>
+ .pianoWhite     { position:absolute; top:0; width:4vw; height:20vw; background-color:white; border:1px solid black; }
+ .pianoWhiteText { position:absolute; top:16vw; left:0vw; width:4vw; font-size:2.4vw; text-align:center; color:black; background-color:white; border:none; }
+ .pianoBlack     { position:absolute; top:0; width:2.8vw; height:13vw; background-color:black; }
+ .pianoBlackText { position:absolute; top:9vw; left:0vw; width:2.8vw; font-size:2.4vw; text-align:center; color:white; background-color:black; border:none; }
+</style>
+<script>
+
+//   c#  d#     f#  g#  a#    c#   d#     f#  g#  a#
+// c   d   e  f   g   a   b  c   d   e  f   g   a   b     
+// 0 1 2 3 4 5  6 7 8 9 1 1  1 1 1 1 1  1 1 1 2 2 2 2
+//                      0 1  2 3 4 5 6  7 8 9 0 1 2 3
+function genPiano()
+{
+ var html;
+ var k;
+ var w;
+ var off;
+
+ html = "";
+
+ off = 0;
+ w = 0;
+ 
+ for (k=0; k<14; k++)  // 14 white keys from C to B1
+  {
+   html += "<div class='pianoWhite' style='left:" + w.toString() + "vw;'>";
+   html += "<div class='pianoWhiteText'>" + off.toString() + "</div>";        // c = 0
+   html += "</div>";
+   if (k==2 || k==6 || k==9)
+     off += 1;
+   else 
+     off += 2; 
+   w += 4;
+  }
+
+ w = 4 - (2.8 / 2);
+
+ off = 1;
+
+ for (k=0; k<10; k++) // 10 black keys
+  {
+   html += "<div class='pianoBlack' style='left:" + w.toString() + "vw;'>";
+   html += "<div class='pianoBlackText'>" + off.toString() + "</div>";        // c = 0
+   html += "</div>"; 
+   switch(k)
+    {                                // next key
+     case 0: w += 4; off +=2; break; // d#
+     case 1: w += 8; off +=3; break; // f#
+     case 2: w += 4; off +=2; break; // g#
+     case 3: w += 4; off +=2; break; // a#
+     case 4: w += 8; off +=3; break; // c#
+     case 5: w += 4; off +=2; break; // d#
+     case 6: w += 8; off +=3; break; // f#
+     case 7: w += 4; off +=2; break; // g#
+     case 8: w += 4; off +=2; break; // a#
+     case 9: w += 8; off +=3; break; // c#
+    }
+  }
+ 
+
+
+ document.getElementById('divPiano').innerHTML = html;
+}
+
+</script>
+</head>
+<body>
+
+<div id='divPiano'>
+</div>
+
+</body>
+<script>
+
+ genPiano();
+
+</script>
+</html>
