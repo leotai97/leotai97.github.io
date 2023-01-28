@@ -5,16 +5,26 @@
 <meta m_harset="utf-8" />
 <title>Music Reference</title>
 <style>
-
             select { font-size:1.60vw; }  
-       .guitarCell { font-size:1.042vw; position:relative; text-align:center; height:2.3vw; }
-   .guitarCellLeft { font-size:0.938vw; position:absolute; top:1.354vw; left:0vw; }
-  .guitarCellRight { font-size:0.938vw; position:absolute; top:1.354vw; right:0vw; } 
-     .guitarString { outline:thin solid; }
+
+       .guitarCell { font-size:1.042vw; position:relative; color:#000044; text-align:center; height:2.3vw; }
+   .guitarCellLeft { font-size:0.938vw; position:absolute; top:1.344vw; left:0.1vw; color:#000044;}
+  .guitarCellRight { font-size:0.938vw; position:absolute; top:1.344vw; right:0.1vw; color:#000044; } 
+     .guitarString { outline:thin solid lightsteelblue; }
        .guitarMark { font-size:0.938vw; text-align:center; }
-        .chordInfo { font-size:1.042vw; padding:0.521vw; }
-        .scaleInfo { font-size:1.022vw; padding:0.501vw; }
+
+       .pianoWhite { position:absolute; top:0; width:4vw; height:20vw; background-color:white; border:1px solid black; }
+   .pianoWhiteText { position:absolute; top:16vw; left:0.2vw; width:3.6vw; font-size:1.4vw; text-align:center; color:black; background-color:white; border:none; }
+
+       .pianoBlack { position:absolute; top:0; width:2.4vw; height:13vw; background-color:black; }
+   .pianoBlackText { position:absolute; top:9vw; left:0.2vw; width:2.0vw; font-size:1.4vw; text-align:center; color:white; background-color:black; border:none; }
+
+        .chordInfo { font-size:1.042vw; padding:0.521vw; color:#000044;}
+        .scaleInfo { font-size:1.022vw; padding:0.501vw; color:#000044;}
         .modeChord { border:1px solid lightsteelblue; width:1.823vw; text-align:center; }
+        .chordNote { border:1px solid lightsteelblue; width: 1.823vw; text-align: center; }
+     .chordFormula { text-align:center; font-style:italic; font-size:0.93vw; }
+        .chordStep { text-align:center; font-size:0.93vw; }
      .modeSequence { text-align:center; font-style:italic; font-size:0.938vw; }
         .scaleName { font-size:1.042vw; padding:0.501vw; }
                     
@@ -30,11 +40,15 @@ var symFDim='\u00B0';  // degree symbol
 var symMajor='\u25B3'; // delta symbol
 var symDot = '\u25CF'; // dot
 
-var fretStartSize = 4.166; // 80 pixels on 1920 x 1200
+var fretStartSize = 5; // 80 pixels on 1920 x 1200
 var fretBeforeNut = 2.604; // 50 pixels
-var fretDecrease = 0.104;  // 2 pixel
+var fretDecrease = 0.110;  // 2 pixel
 var fretMarkStart = 3.126; // 60 pixels, slid over to line up dots
 var fretMarkBeforeNut = 1.562; // 30 pixels
+
+var pianoWhiteWidth = 4;   // width of a white piano key in "vw" viewport units  ( 4 = 4% of the view port width
+var pianoWhiteHeight = 20; // height
+var pianoBlackWidth = 2.8; // width of a black piano key
 
 /////////////////////////////
 //    Global Variables
@@ -71,7 +85,7 @@ var m_cpDom9=14;
 
 // these variables can be used to access the specific elements of the m_arrModes array
 
-var m_modeIonian = 0;      // major
+var m_modeIonian = 0;      // Major
 var m_modeAeolian = 5;     // Minor
 
 var m_GuitarBarreChordE;  // the guitar barre chord pattern based on the open E chord
@@ -81,12 +95,22 @@ var m_GuitarBarreChordAm;  // the guitar barre chord pattern based on the open A
 
 // arrays
 
+var m_arrInstruments = new Array();      // ID, Name, # of strings, # of frets
+
 var m_arrChordPatterns = new Array();    // ID, Name, ShortName, Pitches, PitchCount, Root, Third, Fifth, Seventh, Ninth, Formula
 var m_mapMidiNotes = new Map();
 var m_arrMidiNotesHL = new Array();      // ID, Number, Offset, Octave, Frequency, MidiName, Name
 var m_arrMidiNotesLH = new Array();      // Same as above
 var m_arrModes = new Array();            // ID, ModeName, Sequences (steps), ChordType (the pattern), Background (color)
 var m_arrGuitar = new Array();           // 2D array of midi notes for guitar
+
+// blue green gradient color array
+
+var m_arrGradientBlueGreen = ["#189753", "#1ea55c", "#24b266", "#2ac06f", "#30cc79", "#36da82", "#42f696"];
+
+// array of pastel colors for chord notes
+
+var m_arrPastels = ["#b2cefe", "#baed91", "#faf884", "#f2a2e8"];     
 
 </script>
 
@@ -95,6 +119,14 @@ var m_arrGuitar = new Array();           // 2D array of midi notes for guitar
 //////////////////////////////////
 //   Object Class Construction
 //////////////////////////////////
+
+function Instrument(id, name, strings, frets)  // ID m_Guitar etc,   "Guitar", # of strings, # frets
+{
+ this.ID = id;
+ this.InstrumentName = name;
+ this.Strings = strings;
+ this.Frets = frets;
+}
 
 function Note(offset, letter, sharpOrFlat) // offset int (c=0), letter string C, D, etc, sharpOrFlat string (#, b or "")
 {
@@ -295,6 +327,9 @@ function Placement(id, instrument, offset, midiRoot, arrIndex, arrMiddle, arrRin
  this.NoPlay = arrNoPlay;
 }
 
+// C C#/Db D D#/Eb E  F  F#/Gb G G#/Ab A A#/Bb B/Cb
+// 0   1   2   3   4  5    6   7   8   9  10    11
+
 // E and A Barre pattern placement
 
 function BarrePlacement(id, offset, chordPattern, instrument, arrIndex, arrMiddle, arrRing, arrPinky, arrNoPlay)
@@ -306,7 +341,7 @@ function BarrePlacement(id, offset, chordPattern, instrument, arrIndex, arrMiddl
  this.CP = chordPattern;        // m_cpMajor = 0
  this.Instrument = instrument;  // m_Guitar etc
  if (offset == 9) // is it the A pattern?
-   this.Offsets = [2,3,4,5,6,7,8,9,10,11,0,1,2,3];   // Bb B C  -  steps to take to wrap around to C
+   this.Offsets = [2,3,4,5,6,7,8,9,10,11,0,1,2,3];   // Bb B C Db D -  steps to take to wrap around to C.
  else 
    this.Offsets = [7,8,9,10,11,0,1,2,3,4,5,6,7,8];   // F Gb G Ab A Bb B C, used to locate position on fretboard for the barre
 
@@ -320,7 +355,7 @@ function BarrePlacement(id, offset, chordPattern, instrument, arrIndex, arrMiddl
  // Index Fingering.Fret = 0  and all others are # of frets past the Index 
  // so the barre chord can moved about on the fretboard
 
-for (i=1; i<14; i++)
+for (i=1; i<14; i++)  // starting with Bb for the A pattern and F for the E pattern, they are stored in the array at index 0
   {
    fa = new Array();
    for (k=0; k<arrIndex.length; k++)
@@ -445,36 +480,16 @@ function Key(mode, startNote) // mode index, starting Note object
 
 <script type="text/javascript">
 
-// Utility Functions
-
-function Gradient(color, step)
-{
- switch(color)
-  {
-   case "DarkBlue":
-    {
-     switch(step)
-      {
-       case 1: return "#0b0c6d";
-       case 2: return "#18277f"  
-       case 3: return "#25418f"  
-       case 4: return "#325ba0"  
-       case 5: return "#4584b9"  
-       case 6: return "#529dca"  
-       case 7: return "#5eb6d9"  
-       case 8: return "#68cbe7"  
-      }
-    }
-  }
-}
-
-</script>
-
-<script type="text/javascript">
-
 //////////////////////////////////
 //   Array Building Functions
 //////////////////////////////////
+
+function makeInstruments()
+{
+ m_arrInstruments[0] = new Instrument(m_Guitar, "Guitar", 6, 24);
+ m_arrInstruments[1] = new Instrument(m_Keyboard, "Keyboard", 24, 1);
+}
+
 
 // make the chord patterns
 
@@ -709,40 +724,84 @@ function makeGuitar(m0, m1, m2, m3, m4, m5) // midi notes of guitar strings, m0 
 
 <script type="text/javascript">
 
+// Utility functions
+
+// if I want a spread with a total of 3
+// 2 needs to be about half and 3 the final color
+// 
+
+function GetBlueGreenColor(ndx, total) // returns color string, ndx is which color, total is the number of colors in the spread
+{
+ // the classic ratio problem
+ // actual is to ndx as total is to arr.length
+ // ratio actual:ndx is equivalent to total:arr.length
+ // that is actual/ndx = total/arr.length
+ // solve for actual would be:  actual = (total/arr.length) * ndx
+
+ var actual;
+ var fltval;
+
+ if (total == 0) 
+   throw new Error("total cannot be 0");
+
+ if (total > m_arrGradientBlueGreen.length)
+   throw new Error("total is > than array of colors");
+
+ if (ndx = 0)
+   return m_arrGradientBlueGreen[0];
+
+ if (ndx == total)
+   return m_arrGradientBlueGreen[m_arrGradientBlueGreen.length - 1];
+
+ if (total == m_arrGradientBlueGreen.length) // no algebra required
+   return m_arrGradientBlueGreen[ndx];  
+
+ fltval = (total / m_arrGradientBlueGreen.length) * ndx;
+
+ actual = Math.round(fltval);
+
+ return m_arrGradientBlueGreen[actual];
+}
+
+function FigureOutGradient(chord, offset, midi)  // chord note colors.  chord is ndx to m_arrChordPatterns, offset is chord starting note  c = 0, midi note #
+{
+ var off = m_mapMidiNotes.get(midi).Offset;
+ var pat = m_arrChordPatterns[chord];
+ var note;
+
+ for(i=0; i<pat.Pitches.length; i++)
+  {
+   note = offset + pat.Pitches[i];
+   if (note >= 12)
+     note -= 12;
+  
+   if (note == off)
+     return i;
+  }
+
+ return -1;
+}
+
+</script>
+
+<script type="text/javascript">
+
 //////////////////////////////////////////////
 //            Load Combo Boxes
 //////////////////////////////////////////////
 
-function dynaLoadSpecificChordCBO(divName)
+function dynaInstLoader(cboName)
 {
- var i,k,s,sn,lgnm;
-
- s="<SELECT ID='cboChordType' STYLE='font-size:1.042vw;' ONCHANGE='eventSpecificChord_Change();'>";
- s+="<OPTION VALUE='Z'>Off</OPTION>";
-
- // find longest name
-
- lgnm = 0;
- for (i=0;i<m_arrChordPatterns.length;i++)
+ document.getElementById(cboName).options.length=0;
+ for (i=0;i<m_arrInstruments.length;i++)
   {
-   k = m_arrChordPatterns[i].Name.length;
-   if (k > lgnm) 
-     lgnm = k;
-  }
-
- for (i=0;i<m_arrChordPatterns.length;i++)
-  {
-   s+="<OPTION VALUE="+m_arrChordPatterns[i].ID+" ";
-   s+=" STYLE='background-Color:white; font-family:monospace;'>";
-   sn=m_arrChordPatterns[i].Name+"-----------------------------------"; // can't seem to keep spaces from getting truncated in the dropdown, using "-"s instead
-   s+=sn.substr(0,lgnm+1);
-   s+="("+m_arrChordPatterns[i].Formula+")";
-   s+="</OPTION>";
-  }
- s+="</SELECT>";
-
- document.getElementById(divName).innerHTML=s;
-
+   oOption=document.createElement("OPTION");
+   oOption.style.backgroundColor="white";
+   oOption.text=m_arrInstruments[i].InstrumentName;
+   oOption.value=m_arrInstruments[i].ID;
+   document.getElementById(cboName).options.add(oOption);
+  } 
+ m_CurrentInstrument = m_arrInstruments[0].ID;
 }
 
 function dynaModesLoader(cboName)
@@ -765,12 +824,137 @@ function dynaModesLoader(cboName)
  eventCboModes_Change(); 
 }
 
+</script>
+
+<script type="text/javascript">
+
 ////////////////////////////////////////////////
 //       G e n e r a t e    H T M L
 ////////////////////////////////////////////////
 
-// generate guitar fretboard
+function GenChordInfo(chord, offset, key) // chord pattern index, offset is chord's starting note C = 0, Key object
+{
+ var pattern;
+ var html;
+ var p, k;
 
+ pattern = m_arrChordPatterns[chord]; // grab ChordPattern from modes array so it can step up through the notes
+
+ html = "<table>"; 
+
+ html += "<tr><td class='chordInfo' colspan=2>" + key.OffsetNote(offset).Text;
+ html += pattern.ShortName;
+ html += "</td></tr>";
+
+ for (p=0; p<pattern.PitchCount; p++)
+  {
+   k = offset + pattern.Pitches[p];
+   if (k>11)
+     k -= 12;
+
+  if (p > 0)
+    {
+     html += "<TR><TD class='chordFormula'>"; 
+     switch(p)
+      {
+       case 1: html += pattern.Third; break;
+       case 2: html += pattern.Fifth; break;
+       case 3: html += pattern.Seventh; break;
+       case 4: html += pattern.Ninth; break;
+      }
+     html += "<TD class='chordStep'>" + pattern.Pitches[p].toString() + "</TD>";
+     html += "</TD></TR>";
+    }
+
+   html += "<TR><TD class='chordNote' style='color:#000044; background-color:" + m_arrPastels[p] + ";' colspan=2>";
+   html += key.OffsetNote(k).Text; // dm7 0-3-7-10 :  2 = d, 5 = f, 9 = a, 12  = c
+   html += "</TD></TR>";
+
+  }
+
+ html += "</table>";
+
+ return html;
+}
+
+function GenScaleInfo(key) // chord pattern index, offset C = 0, Key object
+{
+ var s="";
+ var i;
+
+ for (i=0;i<m_arrModes[m_CurrentMode].Sequences.length;i++)
+  {
+   s += "<TD class='modeChord' style='background-color:" + m_arrGradientBlueGreen[i] + ";'>";
+   s += m_Key.Notes[i].Text;
+   s += "</TD>";
+
+   s+="<TD class='modeSequence'>"; 
+   switch(m_arrModes[m_CurrentMode].Sequences[i])
+    {
+     case 1: s+="h<BR />1"; break;
+     case 2: s+="W<BR />2"; break;
+     case 3: s+="m3<BR />3"; break;
+     case 4: s+="M 3<BR />4"; break;
+    }
+   s+="</TD>";
+
+  }
+
+ return s;
+}
+
+
+function genModeChords()
+{
+ var pattern;
+ var s;
+ var cn;
+ 
+ s="<TABLE>";
+ s+="<TR><TD class='scaleInfo'>Chord Progression</TD>";
+
+ cn = m_Key.Offset;
+
+ for (i=0;i<m_arrModes[m_CurrentMode].Sequences.length;i++)
+  {
+   pattern = m_arrModes[m_CurrentMode].ChordType[i];
+   s += "<TD class='modeChord'>";
+   
+   s += m_Key.OffsetNote(cn).Text;
+   s += m_arrChordPatterns[pattern].ShortName;
+  
+   s += "</TD>";
+
+   s+="<TD class='modeSequence'>"; 
+   switch(m_arrModes[m_CurrentMode].Sequences[i])
+    {
+     case 1: s+="h<BR />1"; break;
+     case 2: s+="W<BR />2"; break;
+     case 3: s+="m3<BR />3"; break;
+     case 4: s+="M 3<BR />4"; break;
+    }
+   s+="</TD>";
+
+   cn += m_arrModes[m_CurrentMode].Sequences[i];
+   if (cn >= 12)
+     cn -= 12;
+  }
+ s+="</TR><TR></TABLE>";
+
+ return s;
+}
+
+</script>
+
+<script type="text/javascript">
+
+////////////////////////////////////////////////
+//                 G u i t a r     
+////////////////////////////////////////////////
+
+// generate guitar fretboard
+// returns a open chord fingering letter I,M,R,P or O, X based on string and fret
+// m_arrChordPatterns has been prepared that contain the fingering
 
 function GenGuitarStringElement(chord, offset, wstr, fret) // chord = chord pattern index, offset c=0, wstr is string #, fret # nut is 0
 {
@@ -816,6 +1000,12 @@ function GenGuitarStringElement(chord, offset, wstr, fret) // chord = chord patt
   }
  return "";
 }
+
+// return barre chord fingering I,M,R,P or X based on string and fret
+// each barre pattern, E and A types were prepared.
+// the Offsets array for each contains the offset to the barre pattern fingering array
+// the offset gives the location of the barre chord for the passed offset. For the A and Am pattern C = 0 would return 2 which is the A pattern up the 3rd fret.
+// the reason C is not 3 is because the open A is not included in the fingering, only barre chords are present.  
 
 function GenGuitarBarreStringElement(chord, offset, wstr, fret) // ChordPatteren index, offset C=0, String # (low E is 0), fret # (nut is 0)
 { 
@@ -923,18 +1113,21 @@ function GenGuitarBarreStringElement(chord, offset, wstr, fret) // ChordPatteren
  return "";
 }
 
-function GenGuitarBarreShowNote(chord, offset, wstr, fret)
+// Show Note gets the ShowNote property of the BarreIndex object for barre chord fingerings
+// the Offset lookup system is the same as GenGuitarBarreStringElement above
+
+function GenGuitarBarreShowNote(chord, offset, wstr, fret) // chord (index to m_arrChordPattern), offset c=0, string (low = 0), fret #
 { 
  // for barre need to not return fingerings for open A and open E
  if (chord == m_cpMajor)
   {
-   fo = m_GuitarBarreChordA.Offsets[offset];
+   fo = m_GuitarBarreChordA.Offsets[offset]; // if offset = 0, C, fo = 2
    for (k=0; k<m_GuitarBarreChordA.Index[fo].length; k++)
     {
      if (m_GuitarBarreChordA.Index[fo][k].Str == wstr && m_GuitarBarreChordA.Index[fo][k].Fret == fret)
        return m_GuitarBarreChordA.Index[fo][k].ShowNote;
     }
-   fo = m_GuitarBarreChordE.Offsets[offset];
+   fo = m_GuitarBarreChordE.Offsets[offset];  // if offset = 0, c, fo = 7
    for (k=0; k<m_GuitarBarreChordE.Index[fo].length; k++)
     {
      if (m_GuitarBarreChordE.Index[fo][k].Str == wstr && m_GuitarBarreChordE.Index[fo][k].Fret == fret)
@@ -959,76 +1152,7 @@ function GenGuitarBarreShowNote(chord, offset, wstr, fret)
  return 1;
 }
 
-function GenGuitarCell(width, open, barre, midiNote, barreShowNote, key)
-{
- var html;
- var note;
-
- if (key.LookUp[m_mapMidiNotes.get(midiNote).Offset] >= 0)
-   note = m_mapMidiNotes.get(midiNote).MidiName(key);
- else 
-   note = ""; 
-
- if (open == "" && barre == "")
-  {
-   note = "";
-  }
- else 
-  {
-   if (open == "X" || barre == "X")
-     note = "";
-   else 
-    {
-     if (barre == "I")
-      {
-       if (barreShowNote == 0)
-         note = "";
-      }
-    }
-  }
-
-
- html = "<div class='guitarCell' style='width:" + width.toString() + "vw;'>";
- html += note;
- 
- if (open != "")
-   html += "<div class='guitarCellLeft'>" + open + "</div>";
-
- if (barre != "")
-   html += "<div class='guitarCellRight'>" + barre + "</div>";
-
- html += "</div>";
-
- return html;
-}
-
-function GenGuitarCellScale(width, midiNote, scaleNum, key)
-{
- var html;
- var note;
- var color;
-
- if (key.LookUp[m_mapMidiNotes.get(midiNote).Offset] >= 0)
-   note = m_mapMidiNotes.get(midiNote).MidiName(key);
- else 
-   note = ""; 
-
- if (scaleNum == 0)
-  {
-   note = "";
-  }
-
- html = "<div class='guitarCell' style='width:" + width.toString() + "vw;'>";
- html += note;
-
- if (scaleNum > 0)
-   html += "<div class='guitarCellRight'>" + scaleNum.toString() + "</div>";
-
- html += "</div>";
-
- return html;
-}
-
+// generate a TR html for a guitar string for a specific chord
 
 function GenGuitarString(chord, offset, wstr, key) // index to ChordPattern, offset C=0, string # low E is 0, Key object
 {
@@ -1036,6 +1160,7 @@ function GenGuitarString(chord, offset, wstr, key) // index to ChordPattern, off
  var barre, fb, barreShowNote;
  var html = "<tr>";
  var fret;
+ var gradient;
  var sw = fretStartSize; // 40 pixels
  var w;
 
@@ -1051,7 +1176,9 @@ function GenGuitarString(chord, offset, wstr, key) // index to ChordPattern, off
    fb = GenGuitarStringElement(chord, offset, wstr, fret);
    barre = GenGuitarBarreStringElement(chord, offset, wstr, fret);
    barreShowNote = GenGuitarBarreShowNote(chord, offset, wstr, fret);
-   html += GenGuitarCell(w, fb, barre, midi, barreShowNote, key);
+   gradient = FigureOutGradient(chord, offset, midi);
+
+   html += GenGuitarCell(w, fb, barre, midi, barreShowNote, key, gradient);
   
    html += "</td>";
    sw -=  fretDecrease; // 1 pixel
@@ -1083,13 +1210,13 @@ function GenGuitarStringScale(wstr, key) // index to ChordPattern, offset C=0, s
 
    if (sn > 0)
     {
-     bg = Gradient("DarkBlue", sn);
-     fg = "#FFFFFF";
+     bg = m_arrGradientBlueGreen[sn-1];
+     fg = "#000044";
     }
    else
     {
-     bg = "#EEEEEE";
-     fg = "#000000";
+     bg = "#CCCCCC";
+     fg = "white";
     }
    if (fret == 0)        // before the nut
      w = fretBeforeNut;  // 25 pixels
@@ -1134,102 +1261,90 @@ function GenGuitarMarks(nFrets)
 }
 
 
-function GenChordInfo(chord, offset, key) // chord pattern index, offset C = 0, Key object
+// return HTML for a guitar fret by string an fret #
+
+function GenGuitarCell(width, open, barre, midiNote, barreShowNote, key, grad) // width is cell size, open & barre are fingering letter, barreShowNote is for index no play, key is Key object, 0 thru 5 gradient color of note based on step in chord
 {
- var pattern;
  var html;
- var p, k;
+ var note;
+ var color;
 
- pattern = m_arrChordPatterns[chord]; // grab ChordPattern from modes array so it can step up through the notes
-
- html = "<table>"; 
-
- html += "<tr><td class='chordInfo'>" + key.OffsetNote(offset).Text;
- html += pattern.ShortName;
- html += "</td></tr>";
-
- for (p=0; p<pattern.PitchCount; p++)
+ if (key.LookUp[m_mapMidiNotes.get(midiNote).Offset] >= 0)
   {
-   html += "<tr><td class='chordInfo'>";
-   k = offset + pattern.Pitches[p];
-   if (k>11)
-     k -= 12;
-   html += key.OffsetNote(k).Text; // dm7 0-3-7-10 :  2 = d, 5 = f, 9 = a, 12  = c
-   html += "</td></tr>";
+   note = m_mapMidiNotes.get(midiNote).MidiName(key);
+  }
+ else 
+   note = ""; 
+
+ if (open == "" && barre == "")
+  {
+   note = "";
+  }
+ else 
+  {
+   if (open == "X" || barre == "X")
+     note = "";
+   else 
+    {
+     if (barre == "I")
+      {
+       if (barreShowNote == 0)
+         note = "";
+      }
+    }
   }
 
- html += "</table>";
+ if (note != "")
+  {
+   color = m_arrPastels[grad]; 
+  }
+ else
+  {
+   color = "#ffffff";
+  }
+
+ html = "<div class='guitarCell' style='width:" + width.toString() + "vw; background-color:" + color + "'>";
+ html += note;
+ 
+ if (open != "")
+   html += "<div class='guitarCellLeft'>" + open + "</div>";
+
+ if (barre != "")
+   html += "<div class='guitarCellRight'>" + barre + "</div>";
+
+ html += "</div>";
 
  return html;
 }
 
-function genModeChords()
+// return HTML for a string / fret cell for the scale fretboard
+
+function GenGuitarCellScale(width, midiNote, scaleNum, key)
 {
- var pattern;
- var s;
- var cn;
- var nTDs = m_arrModes[m_CurrentMode].ChordType.length*2;
- 
- s="<TABLE>";
- s+="<TR><TD class='scaleInfo'>"+m_arrModes[m_CurrentMode].ModeName+" Progression</TD>";
+ var html;
+ var note;
+ var color;
 
- cn = m_Key.Offset;
+ if (key.LookUp[m_mapMidiNotes.get(midiNote).Offset] >= 0)
+   note = m_mapMidiNotes.get(midiNote).MidiName(key);
+ else 
+   note = ""; 
 
- for (i=0;i<m_arrModes[m_CurrentMode].Sequences.length;i++)
+ if (scaleNum == 0)
   {
-   pattern = m_arrModes[m_CurrentMode].ChordType[i];
-   s += "<TD class='modeChord'>";
-   
-   s += m_Key.OffsetNote(cn).Text;
-   s += m_arrChordPatterns[pattern].ShortName;
-  
-   s += "</TD>";
-
-   s+="<TD class='modeSequence'>"; 
-   switch(m_arrModes[m_CurrentMode].Sequences[i])
-    {
-     case 1: s+="h<BR />1"; break;
-     case 2: s+="W<BR />2"; break;
-     case 3: s+="m3<BR />3"; break;
-     case 4: s+="M 3<BR />4"; break;
-    }
-   s+="</TD>";
-
-   cn += m_arrModes[m_CurrentMode].Sequences[i];
-   if (cn >= 12)
-     cn -= 12;
-  }
- s+="</TR><TR></TABLE>";
-
- document.getElementById('divChords').innerHTML=s;
-}
-
-function GenGuitarScaleInfo(key) // chord pattern index, offset C = 0, Key object
-{
- var s="";
- var i;
-
- for (i=0;i<m_arrModes[m_CurrentMode].Sequences.length;i++)
-  {
-   s += "<TD class='modeChord'>";
-   s += m_Key.Notes[i].Text;
-   s += "</TD>";
-
-   s+="<TD class='modeSequence'>"; 
-   switch(m_arrModes[m_CurrentMode].Sequences[i])
-    {
-     case 1: s+="h<BR />1"; break;
-     case 2: s+="W<BR />2"; break;
-     case 3: s+="m3<BR />3"; break;
-     case 4: s+="M 3<BR />4"; break;
-    }
-   s+="</TD>";
-
+   note = "";
   }
 
- return s;
-}
+ html = "<div class='guitarCell' style='width:" + width.toString() + "vw;'>";
+ html += note;
 
+ if (scaleNum > 0)
+   html += "<div class='guitarCellRight'>" + scaleNum.toString() + "</div>";
+
+ html += "</div>";
+
+ return html;
+}
 
 function GenGuitar(chord, offset, key) // chord pattern index, offset C=0, Key object
 {
@@ -1267,9 +1382,9 @@ function GenGuitarScale(key)
  html += " Scale";
  html += "</td>";
 
- html += GenGuitarScaleInfo(key);  // returns more TDs
+ html += GenScaleInfo(key);  // returns more TDs
 
- html += "</tr></table></tr></td><td><tr><table>";
+ html += "</tr></table></tr></td><tr><td><table>";
 
  html += GenGuitarStringScale(5, key); // returns TRs
  html += GenGuitarStringScale(4, key);
@@ -1284,24 +1399,246 @@ function GenGuitarScale(key)
  return html;
 }
 
+</script>
+
+<script type="text/javascript">
+
+////////////////////////////////////////////////
+//            K e y b o a r d     
+////////////////////////////////////////////////
+
+function GenPianoChordNote(cssName, key, midiNote, arrNotes, arrColor)
+{
+ var html;
+ var chordSeq;
+ var fg
+ var bg;
+ var i;
+
+ chordSeq = -1;
+ for (i=0; i<arrNotes.length; i++)
+  {
+   if (midiNote == arrNotes[i])
+     chordSeq = i;
+  }
+
+ if (chordSeq >=0)
+  {
+   bg = arrColor[chordSeq];
+   fg = "black";
+
+   html = "<div class='" + cssName + "' style='color:" + fg + "; background-color:" + bg + ";'>";
+   html += m_mapMidiNotes.get(midiNote).Name(key);
+   html += "</div>";
+  }
+ else
+  {
+   html = ""; // don't show a note
+  }
+ return html;
+}
+
+//   c#  d#     f#  g#  a#    c#   d#     f#  g#  a#
+// c   d   e  f   g   a   b  c   d   e  f   g   a   b     
+// 0 1 2 3 4 5  6 7 8 9 1 1  1 1 1 1 1  1 1 1 2 2 2 2
+//                      0 1  2 3 4 5 6  7 8 9 0 1 2 3
+
+function GenPianoChord(octaves, chord, offset, key) // return divs of piano keys. ocatives is number of octaves to draw
+{
+ var pat = m_arrChordPatterns[chord];
+ var html;
+ var k;     
+ var x;     // x position of each octave set of keys
+ var o;
+ var wMidi, sMidi, midi;
+ var arrChordNotes = new Array();
+
+ wMidi = 60; // middle c - starting note
+
+ sMidi = wMidi + offset; // starting note of the chord
+
+ for(i=0; i<pat.Pitches.length; i++)
+  {
+   arrChordNotes[i] = sMidi + pat.Pitches[i];
+  }
+
+ html = "<div style='position:relative; width:" + octaves * pianoWhiteWidth * 7 + "vw; height:" + pianoWhiteHeight + "vw;'>";
+
+ x = 0;  // starting x position
+
+ for (o=0; o<octaves; o++)
+  {
+   off = 0;             // note offset, c = 0
+   w = x;               // div x position
+   midi = wMidi;
+   for (k=0; k<7; k++)  // 7 white keys from C to B
+    {
+     html += "<div class='pianoWhite' style='left:" + w.toString() + "vw;'>";
+     html += GenPianoChordNote("pianoWhiteText", key, midi, arrChordNotes, m_arrPastels);
+     html += "</div>";
+     if (k==2 || k==6)  // E or B  key ??
+      {
+       midi += 1; // next white key
+      }
+     else
+      { 
+       midi += 2; // rest of the white keys are up 2
+      }
+     w += pianoWhiteWidth;
+    }
+   w = x + pianoWhiteWidth - (pianoBlackWidth / 2);  // center black keys in middle of 1st white key
+   midi = wMidi + 1;  // starting midi note of black keys
+   for (k=0; k<5; k++) // 5 black keys
+    {
+     html += "<div class='pianoBlack' style='left:" + w.toString() + "vw;'>";
+     html += GenPianoChordNote("pianoBlackText", key, midi, arrChordNotes, m_arrPastels);
+     html += "</div>"; 
+     if (k==1 || k==4) // is the next key an f# or c#
+      {
+       w += pianoWhiteWidth * 2;  // move next f# or c# over 2 white key widths
+       midi += 3;                   // note offset is bumped 3
+      }
+     else
+      {
+       w += pianoWhiteWidth;   // these keys are next to each other  
+       midi += 2;               
+      }
+    }
+   x += pianoWhiteWidth * 7; // next octive set x location
+   wMidi += 12;
+  }
+ 
+ html += "</div>";
+
+ return html;
+}
+
+function GenPiano(chord, offset, key)
+{
+ var html;
+
+ html = "<table><tr valign='center'><td>";
+ html += GenChordInfo(chord, offset, key);
+ html += "</td><td>";
+ 
+ html += GenPianoChord(2, chord, offset, key);
+
+ html += "</td></tr></table>";
+
+ return html;
+}
+
+function GenPianoScaleKeys(octaves, key, arrScaleNotes) // return divs of piano keys. ocatives is number of octaves to draw
+{
+ var html;
+ var k;     
+ var x;     // x position of each octave set of keys
+ var o;
+ var wMidi, midi;
+
+ wMidi = 60; // middle c - starting note
+
+ html = "<div style='position:relative; width:" + octaves * pianoWhiteWidth * 7 + "vw; height:" + pianoWhiteHeight + "vw;'>";
+
+ x = 0;  // starting x position
+
+ for (o=0; o<octaves; o++)
+  {
+   off = 0;             // note offset, c = 0
+   w = x;               // div x position
+   midi = wMidi;
+   for (k=0; k<7; k++)  // 7 white keys from C to B
+    {
+     html += "<div class='pianoWhite' style='left:" + w.toString() + "vw;'>";
+     html += GenPianoChordNote("pianoWhiteText", key, midi, arrScaleNotes, m_arrGradientBlueGreen);
+     html += "</div>";
+     if (k==2 || k==6)  // E or B  key ??
+      {
+       midi += 1; // next white key
+      }
+     else
+      { 
+       midi += 2; // rest of the white keys are up 2
+      }
+     w += pianoWhiteWidth;
+    }
+   w = x + pianoWhiteWidth - (pianoBlackWidth / 2);  // center black keys in middle of 1st white key
+   midi = wMidi + 1;  // starting midi note of black keys
+   for (k=0; k<5; k++) // 5 black keys
+    {
+     html += "<div class='pianoBlack' style='left:" + w.toString() + "vw;'>";
+     html += GenPianoChordNote("pianoBlackText", key, midi, arrScaleNotes, m_arrGradientBlueGreen);
+     html += "</div>"; 
+     if (k==1 || k==4) // is the next key an f# or c#
+      {
+       w += pianoWhiteWidth * 2;  // move next f# or c# over 2 white key widths
+       midi += 3;                 // note offset is bumped 3
+      }
+     else
+      {
+       w += pianoWhiteWidth;   // these keys are next to each other  
+       midi += 2;               
+      }
+    }
+   x += pianoWhiteWidth * 7; // next octive set x location
+   wMidi += 12;
+  }
+ 
+ html += "</div>";
+
+ return html;
+}
+
+function GenPianoScale(key, mode)
+{
+ var html;
+ var arrScaleNotes = new Array();
+ var wMidi, midi;
+ var i;
+
+ wMidi = 60;                 // keyboard's starting midi note
+ midi = wMidi + key.Offset;  // scale's starting midi note
+
+ for (i=0; i<m_arrModes[mode].Sequences.length; i++)
+  {
+   arrScaleNotes[i] = midi;
+   midi += m_arrModes[mode].Sequences[i];
+  }
+
+ html = "<table><tr><td><table><tr>" // holds scale name and table containing notes in scale then the fretboard table
+
+ html += "<td class='scaleName'>";
+ html += key.OffsetNote(key.Offsets[0]).Text;
+ html += " ";
+ html += m_arrModes[m_CurrentMode].ModeName;
+ html += " Scale";
+ html += "</td>";
+
+ html += GenScaleInfo(key);
+
+ html += "</tr></table></tr></td><tr><td>";
+
+ html += GenPianoScaleKeys(2, key, arrScaleNotes, m_arrGradientBlueGreen);
+
+ html += "</td></tr></table>";
+
+ return html; 
+}
+
+</script>
+
+<script type="text/javascript">
+
 ////////////////////////////////////////////////
 //               E v e n t s 
 ////////////////////////////////////////////////
 
-function eventSpecificChord_Change()
+function eventCboInst_Change()
 {
- var nChord;
-
- nChord=document.getElementById('cboChordType').options[document.getElementById('cboChordType').selectedIndex].index
-
- if (document.getElementById('cboChordType').options[document.getElementById('cboChordType').selectedIndex].value=="Z")
-  {
-   m_CurrentChordPattern = -1;
-  }
- else
-  {
-   m_CurrentChordPattern = parseInt(document.getElementById('cboChordType').options[document.getElementById('cboChordType').selectedIndex].index);
-  }
+ m_CurrentInstrument = parseInt(document.getElementById("cboInst").options[document.getElementById("cboInst").selectedIndex].value);
+ showChords();
+ showScale();
+ showModeChords();
 }
 
 function eventCboKeys_Change()
@@ -1312,7 +1649,7 @@ function eventCboKeys_Change()
 
  showChords();
  showScale();
- genModeChords();
+ showModeChords();
 }
 
 function eventCboModes_Change()
@@ -1334,10 +1671,19 @@ function eventCboModes_Change()
  m_Key = new Key(m_CurrentMode, m_arrModes[m_CurrentMode].KeyList[m_CurrentKey]);
  showChords();
  showScale();
- genModeChords();
+ showModeChords();
 
 }
 
+</script>
+
+<script type="text/javascript">
+
+////////////////////////////////////////////////
+//               S h o w   
+////////////////////////////////////////////////
+
+// high level show mode chords, instrument chords & instrument scales
 
 function showChords()
 {
@@ -1359,7 +1705,11 @@ function showChords()
  for (i=0; i<7; i++)
   {
    pattern = m_arrModes[m_CurrentMode].ChordType[i];
-   s = GenGuitar(pattern, cn, m_Key);
+   switch(m_CurrentInstrument)
+    {
+     case m_Guitar:   s = GenGuitar(pattern, cn, m_Key);  break;
+     case m_Keyboard: s = GenPiano(pattern, cn, m_Key);   break; 
+    }
    document.getElementById('chord' + i.toString()).innerHTML = s;
    cn += m_arrModes[m_CurrentMode].Sequences[i];
    if (cn >= 12)
@@ -1378,13 +1728,26 @@ function showScale()
    return;
   }
 
- s = GenGuitarScale(m_Key);
+ switch(m_CurrentInstrument)
+  {
+   case m_Guitar:   s = GenGuitarScale(m_Key); break;
+   case m_Keyboard: s = GenPianoScale(m_Key, m_CurrentMode);  break;
+  }
  document.getElementById('scale').innerHTML = s;
+}
+
+function showModeChords()
+{
+ var s;
+
+ s = genModeChords();
+
+ document.getElementById('divModeChords').innerHTML = s;
 }
 
 
 // call the constructors
-
+ makeInstruments();
  makeModes();
  makeMidiNotes();
  makeChordPatterns();
@@ -1399,24 +1762,28 @@ function showScale()
 <body>
 <table>
  <tr valign=middle>
+  <td><select id="cboInst" onchange="eventCboInst_Change();"></select></td>
   <td><select id="cboModes" onchange="eventCboModes_Change();"></select></td>
   <td><select id="cboKeys" onchange="eventCboKeys_Change();"></select></td>
-  <td><div id='divChords'></div></td>
+  <td><div id='divModeChords'></div></td>
  </tr>
 </table>
-<br><div id="chord0" class="fb">chord 0</div>
-<br><div id="chord1" class="fb">chord 1</div>
-<br><div id="chord2" class="fb">chord 2</div>
-<br><div id="chord3" class="fb">chord 3</div>
-<br><div id="chord4" class="fb">chord 4</div>
-<br><div id="chord5" class="fb">chord 5</div>
-<br><div id="chord6" class="fb">chord 6</div>
-<br><div id="scale"  class="fb">scale</div>
+<table>
+<tr><td id="chord0">chord 0</td></tr>
+<tr><td id="chord1">chord 1</td></tr>
+<tr><td id="chord2">chord 2</td></tr>
+<tr><td id="chord3">chord 3</td></tr>
+<tr><td id="chord4">chord 4</td></tr>
+<tr><td id="chord5">chord 5</td></tr>
+<tr><td id="chord6">chord 6</td></tr>
+<tr><td id="scale">scale</td></tr>
+</table>
 
 <script type="text/javascript">
 
  // after document is loaded 
 
+ dynaInstLoader("cboInst");
  dynaModesLoader("cboModes");
 
  showChords();
