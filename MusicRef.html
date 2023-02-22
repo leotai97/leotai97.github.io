@@ -5,13 +5,21 @@
 <meta m_harset="utf-8" />
 <title>Music Reference</title>
 <style>
-            select { font-size:1.60vw; }  
 
-       .guitarCell { font-size:1.042vw; position:relative; color:#000044; text-align:center; height:2.3vw; }
-   .guitarCellLeft { font-size:0.938vw; position:absolute; top:1.344vw; left:0.1vw; color:#000044;}
-  .guitarCellRight { font-size:0.938vw; position:absolute; top:1.344vw; right:0.1vw; color:#000044; } 
-     .guitarString { outline:thin solid lightsteelblue; }
-       .guitarMark { font-size:0.938vw; text-align:center; }
+  body, html { height: 100%; margin: 0; }
+  select { font-size: 1.60vw; }  
+
+          .tabLink { background-color:#555; color:white; float:left; border:none; outline:none; cursor:pointer; padding:14px 16px; font-size:17px; width:33%; }
+    .tabLink:hover { background-color:#777; }
+       .tabContent { color:black; display:none; padding:100px 20px; height:100%; }
+
+     .tdSideChord { width:3vw; }
+
+         .fretCell { font-size:1.042vw; position:relative; color:#000044; text-align:center; height:2.3vw; }
+     .fretCellLeft { font-size:0.938vw; position:absolute; top:1.344vw; left:0.1vw; color:#000044;}
+    .fretCellRight { font-size:0.938vw; position:absolute; top:1.344vw; right:0.1vw; color:#000044; } 
+       .fretString { outline:thin solid lightsteelblue; }
+         .fretMark { font-size:0.938vw; text-align:center; }
 
        .pianoWhite { position:absolute; top:0; width:4vw; height:20vw; background-color:white; border:1px solid black; }
    .pianoWhiteText { position:absolute; top:16vw; left:0.2vw; width:3.6vw; font-size:1.4vw; text-align:center; color:black; background-color:white; border:none; }
@@ -19,15 +27,19 @@
        .pianoBlack { position:absolute; top:0; width:2.4vw; height:13vw; background-color:black; }
    .pianoBlackText { position:absolute; top:9vw; left:0.2vw; width:2.0vw; font-size:1.4vw; text-align:center; color:white; background-color:black; border:none; }
 
-        .chordInfo { font-size:1.042vw; padding:0.521vw; color:#000044;}
-        .scaleInfo { font-size:1.022vw; padding:0.501vw; color:#000044;}
+        .chordInfo { font-size:1.042vw; padding:0.521vw; color:#000044; }
+        .scaleInfo { font-size:1.022vw; padding:0.501vw; color:#000044; }
         .modeChord { border:1px solid lightsteelblue; width:1.823vw; text-align:center; }
         .chordNote { border:1px solid lightsteelblue; width: 1.823vw; text-align: center; }
      .chordFormula { text-align:center; font-style:italic; font-size:0.93vw; }
         .chordStep { text-align:center; font-size:0.93vw; }
      .modeSequence { text-align:center; font-style:italic; font-size:0.938vw; }
         .scaleName { font-size:1.042vw; padding:0.501vw; }
-                    
+
+ .tdChordsRoot { font-size:1.60vw; vertical-align:middle; text-align:center; width:2.0vw; height:2.0vw; border-radius:5px; border:1px solid black; cursor:pointer; color:black; background-color:#e9e9e9; }
+                   
+ .btn { font-size:1.60vw; font-weight:100; }
+ 
 </style>
 <script type="text/javascript">
 
@@ -92,6 +104,10 @@ var m_GuitarBarreChordE;  // the guitar barre chord pattern based on the open E 
 var m_GuitarBarreChordEm;  // the guitar barre chord pattern based on the open A chord
 var m_GuitarBarreChordA;  // the guitar barre chord pattern based on the open A chord
 var m_GuitarBarreChordAm;  // the guitar barre chord pattern based on the open A minor chord
+var m_GuitarBarreChordAd   // A dim
+
+var m_MandolinBarreChordD;  // based on open D chord
+var m_MandolinBarreChordDm; // based on open D minor chord
 
 // arrays
 
@@ -102,7 +118,11 @@ var m_mapMidiNotes = new Map();
 var m_arrMidiNotesHL = new Array();      // ID, Number, Offset, Octave, Frequency, MidiName, Name
 var m_arrMidiNotesLH = new Array();      // Same as above
 var m_arrModes = new Array();            // ID, ModeName, Sequences (steps), ChordType (the pattern), Background (color)
+
 var m_arrGuitar = new Array();           // 2D array of midi notes for guitar
+var m_arrBass = new Array();
+var m_arrMandolin = new Array();
+var m_arrUkulele = new Array();
 
 // blue green gradient color array
 
@@ -313,12 +333,11 @@ function BarreIndex(str, fret, showNote)
 
 // placements, chord fingerings
 
-function Placement(id, instrument, offset, midiRoot, arrIndex, arrMiddle, arrRing, arrPinky, arrOpen, arrNoPlay)
+function Placement(id, instrument, offset, arrIndex, arrMiddle, arrRing, arrPinky, arrOpen, arrNoPlay)
 {
  this.ID = id;
  this.Instrument = instrument;  // m_Guitar etc
  this.Offset = offset;          // C = 0
- this.MidiRoot = midiRoot;      // root midi note for the chord
  this.Index = arrIndex;         // list of Fingering
  this.Middle = arrMiddle;
  this.Ring = arrRing;
@@ -340,11 +359,18 @@ function BarrePlacement(id, offset, chordPattern, instrument, arrIndex, arrMiddl
  this.Offset = offset;          // c=0
  this.CP = chordPattern;        // m_cpMajor = 0
  this.Instrument = instrument;  // m_Guitar etc
- if (offset == 9) // is it the A pattern?
-   this.Offsets = [2,3,4,5,6,7,8,9,10,11,0,1,2,3];   // Bb B C Db D -  steps to take to wrap around to C.
- else 
-   this.Offsets = [7,8,9,10,11,0,1,2,3,4,5,6,7,8];   // F Gb G Ab A Bb B C, used to locate position on fretboard for the barre
-
+ switch(offset)
+  {
+   case 9: // is it the A pattern?
+     this.Offsets = [2,3,4,5,6,7,8,9,10,11,0,1,2,3];   // Bb B C Db D -  steps to take to wrap around to C.  14 entries, how far the barre's can go up the fretboard
+     break;
+   case 4: // E
+     this.Offsets = [7,8,9,10,11,0,1,2,3,4,5,6,7,8];   // F Gb G Ab A Bb B C, used to locate position on fretboard for the barre
+     break;
+   case 2: // D
+     this.Offsets = [9,10,11,0,1,2,3,4,5,6,7,8,9,10];   // Eb E F Gb G Ab A Bb B C, used to locate position on fretboard for the barre
+     break;
+  }
  this.Index = new Array();  // store finger positions for each barre chord starting with 1st barre above  Bb for the A pattern, F for the E pattern
  this.Middle = new Array();
  this.Ring = new Array();
@@ -487,7 +513,10 @@ function Key(mode, startNote) // mode index, starting Note object
 function makeInstruments()
 {
  m_arrInstruments[0] = new Instrument(m_Guitar, "Guitar", 6, 24);
- m_arrInstruments[1] = new Instrument(m_Keyboard, "Keyboard", 24, 1);
+ m_arrInstruments[1] = new Instrument(m_Bass, "Bass Guitar", 4, 24);
+ m_arrInstruments[2] = new Instrument(m_Mandolin, "Mandolin", 4, 17);
+ m_arrInstruments[3] = new Instrument(m_Ukulele, "Ukulele", 4, 20);
+ m_arrInstruments[4] = new Instrument(m_Keyboard, "Keyboard", 24, 1);
 }
 
 
@@ -674,28 +703,46 @@ function makeModes()
 // C C#/Db D D#/Eb E  F  F#/Gb G G#/Ab A A#/Bb B/Cb
 // 0   1   2   3   4  5    6   7   8   9  10    11
 
-// makeChordPatternPlacements generated by GuitarChord program at 12/29/2022 4:03:49 PM
+// makeChordPatternPlacements generated by GuitarChord program at 2/17/2023 5:15:52 PM
 
 function makeChordPatternPlacements()
 {
- m_arrChordPatterns[m_cpMajor].PatternGuitar[0] = new Placement(1, m_Guitar, 0, 48, [new Fingering(4, 1)], [new Fingering(2, 2)], [new Fingering(1, 3)], new Array(), [new Fingering(3, 0), new Fingering(5, 0)], [new Fingering(0, 0)], );
- m_arrChordPatterns[m_cpMajor].PatternGuitar[1] = new Placement(2, m_Guitar, 2, 50, [new Fingering(3, 2)], [new Fingering(5, 2)], [new Fingering(4, 3)], new Array(), [new Fingering(1, 0), new Fingering(2, 0)], [new Fingering(0, 0)], );
- m_arrChordPatterns[m_cpMajor].PatternGuitar[2] = new Placement(3, m_Guitar, 4, 44, new Array(), [new Fingering(3, 1)], [new Fingering(1, 2)], [new Fingering(2, 2)], [new Fingering(0, 0), new Fingering(4, 0), new Fingering(5, 0)], new Array(), );
- m_arrChordPatterns[m_cpMajor].PatternGuitar[3] = new Placement(4, m_Guitar, 7, 47, [new Fingering(1, 2)], [new Fingering(0, 3)], new Array(), [new Fingering(5, 3)], [new Fingering(2, 0), new Fingering(3, 0), new Fingering(4, 0)], new Array(), );
- m_arrChordPatterns[m_cpMajor].PatternGuitar[4] = new Placement(5, m_Guitar, 9, 49, [new Fingering(2, 2), new Fingering(3, 2)], [new Fingering(4, 2)], new Array(), new Array(), [new Fingering(1, 0), new Fingering(5, 0)], [new Fingering(0, 0)], );
- m_arrChordPatterns[m_cpMinor].PatternGuitar[0] = new Placement(6, m_Guitar, 2, 50, [new Fingering(5, 1)], [new Fingering(4, 3)], [new Fingering(3, 2)], new Array(), [new Fingering(1, 0), new Fingering(2, 0)], [new Fingering(0, 0)], );
- m_arrChordPatterns[m_cpMinor].PatternGuitar[1] = new Placement(7, m_Guitar, 4, 44, new Array(), new Array(), [new Fingering(1, 2)], [new Fingering(2, 2)], [new Fingering(0, 0), new Fingering(3, 0), new Fingering(4, 0), new Fingering(5, 0)], new Array(), );
- m_arrChordPatterns[m_cpMinor].PatternGuitar[2] = new Placement(8, m_Guitar, 9, 49, new Array(), [new Fingering(4, 1)], [new Fingering(2, 2)], [new Fingering(3, 2)], [new Fingering(1, 0), new Fingering(5, 0)], [new Fingering(0, 0)], );
+ m_arrChordPatterns[m_cpMajor].PatternGuitar[0] = new Placement(1, m_Guitar, 0, [new Fingering(4, 1)], [new Fingering(2, 2)], [new Fingering(1, 3)], new Array(), [new Fingering(3, 0), new Fingering(5, 0)], [new Fingering(0, 0)], );
+ m_arrChordPatterns[m_cpMajor].PatternGuitar[1] = new Placement(2, m_Guitar, 2, [new Fingering(3, 2)], [new Fingering(5, 2)], [new Fingering(4, 3)], new Array(), [new Fingering(2, 0)], [new Fingering(0, 0), new Fingering(1, 0)], );
+ m_arrChordPatterns[m_cpMajor].PatternGuitar[2] = new Placement(3, m_Guitar, 4, new Array(), [new Fingering(3, 1)], [new Fingering(1, 2)], [new Fingering(2, 2)], [new Fingering(0, 0), new Fingering(4, 0), new Fingering(5, 0)], new Array(), );
+ m_arrChordPatterns[m_cpMajor].PatternGuitar[3] = new Placement(4, m_Guitar, 7, [new Fingering(1, 2)], [new Fingering(0, 3)], [new Fingering(5, 3)], new Array(), [new Fingering(2, 0), new Fingering(3, 0), new Fingering(4, 0)], new Array(), );
+ m_arrChordPatterns[m_cpMajor].PatternGuitar[4] = new Placement(5, m_Guitar, 9, [new Fingering(4, 2)], [new Fingering(3, 2)], [new Fingering(2, 2)], new Array(), [new Fingering(1, 0), new Fingering(5, 0)], [new Fingering(0, 0)], );
+ m_arrChordPatterns[m_cpMajor].PatternMandolin[0] = new Placement(6, m_Mandolin, 7, [new Fingering(2, 2)], [new Fingering(3, 3)], new Array(), new Array(), [new Fingering(0, 0), new Fingering(1, 0)], new Array(), );
+ m_arrChordPatterns[m_cpMajor].PatternMandolin[1] = new Placement(7, m_Mandolin, 0, [new Fingering(1, 2)], [new Fingering(2, 3)], new Array(), new Array(), [new Fingering(0, 0), new Fingering(3, 0)], new Array(), );
+ m_arrChordPatterns[m_cpMajor].PatternMandolin[2] = new Placement(8, m_Mandolin, 2, [new Fingering(0, 2)], [new Fingering(3, 2)], new Array(), new Array(), [new Fingering(1, 0), new Fingering(2, 0)], new Array(), );
+ m_arrChordPatterns[m_cpMajor].PatternMandolin[3] = new Placement(9, m_Mandolin, 5, [new Fingering(3, 1)], [new Fingering(1, 3)], [new Fingering(0, 5)], new Array(), [new Fingering(2, 0)], new Array(), );
+ m_arrChordPatterns[m_cpMajor].PatternMandolin[4] = new Placement(10, m_Mandolin, 4, [new Fingering(1, 2), new Fingering(2, 2)], new Array(), new Array(), [new Fingering(3, 4)], new Array(), [new Fingering(0, 0)], );
+ m_arrChordPatterns[m_cpMajor].PatternMandolin[5] = new Placement(11, m_Mandolin, 9, [new Fingering(0, 2), new Fingering(1, 2)], new Array(), new Array(), new Array(), [new Fingering(2, 0), new Fingering(3, 0)], new Array(), );
+ m_arrChordPatterns[m_cpMajor].PatternMandolin[6] = new Placement(12, m_Mandolin, 11, [new Fingering(1, 1)], [new Fingering(2, 2)], [new Fingering(3, 2)], [new Fingering(0, 4)], new Array(), new Array(), );
+ m_arrChordPatterns[m_cpMinor].PatternGuitar[0] = new Placement(13, m_Guitar, 9, [new Fingering(4, 1)], [new Fingering(2, 2)], [new Fingering(3, 2)], new Array(), [new Fingering(1, 0), new Fingering(5, 0)], [new Fingering(0, 0)], );
+ m_arrChordPatterns[m_cpMinor].PatternGuitar[1] = new Placement(14, m_Guitar, 2, [new Fingering(5, 1)], [new Fingering(3, 2)], [new Fingering(4, 3)], new Array(), [new Fingering(2, 0)], [new Fingering(0, 0), new Fingering(1, 0)], );
+ m_arrChordPatterns[m_cpMinor].PatternGuitar[2] = new Placement(15, m_Guitar, 4, [new Fingering(1, 2)], [new Fingering(2, 2)], new Array(), new Array(), [new Fingering(0, 0), new Fingering(3, 0), new Fingering(4, 0), new Fingering(5, 0)], new Array(), );
+ m_arrChordPatterns[m_cpMinor].PatternMandolin[0] = new Placement(16, m_Mandolin, 9, [new Fingering(0, 2)], [new Fingering(1, 2)], [new Fingering(2, 3)], new Array(), [new Fingering(3, 0)], new Array(), );
+ m_arrChordPatterns[m_cpMinor].PatternMandolin[1] = new Placement(17, m_Mandolin, 4, new Array(), [new Fingering(1, 2)], [new Fingering(2, 2)], new Array(), [new Fingering(0, 0), new Fingering(3, 0)], new Array(), );
+ m_arrChordPatterns[m_cpMinor].PatternMandolin[2] = new Placement(18, m_Mandolin, 11, [new Fingering(2, 2), new Fingering(3, 2)], new Array(), [new Fingering(0, 4)], new Array(), [new Fingering(1, 0)], new Array(), );
+ m_arrChordPatterns[m_cpMinor].PatternMandolin[3] = new Placement(19, m_Mandolin, 7, new Array(), new Array(), [new Fingering(2, 1)], [new Fingering(3, 3)], [new Fingering(0, 0), new Fingering(1, 0)], new Array(), );
+ m_arrChordPatterns[m_cpMinor].PatternMandolin[4] = new Placement(20, m_Mandolin, 2, [new Fingering(3, 1)], [new Fingering(0, 2)], new Array(), new Array(), [new Fingering(1, 0), new Fingering(2, 0)], new Array(), );
+ m_arrChordPatterns[m_cpDim].PatternGuitar[0] = new Placement(21, m_Guitar, 9, [new Fingering(2, 1)], [new Fingering(3, 2)], [new Fingering(4, 1)], new Array(), [new Fingering(1, 0)], [new Fingering(0, 0), new Fingering(5, 0)], );
 }
-
 function makeBarreChordPatterns()
 {                                                                    //   index                                                                                                                                              // middle             // ring               // pinky         // no play          
  m_GuitarBarreChordE = new BarrePlacement(1, 4, m_cpMajor, m_Guitar, [new BarreIndex(0, 0, 1), new BarreIndex(1, 0, 0), new BarreIndex(2, 0, 0), new BarreIndex(3, 0, 0), new BarreIndex(4, 0, 1), new BarreIndex(5, 0, 1)], [new Fingering(3, 1)], [new Fingering(1, 2)], [new Fingering(2, 2)], new Array());
  m_GuitarBarreChordEm = new BarrePlacement(2, 4, m_cpMinor, m_Guitar, [new BarreIndex(0, 0, 1), new BarreIndex(1, 0, 0), new BarreIndex(2, 0, 0), new BarreIndex(3, 0, 1), new BarreIndex(4, 0, 1), new BarreIndex(5, 0, 1)], new Array(), [new Fingering(1, 2)], [new Fingering(2 ,2)], new Array());
-
-
+                                                                      // low e is not root of chord on this barre so is shown as no play 
  m_GuitarBarreChordA = new BarrePlacement(3, 9, m_cpMajor, m_Guitar, [new BarreIndex(1, 0, 1), new BarreIndex(2, 0, 0), new BarreIndex(3, 0, 0), new BarreIndex(4, 0, 0), new BarreIndex(5, 0, 1)], new Array(), [new Fingering(2, 2), new Fingering(3, 2), new Fingering(4, 2)], new Array(), [new Fingering(0, 0)]);
  m_GuitarBarreChordAm = new BarrePlacement(4, 9, m_cpMinor, m_Guitar, [new BarreIndex(1, 0, 1), new BarreIndex(2, 0, 0), new BarreIndex(3, 0, 0), new BarreIndex(4, 0, 0), new BarreIndex(5, 0, 1)], [new Fingering(4, 1)], [new Fingering(2, 2)], [new Fingering(3, 2)], [new Fingering(0, 0)]);
+                                                                       // index                   // middle
+ m_GuitarBarreChordAd = new BarrePlacement(4, 9, m_cpMinor, m_Guitar, [new BarreIndex(1, 0, 1)], [new Fingering(2, 1)], [new Fingering(3, 2)], [new Fingering(4, 1)], [new Fingering(0, 0), new Fingering(5,0)]);
+ 
+                                                                        // index                                                                                        // middle     // ring                // pinky               // no play
+ m_MandolinBarreChordD = new BarrePlacement(5, 2, m_cpMajor, m_Mandolin, [new BarreIndex(0,0,0), new BarreIndex(1,0,1), new BarreIndex(2,0,1), new BarreIndex(3,0,0)], new Array(), [new Fingering(0, 2)], [new Fingering(3,2)], new Array());
+ m_MandolinBarreChordDm = new BarrePlacement(6, 2, m_cpMinor, m_Mandolin, [new BarreIndex(0,0,0), new BarreIndex(1,0,1), new BarreIndex(2,0,1), new BarreIndex(3,0,0)], [new Fingering(3,1)], [new Fingering(0, 2)], new Array(), new Array());
+
 }
 
 function makeGuitar(m0, m1, m2, m3, m4, m5) // midi notes of guitar strings, m0 is the thick string
@@ -709,7 +756,7 @@ function makeGuitar(m0, m1, m2, m3, m4, m5) // midi notes of guitar strings, m0 
  m_arrGuitar[4] = new Array();
  m_arrGuitar[5] = new Array();
 
- for (i=0; i<24; i++)
+ for (i=0; i<m_arrInstruments[m_Guitar].Frets; i++)
   {
    m_arrGuitar[0].push(m0 + i);
    m_arrGuitar[1].push(m1 + i);
@@ -719,6 +766,61 @@ function makeGuitar(m0, m1, m2, m3, m4, m5) // midi notes of guitar strings, m0 
    m_arrGuitar[5].push(m5 + i);  
   }
 }
+
+function makeBass(m0, m1, m2, m3) // midi notes of guitar strings, m0 is the thick string
+{
+ var i;
+
+ m_arrBass[0] = new Array();
+ m_arrBass[1] = new Array();
+ m_arrBass[2] = new Array();
+ m_arrBass[3] = new Array();
+
+ for (i=0; i<m_arrInstruments[m_Bass].Frets; i++)
+  {
+   m_arrBass[0].push(m0 + i);
+   m_arrBass[1].push(m1 + i);
+   m_arrBass[2].push(m2 + i);
+   m_arrBass[3].push(m3 + i);
+  }
+}
+
+function makeMandolin(m0, m1, m2, m3) // midi notes of guitar strings, m0 is the thick string
+{
+ var i;
+
+ m_arrMandolin[0] = new Array();
+ m_arrMandolin[1] = new Array();
+ m_arrMandolin[2] = new Array();
+ m_arrMandolin[3] = new Array();
+
+ for (i=0; i<m_arrInstruments[m_Mandolin].Frets; i++)
+  {
+   m_arrMandolin[0].push(m0 + i);
+   m_arrMandolin[1].push(m1 + i);
+   m_arrMandolin[2].push(m2 + i);
+   m_arrMandolin[3].push(m3 + i);
+  }
+}
+
+function makeUkulele(m0, m1, m2, m3) // midi notes of guitar strings, m0 is the thick string
+{
+ var i;
+
+ m_arrUkulele[0] = new Array();
+ m_arrUkulele[1] = new Array();
+ m_arrUkulele[2] = new Array();
+ m_arrUkulele[3] = new Array();
+
+ for (i=0; i<m_arrInstruments[m_Ukulele].Frets; i++)
+  {
+   m_arrUkulele[0].push(m0 + i);
+   m_arrUkulele[1].push(m1 + i);
+   m_arrUkulele[2].push(m2 + i);
+   m_arrUkulele[3].push(m3 + i);
+  }
+}
+
 
 </script>
 
@@ -804,7 +906,7 @@ function dynaInstLoader(cboName)
  m_CurrentInstrument = m_arrInstruments[0].ID;
 }
 
-function dynaModesLoader(cboName)
+function dynaModesLoaderTH(cboName)
 {
  var i,oOption;
  
@@ -820,9 +922,49 @@ function dynaModesLoader(cboName)
      oOption.value=m_arrModes[i].ID;
      document.getElementById(cboName).options.add(oOption);
     }
-  }
- eventCboModes_Change(); 
+  } 
+ eventcboModesTH_Change();
 }
+
+function dynaModesLoaderChord(cboName)
+{
+ var i,oOption;
+ 
+ document.getElementById(cboName).options.length=0;
+ 
+ for (i=0;i<m_arrModes.length;i++)
+  {
+   if (m_arrModes[i].KeyList.length > 0)  // only add modes that I've filled out the key list
+    {
+     oOption=document.createElement("OPTION");
+     oOption.style.backgroundColor=m_arrModes[i].Background;
+     oOption.text=m_arrModes[i].ModeName;
+     oOption.value=m_arrModes[i].ID;
+     document.getElementById(cboName).options.add(oOption);
+    }
+  } 
+ eventcboModesChord_Change();
+}
+
+function dynaPatternsLoaderChord(cboName)
+{
+ var s,i,oOption;
+ 
+ document.getElementById(cboName).options.length=0;
+ 
+ for (i=0;i<m_arrChordPatterns.length;i++)
+  {
+   oOption=document.createElement("OPTION");
+   s=m_arrChordPatterns[i].Name+" ";
+   s+="("+m_arrChordPatterns[i].Formula+")";
+   oOption.text=s;
+   oOption.value=i;
+
+   document.getElementById(cboName).options.add(oOption);
+  } 
+ eventcboPatternsChord_Change();
+}
+
 
 </script>
 
@@ -1110,6 +1252,35 @@ function GenGuitarBarreStringElement(chord, offset, wstr, fret) // ChordPatteren
        return "P";
     }
   }
+ if (chord == m_cpDim)
+  {
+   fo = m_GuitarBarreChordAd.Offsets[offset];
+   for (k=0; k<m_GuitarBarreChordAd.Index[fo].length; k++)
+    {
+     if (m_GuitarBarreChordAd.Index[fo][k].Str == wstr && m_GuitarBarreChordAd.Index[fo][k].Fret == fret)
+       return "I";
+    }
+   for (k=0; k<m_GuitarBarreChordAd.Middle[fo].length; k++)
+    {
+     if (m_GuitarBarreChordAd.Middle[fo][k].Str == wstr && m_GuitarBarreChordAd.Middle[fo][k].Fret == fret)
+       return "M";
+    }
+   for (k=0; k<m_GuitarBarreChordAd.Ring[fo].length; k++)
+    {
+     if (m_GuitarBarreChordAd.Ring[fo][k].Str == wstr && m_GuitarBarreChordAd.Ring[fo][k].Fret == fret)
+       return "R";
+    }
+   for (k=0; k<m_GuitarBarreChordAd.Pinky[fo].length; k++)
+    {
+     if (m_GuitarBarreChordAd.Pinky[fo][k].Str == wstr && m_GuitarBarreChordAd.Pinky[fo][k].Fret == fret)
+       return "P";
+    }
+   for (k=0; k<m_GuitarBarreChordAd.NoPlay[fo].length; k++)
+    {
+     if (m_GuitarBarreChordAd.NoPlay[fo][k].Str == wstr && m_GuitarBarreChordAd.NoPlay[fo][k].Fret == fret)
+       return "X";
+    }
+  }
  return "";
 }
 
@@ -1170,7 +1341,7 @@ function GenGuitarString(chord, offset, wstr, key) // index to ChordPattern, off
      w = fretBeforeNut;   // 25 pixels
    else  
      w = sw;
-   html += "<td class='guitarString'>";
+   html += "<td class='fretString'>";
 
    midi = m_arrGuitar[wstr][fret]; // get midi note of string and fret
    fb = GenGuitarStringElement(chord, offset, wstr, fret);
@@ -1197,7 +1368,7 @@ function GenGuitarStringScale(wstr, key) // index to ChordPattern, offset C=0, s
  var sw = fretStartSize; //vw units about 40 pixels on a 1920 display, this is the size of area between the nut and fret 1
  var w;
 
- for (fret=0; fret<24; fret++)
+ for (fret=0; fret<m_arrInstruments[m_Guitar].Frets; fret++)
   {
    midi = m_arrGuitar[wstr][fret]; // get midi note of string and fret
    
@@ -1223,7 +1394,7 @@ function GenGuitarStringScale(wstr, key) // index to ChordPattern, offset C=0, s
    else  
      w = sw;
 
-   html += "<td class='guitarString' style='color:" + fg + "; background-color:" + bg + ";'>";
+   html += "<td class='fretString' style='color:" + fg + "; background-color:" + bg + ";'>";
 
    html += GenGuitarCellScale(w, midi, sn, key);
   
@@ -1234,20 +1405,20 @@ function GenGuitarStringScale(wstr, key) // index to ChordPattern, offset C=0, s
  return html;
 }
 
-function GenGuitarMarks(nFrets)
+function GenGuitarMarks()
 {
  var barre, fb;
  var html = "<tr>";
  var fret;
  var sw = fretMarkStart; // 30 pixels, have to slide this over a bit to line up the dots like a fretboard
 
- for (fret=0; fret<nFrets; fret++)
+ for (fret=0; fret<m_arrInstruments[m_Guitar].Frets; fret++)
   {
    if (fret == 0) // before the nut
      w = fretMarkBeforeNut;   // 15 pixels
    else  
      w = sw;
-   html += "<td class='guitarMark' style='width:" + w.toString() + "vw;'>";
+   html += "<td class='fretMark' style='width:" + w.toString() + "vw;'>";
    if (fret == 3 || fret == 5 || fret ==7 || fret == 9 || fret == 15 || fret==17 || fret==19) 
      html += symDot;
    if (fret == 12)
@@ -1303,14 +1474,14 @@ function GenGuitarCell(width, open, barre, midiNote, barreShowNote, key, grad) /
    color = "#ffffff";
   }
 
- html = "<div class='guitarCell' style='width:" + width.toString() + "vw; background-color:" + color + "'>";
+ html = "<div class='fretCell' style='width:" + width.toString() + "vw; background-color:" + color + "'>";
  html += note;
  
  if (open != "")
-   html += "<div class='guitarCellLeft'>" + open + "</div>";
+   html += "<div class='fretCellLeft'>" + open + "</div>";
 
  if (barre != "")
-   html += "<div class='guitarCellRight'>" + barre + "</div>";
+   html += "<div class='fretCellRight'>" + barre + "</div>";
 
  html += "</div>";
 
@@ -1335,11 +1506,11 @@ function GenGuitarCellScale(width, midiNote, scaleNum, key)
    note = "";
   }
 
- html = "<div class='guitarCell' style='width:" + width.toString() + "vw;'>";
+ html = "<div class='fretCell' style='width:" + width.toString() + "vw;'>";
  html += note;
 
  if (scaleNum > 0)
-   html += "<div class='guitarCellRight'>" + scaleNum.toString() + "</div>";
+   html += "<div class='fretCellRight'>" + scaleNum.toString() + "</div>";
 
  html += "</div>";
 
@@ -1350,11 +1521,7 @@ function GenGuitar(chord, offset, key) // chord pattern index, offset C=0, Key o
 {
  var html;
 
- html = "<table><tr valign='center'><td>";
-
- html += GenChordInfo(chord, offset, key);
-
- html += "</td><td><table>";
+ html = "<table>";
 
  html += GenGuitarString(chord, offset, 5, key);
  html += GenGuitarString(chord, offset, 4, key);
@@ -1362,9 +1529,9 @@ function GenGuitar(chord, offset, key) // chord pattern index, offset C=0, Key o
  html += GenGuitarString(chord, offset, 2, key);
  html += GenGuitarString(chord, offset, 1, key);
  html += GenGuitarString(chord, offset, 0, key);
- html += GenGuitarMarks(15);
+ html += GenGuitarMarks();
 
- html += "</table></td></tr></table>";
+ html += "</table>";
   
  return html;
 }
@@ -1392,7 +1559,7 @@ function GenGuitarScale(key)
  html += GenGuitarStringScale(2, key);
  html += GenGuitarStringScale(1, key);
  html += GenGuitarStringScale(0, key);
- html += GenGuitarMarks(24);
+ html += GenGuitarMarks();
 
  html += "</table></td></tr></table>";
 
@@ -1400,6 +1567,1295 @@ function GenGuitarScale(key)
 }
 
 </script>
+
+<script type="text/javascript">
+
+////////////////////////////////////////////////
+//           B a s s    G u i t a r     
+////////////////////////////////////////////////
+
+// generate bass guitar fretboard.  Using the 1st 4 strings of guitar fingering patterns.
+// returns a open chord fingering letter I,M,R,P or O, X based on string and fret
+// m_arrChordPatterns has been prepared that contain the fingering
+
+function GenBassStringElement(chord, offset, wstr, fret) // chord = chord pattern index, offset c=0, wstr is string #, fret # nut is 0
+{
+ var i, k, fo, html;
+
+ html = "";
+
+ for (i=0; i<m_arrChordPatterns[chord].PatternGuitar.length; i++) // go thru the placements
+  {
+   if (m_arrChordPatterns[chord].PatternGuitar[i].Offset == offset) // see if offset is present C = 0
+    {
+     for(k=0; k<m_arrChordPatterns[chord].PatternGuitar[i].Index.length; k++) // go thru Index finger list
+      {
+       if (m_arrChordPatterns[chord].PatternGuitar[i].Index[k].Str == wstr && m_arrChordPatterns[chord].PatternGuitar[i].Index[k].Fret == fret)
+         return "I"; 
+      }
+     for(k=0; k<m_arrChordPatterns[chord].PatternGuitar[i].Middle.length; k++) // go thru middle finger list
+      {
+       if (m_arrChordPatterns[chord].PatternGuitar[i].Middle[k].Str == wstr && m_arrChordPatterns[chord].PatternGuitar[i].Middle[k].Fret == fret)
+         return "M"; 
+      }
+     for(k=0; k<m_arrChordPatterns[chord].PatternGuitar[i].Ring.length; k++) // go thru ring finger list
+      {
+       if (m_arrChordPatterns[chord].PatternGuitar[i].Ring[k].Str == wstr && m_arrChordPatterns[chord].PatternGuitar[i].Ring[k].Fret == fret)
+         return "R"; 
+      }
+     for(k=0; k<m_arrChordPatterns[chord].PatternGuitar[i].Pinky.length; k++) // go thru pinky finger list
+      {
+       if (m_arrChordPatterns[chord].PatternGuitar[i].Pinky[k].Str == wstr && m_arrChordPatterns[chord].PatternGuitar[i].Pinky[k].Fret == fret)
+         return "P"; 
+      }
+     for(k=0; k<m_arrChordPatterns[chord].PatternGuitar[i].Open.length; k++) // go thru open string list
+      {
+       if (m_arrChordPatterns[chord].PatternGuitar[i].Open[k].Str == wstr && m_arrChordPatterns[chord].PatternGuitar[i].Open[k].Fret == fret)
+         return "O"; 
+      }
+     for(k=0; k<m_arrChordPatterns[chord].PatternGuitar[i].NoPlay.length; k++) // go thru no play finger list
+      {
+       if (m_arrChordPatterns[chord].PatternGuitar[i].NoPlay[k].Str == wstr && m_arrChordPatterns[chord].PatternGuitar[i].NoPlay[k].Fret == fret)
+         return "X"; 
+      }
+    }
+  }
+ return "";
+}
+
+// return barre chord fingering I,M,R,P or X based on string and fret
+// each barre pattern, E and A types were prepared.
+// the Offsets array for each contains the offset to the barre pattern fingering array
+// the offset gives the location of the barre chord for the passed offset. For the A and Am pattern C = 0 would return 2 which is the A pattern up the 3rd fret.
+// the reason C is not 3 is because the open A is not included in the fingering, only barre chords are present.  
+
+function GenBassBarreStringElement(chord, offset, wstr, fret) // ChordPatteren index, offset C=0, String # (low E is 0), fret # (nut is 0)
+{ 
+ // for barre need to not return fingerings for open A and open E
+ if (chord == m_cpMajor)
+  {
+   fo = m_GuitarBarreChordA.Offsets[offset];
+   for (k=0; k<m_GuitarBarreChordA.Index[fo].length; k++)
+    {
+     if (m_GuitarBarreChordA.Index[fo][k].Str == wstr && m_GuitarBarreChordA.Index[fo][k].Fret == fret)
+       return "I";
+    }
+   for (k=0; k<m_GuitarBarreChordA.Middle[fo].length; k++)
+    {
+     if (m_GuitarBarreChordA.Middle[fo][k].Str == wstr && m_GuitarBarreChordA.Middle[fo][k].Fret == fret)
+       return "M";
+    }
+   for (k=0; k<m_GuitarBarreChordA.Ring[fo].length; k++)
+    {
+     if (m_GuitarBarreChordA.Ring[fo][k].Str == wstr && m_GuitarBarreChordA.Ring[fo][k].Fret == fret)
+       return "R";
+    }
+   for (k=0; k<m_GuitarBarreChordA.Pinky[fo].length; k++)
+    {
+     if (m_GuitarBarreChordA.Pinky[fo][k].Str == wstr && m_GuitarBarreChordA.Pinky[fo][k].Fret == fret)
+       return "P";
+    }
+   for (k=0; k<m_GuitarBarreChordA.NoPlay[fo].length; k++)
+    {
+     if (m_GuitarBarreChordA.NoPlay[fo][k].Str == wstr && m_GuitarBarreChordA.NoPlay[fo][k].Fret == fret)
+       return "X";
+    }
+   fo = m_GuitarBarreChordE.Offsets[offset];
+   for (k=0; k<m_GuitarBarreChordE.Index[fo].length; k++)
+    {
+     if (m_GuitarBarreChordE.Index[fo][k].Str == wstr && m_GuitarBarreChordE.Index[fo][k].Fret == fret)
+       return "I";
+    }
+   for (k=0; k<m_GuitarBarreChordE.Middle[fo].length; k++)
+    {
+     if (m_GuitarBarreChordE.Middle[fo][k].Str == wstr && m_GuitarBarreChordE.Middle[fo][k].Fret == fret)
+       return "M";
+    }
+   for (k=0; k<m_GuitarBarreChordE.Ring[fo].length; k++)
+    {
+     if (m_GuitarBarreChordE.Ring[fo][k].Str == wstr && m_GuitarBarreChordE.Ring[fo][k].Fret == fret)
+       return "R";
+    }
+   for (k=0; k<m_GuitarBarreChordE.Pinky[fo].length; k++)
+    {
+     if (m_GuitarBarreChordE.Pinky[fo][k].Str == wstr && m_GuitarBarreChordE.Pinky[fo][k].Fret == fret)
+       return "P";
+    }
+  }
+ if (chord == m_cpMinor)
+  {
+   fo = m_GuitarBarreChordAm.Offsets[offset];
+   for (k=0; k<m_GuitarBarreChordAm.Index[fo].length; k++)
+    {
+     if (m_GuitarBarreChordAm.Index[fo][k].Str == wstr && m_GuitarBarreChordAm.Index[fo][k].Fret == fret)
+       return "I";
+    }
+   for (k=0; k<m_GuitarBarreChordAm.Middle[fo].length; k++)
+    {
+     if (m_GuitarBarreChordAm.Middle[fo][k].Str == wstr && m_GuitarBarreChordAm.Middle[fo][k].Fret == fret)
+       return "M";
+    }
+   for (k=0; k<m_GuitarBarreChordAm.Ring[fo].length; k++)
+    {
+     if (m_GuitarBarreChordAm.Ring[fo][k].Str == wstr && m_GuitarBarreChordAm.Ring[fo][k].Fret == fret)
+       return "R";
+    }
+   for (k=0; k<m_GuitarBarreChordAm.Pinky[fo].length; k++)
+    {
+     if (m_GuitarBarreChordAm.Pinky[fo][k].Str == wstr && m_GuitarBarreChordAm.Pinky[fo][k].Fret == fret)
+       return "P";
+    }
+   for (k=0; k<m_GuitarBarreChordAm.NoPlay[fo].length; k++)
+    {
+     if (m_GuitarBarreChordAm.NoPlay[fo][k].Str == wstr && m_GuitarBarreChordAm.NoPlay[fo][k].Fret == fret)
+       return "X";
+    }
+   fo = m_GuitarBarreChordEm.Offsets[offset];
+   for (k=0; k<m_GuitarBarreChordEm.Index[fo].length; k++)
+    {
+     if (m_GuitarBarreChordEm.Index[fo][k].Str == wstr && m_GuitarBarreChordEm.Index[fo][k].Fret == fret)
+       return "I";
+    }
+   for (k=0; k<m_GuitarBarreChordEm.Middle[fo].length; k++)
+    {
+     if (m_GuitarBarreChordEm.Middle[fo][k].Str == wstr && m_GuitarBarreChordEm.Middle[fo][k].Fret == fret)
+       return "M";
+    }
+   for (k=0; k<m_GuitarBarreChordEm.Ring[fo].length; k++)
+    {
+     if (m_GuitarBarreChordEm.Ring[fo][k].Str == wstr && m_GuitarBarreChordEm.Ring[fo][k].Fret == fret)
+       return "R";
+    }
+   for (k=0; k<m_GuitarBarreChordEm.Pinky[fo].length; k++)
+    {
+     if (m_GuitarBarreChordEm.Pinky[fo][k].Str == wstr && m_GuitarBarreChordEm.Pinky[fo][k].Fret == fret)
+       return "P";
+    }
+  }
+ return "";
+}
+
+// Show Note gets the ShowNote property of the BarreIndex object for barre chord fingerings
+// the Offset lookup system is the same as GenGuitarBarreStringElement above
+
+function GenBassBarreShowNote(chord, offset, wstr, fret) // chord (index to m_arrChordPattern), offset c=0, string (low = 0), fret #
+{ 
+ // for barre need to not return fingerings for open A and open E
+ if (chord == m_cpMajor)
+  {
+   fo = m_GuitarBarreChordA.Offsets[offset]; // if offset = 0, C, fo = 2
+   for (k=0; k<m_GuitarBarreChordA.Index[fo].length; k++)
+    {
+     if (m_GuitarBarreChordA.Index[fo][k].Str == wstr && m_GuitarBarreChordA.Index[fo][k].Fret == fret)
+       return m_GuitarBarreChordA.Index[fo][k].ShowNote;
+    }
+   fo = m_GuitarBarreChordE.Offsets[offset];  // if offset = 0, c, fo = 7
+   for (k=0; k<m_GuitarBarreChordE.Index[fo].length; k++)
+    {
+     if (m_GuitarBarreChordE.Index[fo][k].Str == wstr && m_GuitarBarreChordE.Index[fo][k].Fret == fret)
+       return m_GuitarBarreChordE.Index[fo][k].ShowNote;
+    }
+  }
+ if (chord == m_cpMinor)
+  {
+   fo = m_GuitarBarreChordAm.Offsets[offset];
+   for (k=0; k<m_GuitarBarreChordAm.Index[fo].length; k++)
+    {
+     if (m_GuitarBarreChordAm.Index[fo][k].Str == wstr && m_GuitarBarreChordAm.Index[fo][k].Fret == fret)
+       return m_GuitarBarreChordAm.Index[fo][k].ShowNote;
+    }
+   fo = m_GuitarBarreChordEm.Offsets[offset];
+   for (k=0; k<m_GuitarBarreChordEm.Index[fo].length; k++)
+    {
+     if (m_GuitarBarreChordEm.Index[fo][k].Str == wstr && m_GuitarBarreChordEm.Index[fo][k].Fret == fret)
+       return m_GuitarBarreChordEm.Index[fo][k].ShowNote;
+    }
+  }
+ return 1;
+}
+
+// generate a TR html for a guitar string for a specific chord
+
+function GenBassString(chord, offset, wstr, key) // index to ChordPattern, offset C=0, string # low E is 0, Key object
+{
+ var midi;
+ var barre, fb, barreShowNote;
+ var html = "<tr>";
+ var fret;
+ var gradient;
+ var sw = fretStartSize; // 40 pixels
+ var w;
+
+ for (fret=0; fret<15; fret++)
+  {
+   if (fret == 0) // before the nut
+     w = fretBeforeNut;   // 25 pixels
+   else  
+     w = sw;
+   html += "<td class='fretString'>";
+
+   midi = m_arrBass[wstr][fret]; // get midi note of string and fret
+   fb = GenBassStringElement(chord, offset, wstr, fret);
+   barre = GenBassBarreStringElement(chord, offset, wstr, fret);
+   barreShowNote = GenBassBarreShowNote(chord, offset, wstr, fret);
+   gradient = FigureOutGradient(chord, offset, midi);
+
+   html += GenBassCell(w, fb, barre, midi, barreShowNote, key, gradient);
+  
+   html += "</td>";
+   sw -=  fretDecrease; // 1 pixel
+  }
+ html += "</tr>";
+ return html;
+}
+
+function GenBassStringScale(wstr, key) // index to ChordPattern, offset C=0, string # low E is 0, Key object
+{
+ var midi;
+ var bg, fg;
+ var sn;
+ var html = "<tr>";
+ var fret;
+ var sw = fretStartSize; //vw units about 40 pixels on a 1920 display, this is the size of area between the nut and fret 1
+ var w;
+
+ for (fret=0; fret<m_arrInstruments[m_Bass].Frets; fret++)
+  {
+   midi = m_arrBass[wstr][fret]; // get midi note of string and fret
+   
+   sn = 0;
+   for(i=0; i<key.Offsets.length; i++)
+    {
+     if (m_mapMidiNotes.get(midi).Offset == key.Offsets[i])
+       sn = i+1;
+    }
+
+   if (sn > 0)
+    {
+     bg = m_arrGradientBlueGreen[sn-1];
+     fg = "#000044";
+    }
+   else
+    {
+     bg = "#CCCCCC";
+     fg = "white";
+    }
+   if (fret == 0)        // before the nut
+     w = fretBeforeNut;  // 25 pixels
+   else  
+     w = sw;
+
+   html += "<td class='fretString' style='color:" + fg + "; background-color:" + bg + ";'>";
+
+   html += GenGuitarCellScale(w, midi, sn, key);
+  
+   html += "</td>";
+   sw -= fretDecrease; // subtract about a pixel on 1920 monitor
+  }
+ html += "</tr>";
+ return html;
+}
+
+function GenBassMarks()
+{
+ var barre, fb;
+ var html = "<tr>";
+ var fret;
+ var sw = fretMarkStart; // 30 pixels, have to slide this over a bit to line up the dots like a fretboard
+
+ for (fret=0; fret<m_arrInstruments[m_Bass].Frets; fret++)
+  {
+   if (fret == 0) // before the nut
+     w = fretMarkBeforeNut;   // 15 pixels
+   else  
+     w = sw;
+   html += "<td class='fretMark' style='width:" + w.toString() + "vw;'>";
+   if (fret == 3 || fret == 5 || fret ==7 || fret == 9 || fret == 15 || fret==17 || fret==19) 
+     html += symDot;
+   if (fret == 12)
+     html += symDot + symDot;
+   html += "</td>";
+   sw -= fretDecrease;
+  }
+
+ html += "</tr>";
+ return html;
+}
+
+
+// return HTML for a guitar fret by string an fret #
+
+function GenBassCell(width, open, barre, midiNote, barreShowNote, key, grad) // width is cell size, open & barre are fingering letter, barreShowNote is for index no play, key is Key object, 0 thru 5 gradient color of note based on step in chord
+{
+ var html;
+ var note;
+ var color;
+
+ if (key.LookUp[m_mapMidiNotes.get(midiNote).Offset] >= 0)
+  {
+   note = m_mapMidiNotes.get(midiNote).MidiName(key);
+  }
+ else 
+   note = ""; 
+
+ if (open == "" && barre == "")
+  {
+   note = "";
+  }
+ else 
+  {
+   if (open == "X" || barre == "X")
+     note = "";
+   else 
+    {
+     if (barre == "I")
+      {
+       if (barreShowNote == 0)
+         note = "";
+      }
+    }
+  }
+
+ if (note != "")
+  {
+   color = m_arrPastels[grad]; 
+  }
+ else
+  {
+   color = "#ffffff";
+  }
+
+ html = "<div class='fretCell' style='width:" + width.toString() + "vw; background-color:" + color + "'>";
+ html += note;
+ 
+ if (open != "")
+   html += "<div class='fretCellLeft'>" + open + "</div>";
+
+ if (barre != "")
+   html += "<div class='fretCellRight'>" + barre + "</div>";
+
+ html += "</div>";
+
+ return html;
+}
+
+// return HTML for a string / fret cell for the scale fretboard
+
+function GenBassCellScale(width, midiNote, scaleNum, key)
+{
+ var html;
+ var note;
+
+ if (key.LookUp[m_mapMidiNotes.get(midiNote).Offset] >= 0)
+   note = m_mapMidiNotes.get(midiNote).MidiName(key);
+ else 
+   note = ""; 
+
+ if (scaleNum == 0)
+  {
+   note = "";
+  }
+
+ html = "<div class='fretCell' style='width:" + width.toString() + "vw;'>";
+ html += note;
+
+ if (scaleNum > 0)
+   html += "<div class='fretCellRight'>" + scaleNum.toString() + "</div>";
+
+ html += "</div>";
+
+ return html;
+}
+
+function GenBass(chord, offset, key) // chord pattern index, offset C=0, Key object
+{
+ var html;
+
+ html = "<table>";
+
+ html += GenBassString(chord, offset, 3, key);
+ html += GenBassString(chord, offset, 2, key);
+ html += GenBassString(chord, offset, 1, key);
+ html += GenBassString(chord, offset, 0, key);
+
+ html += GenBassMarks();
+
+ html += "</table>";
+  
+ return html;
+}
+
+function GenBassScale(key)
+{
+ var html;
+
+ html = "<table><tr><td><table><tr>" // holds scale name and table containing notes in scale then the fretboard table
+
+ html += "<td class='scaleName'>";
+ html += key.OffsetNote(key.Offsets[0]).Text;
+ html += " ";
+ html += m_arrModes[m_CurrentMode].ModeName;
+ html += " Scale";
+ html += "</td>";
+
+ html += GenScaleInfo(key);  // returns more TDs
+
+ html += "</tr></table></tr></td><tr><td><table>";
+
+ html += GenBassStringScale(3, key); // return TRs
+ html += GenBassStringScale(2, key);
+ html += GenBassStringScale(1, key);
+ html += GenBassStringScale(0, key);
+ html += GenBassMarks();
+
+ html += "</table></td></tr></table>";
+
+ return html;
+}
+
+</script>
+
+<script type="text/javascript">
+
+////////////////////////////////////////////////
+//             M a n d o l i n 
+////////////////////////////////////////////////
+
+// generate guitar fretboard
+// returns a open chord fingering letter I,M,R,P or O, X based on string and fret
+// m_arrChordPatterns has been prepared that contain the fingering
+
+function GenMandolinStringElement(chord, offset, wstr, fret) // chord = chord pattern index, offset c=0, wstr is string #, fret # nut is 0
+{
+ var i, k, fo, html;
+
+ html = "";
+
+ for (i=0; i<m_arrChordPatterns[chord].PatternMandolin.length; i++) // go thru the placements
+  {
+   if (m_arrChordPatterns[chord].PatternMandolin[i].Offset == offset) // see if offset is present C = 0
+    {
+     for(k=0; k<m_arrChordPatterns[chord].PatternMandolin[i].Index.length; k++) // go thru Index finger list
+      {
+       if (m_arrChordPatterns[chord].PatternMandolin[i].Index[k].Str == wstr && m_arrChordPatterns[chord].PatternMandolin[i].Index[k].Fret == fret)
+         return "I"; 
+      }
+     for(k=0; k<m_arrChordPatterns[chord].PatternMandolin[i].Middle.length; k++) // go thru middle finger list
+      {
+       if (m_arrChordPatterns[chord].PatternMandolin[i].Middle[k].Str == wstr && m_arrChordPatterns[chord].PatternMandolin[i].Middle[k].Fret == fret)
+         return "M"; 
+      }
+     for(k=0; k<m_arrChordPatterns[chord].PatternMandolin[i].Ring.length; k++) // go thru ring finger list
+      {
+       if (m_arrChordPatterns[chord].PatternMandolin[i].Ring[k].Str == wstr && m_arrChordPatterns[chord].PatternMandolin[i].Ring[k].Fret == fret)
+         return "R"; 
+      }
+     for(k=0; k<m_arrChordPatterns[chord].PatternMandolin[i].Pinky.length; k++) // go thru pinky finger list
+      {
+       if (m_arrChordPatterns[chord].PatternMandolin[i].Pinky[k].Str == wstr && m_arrChordPatterns[chord].PatternMandolin[i].Pinky[k].Fret == fret)
+         return "P"; 
+      }
+     for(k=0; k<m_arrChordPatterns[chord].PatternMandolin[i].Open.length; k++) // go thru open string list
+      {
+       if (m_arrChordPatterns[chord].PatternMandolin[i].Open[k].Str == wstr && m_arrChordPatterns[chord].PatternMandolin[i].Open[k].Fret == fret)
+         return "O"; 
+      }
+     for(k=0; k<m_arrChordPatterns[chord].PatternMandolin[i].NoPlay.length; k++) // go thru no play finger list
+      {
+       if (m_arrChordPatterns[chord].PatternMandolin[i].NoPlay[k].Str == wstr && m_arrChordPatterns[chord].PatternMandolin[i].NoPlay[k].Fret == fret)
+         return "X"; 
+      }
+    }
+  }
+ return "";
+}
+
+// return barre chord fingering I,M,R,P or X based on string and fret
+// each barre pattern, E and A types were prepared.
+// the Offsets array for each contains the offset to the barre pattern fingering array
+// the offset gives the location of the barre chord for the passed offset. For the A and Am pattern C = 0 would return 2 which is the A pattern up the 3rd fret.
+// the reason C is not 3 is because the open A is not included in the fingering, only barre chords are present.  
+
+function GenMandolinBarreStringElement(chord, offset, wstr, fret) // ChordPatteren index, offset C=0, String # (low E is 0), fret # (nut is 0)
+{ 
+ // for barre need to not return fingerings for open A and open E
+ if (chord == m_cpMajor)
+  {
+   fo = m_MandolinBarreChordD.Offsets[offset];
+   for (k=0; k<m_MandolinBarreChordD.Index[fo].length; k++)
+    {
+     if (m_MandolinBarreChordD.Index[fo][k].Str == wstr && m_MandolinBarreChordD.Index[fo][k].Fret == fret)
+       return "I";
+    }
+   for (k=0; k<m_MandolinBarreChordD.Middle[fo].length; k++)
+    {
+     if (m_MandolinBarreChordD.Middle[fo][k].Str == wstr && m_MandolinBarreChordD.Middle[fo][k].Fret == fret)
+       return "M";
+    }
+   for (k=0; k<m_MandolinBarreChordD.Ring[fo].length; k++)
+    {
+     if (m_MandolinBarreChordD.Ring[fo][k].Str == wstr && m_MandolinBarreChordD.Ring[fo][k].Fret == fret)
+       return "R";
+    }
+   for (k=0; k<m_MandolinBarreChordD.Pinky[fo].length; k++)
+    {
+     if (m_MandolinBarreChordD.Pinky[fo][k].Str == wstr && m_MandolinBarreChordD.Pinky[fo][k].Fret == fret)
+       return "P";
+    }
+   for (k=0; k<m_MandolinBarreChordD.NoPlay[fo].length; k++)
+    {
+     if (m_MandolinBarreChordD.NoPlay[fo][k].Str == wstr && m_MandolinBarreChordD.NoPlay[fo][k].Fret == fret)
+       return "X";
+    }
+  }
+ if (chord == m_cpMinor)
+  {
+   fo = m_MandolinBarreChordDm.Offsets[offset];
+   for (k=0; k<m_MandolinBarreChordDm.Index[fo].length; k++)
+    {
+     if (m_MandolinBarreChordDm.Index[fo][k].Str == wstr && m_MandolinBarreChordDm.Index[fo][k].Fret == fret)
+       return "I";
+    }
+   for (k=0; k<m_MandolinBarreChordDm.Middle[fo].length; k++)
+    {
+     if (m_MandolinBarreChordDm.Middle[fo][k].Str == wstr && m_MandolinBarreChordDm.Middle[fo][k].Fret == fret)
+       return "M";
+    }
+   for (k=0; k<m_MandolinBarreChordDm.Ring[fo].length; k++)
+    {
+     if (m_MandolinBarreChordDm.Ring[fo][k].Str == wstr && m_MandolinBarreChordDm.Ring[fo][k].Fret == fret)
+       return "R";
+    }
+   for (k=0; k<m_MandolinBarreChordDm.Pinky[fo].length; k++)
+    {
+     if (m_MandolinBarreChordDm.Pinky[fo][k].Str == wstr && m_MandolinBarreChordDm.Pinky[fo][k].Fret == fret)
+       return "P";
+    }
+   for (k=0; k<m_MandolinBarreChordDm.NoPlay[fo].length; k++)
+    {
+     if (m_MandolinBarreChordDm.NoPlay[fo][k].Str == wstr && m_MandolinBarreChordDm.NoPlay[fo][k].Fret == fret)
+       return "X";
+    }
+  }
+ return "";
+}
+
+// Show Note gets the ShowNote property of the BarreIndex object for barre chord fingerings
+// the Offset lookup system is the same as GenGuitarBarreStringElement above
+
+function GenMandolinBarreShowNote(chord, offset, wstr, fret) // chord (index to m_arrChordPattern), offset c=0, string (low = 0), fret #
+{ 
+ // for barre need to not return fingerings for open A and open E
+ if (chord == m_cpMajor)
+  {
+   fo = m_MandolinBarreChordD.Offsets[offset]; // if offset = 0, C, fo = 2
+   for (k=0; k<m_MandolinBarreChordD.Index[fo].length; k++)
+    {
+     if (m_MandolinBarreChordD.Index[fo][k].Str == wstr && m_MandolinBarreChordD.Index[fo][k].Fret == fret)
+       return m_MandolinBarreChordD.Index[fo][k].ShowNote;
+    }
+  }
+ if (chord == m_cpMinor)
+  {
+   fo = m_MandolinBarreChordDm.Offsets[offset];
+   for (k=0; k<m_MandolinBarreChordDm.Index[fo].length; k++)
+    {
+     if (m_MandolinBarreChordDm.Index[fo][k].Str == wstr && m_MandolinBarreChordDm.Index[fo][k].Fret == fret)
+       return m_MandolinBarreChordDm.Index[fo][k].ShowNote;
+    }
+  }
+ return 1;
+}
+
+// generate a TR html for a guitar string for a specific chord
+
+function GenMandolinString(chord, offset, wstr, key) // index to ChordPattern, offset C=0, string # low E is 0, Key object
+{
+ var midi;
+ var barre, fb, barreShowNote;
+ var html = "<tr>";
+ var fret;
+ var gradient;
+ var sw = fretStartSize; // 40 pixels
+ var w;
+
+ for (fret=0; fret<15; fret++)
+  {
+   if (fret == 0) // before the nut
+     w = fretBeforeNut;   // 25 pixels
+   else  
+     w = sw;
+   html += "<td class='fretString'>";
+
+   midi = m_arrMandolin[wstr][fret]; // get midi note of string and fret
+   fb = GenMandolinStringElement(chord, offset, wstr, fret);
+   barre = GenMandolinBarreStringElement(chord, offset, wstr, fret);
+   barreShowNote = GenMandolinBarreShowNote(chord, offset, wstr, fret);
+   gradient = FigureOutGradient(chord, offset, midi);
+
+   html += GenMandolinCell(w, fb, barre, midi, barreShowNote, key, gradient);
+  
+   html += "</td>";
+   sw -=  fretDecrease; // 1 pixel
+  }
+ html += "</tr>";
+ return html;
+}
+
+function GenMandolinStringScale(wstr, key) // index to ChordPattern, offset C=0, string # low E is 0, Key object
+{
+ var midi;
+ var bg, fg;
+ var sn;
+ var html = "<tr>";
+ var fret;
+ var sw = fretStartSize; //vw units about 40 pixels on a 1920 display, this is the size of area between the nut and fret 1
+ var w;
+
+ for (fret=0; fret<m_arrInstruments[m_Mandolin].Frets; fret++)
+  {
+   midi = m_arrGuitar[wstr][fret]; // get midi note of string and fret
+   
+   sn = 0;
+   for(i=0; i<key.Offsets.length; i++)
+    {
+     if (m_mapMidiNotes.get(midi).Offset == key.Offsets[i])
+       sn = i+1;
+    }
+
+   if (sn > 0)
+    {
+     bg = m_arrGradientBlueGreen[sn-1];
+     fg = "#000044";
+    }
+   else
+    {
+     bg = "#CCCCCC";
+     fg = "white";
+    }
+   if (fret == 0)        // before the nut
+     w = fretBeforeNut;  // 25 pixels
+   else  
+     w = sw;
+
+   html += "<td class='fretString' style='color:" + fg + "; background-color:" + bg + ";'>";
+
+   html += GenMandolinCellScale(w, midi, sn, key);
+  
+   html += "</td>";
+   sw -= fretDecrease; // subtract about a pixel on 1920 monitor
+  }
+ html += "</tr>";
+ return html;
+}
+
+function GenMandolinMarks()
+{
+ var barre, fb;
+ var html = "<tr>";
+ var fret;
+ var sw = fretMarkStart; // 30 pixels, have to slide this over a bit to line up the dots like a fretboard
+
+ for (fret=0; fret<m_arrInstruments[m_Mandolin].Frets; fret++)
+  {
+   if (fret == 0) // before the nut
+     w = fretMarkBeforeNut;   // 15 pixels
+   else  
+     w = sw;
+   html += "<td class='fretMark' style='width:" + w.toString() + "vw;'>";
+   if (fret == 5 || fret ==7 || fret == 10 || fret == 15) 
+     html += symDot;
+   if (fret == 12)
+     html += symDot + symDot;
+   html += "</td>";
+   sw -= fretDecrease;
+  }
+
+ html += "</tr>";
+ return html;
+}
+
+
+// return HTML for a guitar fret by string an fret #
+
+function GenMandolinCell(width, open, barre, midiNote, barreShowNote, key, grad) // width is cell size, open & barre are fingering letter, barreShowNote is for index no play, key is Key object, 0 thru 5 gradient color of note based on step in chord
+{
+ var html;
+ var note;
+ var color;
+
+ if (key.LookUp[m_mapMidiNotes.get(midiNote).Offset] >= 0)
+  {
+   note = m_mapMidiNotes.get(midiNote).MidiName(key);
+  }
+ else 
+   note = ""; 
+
+ if (open == "" && barre == "")
+  {
+   note = "";
+  }
+ else 
+  {
+   if (open == "X" || barre == "X")
+     note = "";
+   else 
+    {
+     if (barre == "I")
+      {
+       if (barreShowNote == 0)
+         note = "";
+      }
+    }
+  }
+
+ if (note != "")
+  {
+   color = m_arrPastels[grad]; 
+  }
+ else
+  {
+   color = "#ffffff";
+  }
+
+ html = "<div class='fretCell' style='width:" + width.toString() + "vw; background-color:" + color + "'>";
+ html += note;
+ 
+ if (open != "")
+   html += "<div class='fretCellLeft'>" + open + "</div>";
+
+ if (barre != "")
+   html += "<div class='fretCellRight'>" + barre + "</div>";
+
+ html += "</div>";
+
+ return html;
+}
+
+// return HTML for a string / fret cell for the scale fretboard
+
+function GenMandolinCellScale(width, midiNote, scaleNum, key)
+{
+ var html;
+ var note;
+ var color;
+
+ if (key.LookUp[m_mapMidiNotes.get(midiNote).Offset] >= 0)
+   note = m_mapMidiNotes.get(midiNote).MidiName(key);
+ else 
+   note = ""; 
+
+ if (scaleNum == 0)
+  {
+   note = "";
+  }
+
+ html = "<div class='fretCell' style='width:" + width.toString() + "vw;'>";
+ html += note;
+
+ if (scaleNum > 0)
+   html += "<div class='fretCellRight'>" + scaleNum.toString() + "</div>";
+
+ html += "</div>";
+
+ return html;
+}
+
+function GenMandolin(chord, offset, key) // chord pattern index, offset C=0, Key object
+{
+ var html;
+
+ html = "<table>";
+
+ html += GenMandolinString(chord, offset, 3, key);
+ html += GenMandolinString(chord, offset, 2, key);
+ html += GenMandolinString(chord, offset, 1, key);
+ html += GenMandolinString(chord, offset, 0, key);
+ html += GenMandolinMarks();
+
+ html += "</table>";
+  
+ return html;
+}
+
+function GenMandolinScale(key)
+{
+ var html;
+
+ html = "<table><tr><td><table><tr>" // holds scale name and table containing notes in scale then the fretboard table
+
+ html += "<td class='scaleName'>";
+ html += key.OffsetNote(key.Offsets[0]).Text;
+ html += " ";
+ html += m_arrModes[m_CurrentMode].ModeName;
+ html += " Scale";
+ html += "</td>";
+
+ html += GenScaleInfo(key);  // returns more TDs
+
+ html += "</tr></table></tr></td><tr><td><table>";
+
+ html += GenMandolinStringScale(3, key);
+ html += GenMandolinStringScale(2, key);
+ html += GenMandolinStringScale(1, key);
+ html += GenMandolinStringScale(0, key);
+ html += GenMandolinMarks();
+
+ html += "</table></td></tr></table>";
+
+ return html;
+}
+
+</script>
+
+<script type="text/javascript">
+
+////////////////////////////////////////////////
+//                 U k u l e l e     
+////////////////////////////////////////////////
+
+// generate guitar fretboard
+// returns a open chord fingering letter I,M,R,P or O, X based on string and fret
+// m_arrChordPatterns has been prepared that contain the fingering
+
+function GenUkuleleStringElement(chord, offset, wstr, fret) // chord = chord pattern index, offset c=0, wstr is string #, fret # nut is 0
+{
+ var i, k, fo, html;
+
+ html = "";
+
+ for (i=0; i<m_arrChordPatterns[chord].PatternGuitar.length; i++) // go thru the placements
+  {
+   if (m_arrChordPatterns[chord].PatternGuitar[i].Offset == offset) // see if offset is present C = 0
+    {
+     for(k=0; k<m_arrChordPatterns[chord].PatternGuitar[i].Index.length; k++) // go thru Index finger list
+      {
+       if (m_arrChordPatterns[chord].PatternGuitar[i].Index[k].Str == wstr && m_arrChordPatterns[chord].PatternGuitar[i].Index[k].Fret == fret)
+         return "I"; 
+      }
+     for(k=0; k<m_arrChordPatterns[chord].PatternGuitar[i].Middle.length; k++) // go thru middle finger list
+      {
+       if (m_arrChordPatterns[chord].PatternGuitar[i].Middle[k].Str == wstr && m_arrChordPatterns[chord].PatternGuitar[i].Middle[k].Fret == fret)
+         return "M"; 
+      }
+     for(k=0; k<m_arrChordPatterns[chord].PatternGuitar[i].Ring.length; k++) // go thru ring finger list
+      {
+       if (m_arrChordPatterns[chord].PatternGuitar[i].Ring[k].Str == wstr && m_arrChordPatterns[chord].PatternGuitar[i].Ring[k].Fret == fret)
+         return "R"; 
+      }
+     for(k=0; k<m_arrChordPatterns[chord].PatternGuitar[i].Pinky.length; k++) // go thru pinky finger list
+      {
+       if (m_arrChordPatterns[chord].PatternGuitar[i].Pinky[k].Str == wstr && m_arrChordPatterns[chord].PatternGuitar[i].Pinky[k].Fret == fret)
+         return "P"; 
+      }
+     for(k=0; k<m_arrChordPatterns[chord].PatternGuitar[i].Open.length; k++) // go thru open string list
+      {
+       if (m_arrChordPatterns[chord].PatternGuitar[i].Open[k].Str == wstr && m_arrChordPatterns[chord].PatternGuitar[i].Open[k].Fret == fret)
+         return "O"; 
+      }
+     for(k=0; k<m_arrChordPatterns[chord].PatternGuitar[i].NoPlay.length; k++) // go thru no play finger list
+      {
+       if (m_arrChordPatterns[chord].PatternGuitar[i].NoPlay[k].Str == wstr && m_arrChordPatterns[chord].PatternGuitar[i].NoPlay[k].Fret == fret)
+         return "X"; 
+      }
+    }
+  }
+ return "";
+}
+
+// return barre chord fingering I,M,R,P or X based on string and fret
+// each barre pattern, E and A types were prepared.
+// the Offsets array for each contains the offset to the barre pattern fingering array
+// the offset gives the location of the barre chord for the passed offset. For the A and Am pattern C = 0 would return 2 which is the A pattern up the 3rd fret.
+// the reason C is not 3 is because the open A is not included in the fingering, only barre chords are present.  
+
+function GenUkuleleBarreStringElement(chord, offset, wstr, fret) // ChordPatteren index, offset C=0, String # (low E is 0), fret # (nut is 0)
+{ 
+ // for barre need to not return fingerings for open A and open E
+ if (chord == m_cpMajor)
+  {
+   fo = m_GuitarBarreChordA.Offsets[offset];
+   for (k=0; k<m_GuitarBarreChordA.Index[fo].length; k++)
+    {
+     if (m_GuitarBarreChordA.Index[fo][k].Str == wstr && m_GuitarBarreChordA.Index[fo][k].Fret == fret)
+       return "I";
+    }
+   for (k=0; k<m_GuitarBarreChordA.Middle[fo].length; k++)
+    {
+     if (m_GuitarBarreChordA.Middle[fo][k].Str == wstr && m_GuitarBarreChordA.Middle[fo][k].Fret == fret)
+       return "M";
+    }
+   for (k=0; k<m_GuitarBarreChordA.Ring[fo].length; k++)
+    {
+     if (m_GuitarBarreChordA.Ring[fo][k].Str == wstr && m_GuitarBarreChordA.Ring[fo][k].Fret == fret)
+       return "R";
+    }
+   for (k=0; k<m_GuitarBarreChordA.Pinky[fo].length; k++)
+    {
+     if (m_GuitarBarreChordA.Pinky[fo][k].Str == wstr && m_GuitarBarreChordA.Pinky[fo][k].Fret == fret)
+       return "P";
+    }
+   for (k=0; k<m_GuitarBarreChordA.NoPlay[fo].length; k++)
+    {
+     if (m_GuitarBarreChordA.NoPlay[fo][k].Str == wstr && m_GuitarBarreChordA.NoPlay[fo][k].Fret == fret)
+       return "X";
+    }
+   fo = m_GuitarBarreChordE.Offsets[offset];
+   for (k=0; k<m_GuitarBarreChordE.Index[fo].length; k++)
+    {
+     if (m_GuitarBarreChordE.Index[fo][k].Str == wstr && m_GuitarBarreChordE.Index[fo][k].Fret == fret)
+       return "I";
+    }
+   for (k=0; k<m_GuitarBarreChordE.Middle[fo].length; k++)
+    {
+     if (m_GuitarBarreChordE.Middle[fo][k].Str == wstr && m_GuitarBarreChordE.Middle[fo][k].Fret == fret)
+       return "M";
+    }
+   for (k=0; k<m_GuitarBarreChordE.Ring[fo].length; k++)
+    {
+     if (m_GuitarBarreChordE.Ring[fo][k].Str == wstr && m_GuitarBarreChordE.Ring[fo][k].Fret == fret)
+       return "R";
+    }
+   for (k=0; k<m_GuitarBarreChordE.Pinky[fo].length; k++)
+    {
+     if (m_GuitarBarreChordE.Pinky[fo][k].Str == wstr && m_GuitarBarreChordE.Pinky[fo][k].Fret == fret)
+       return "P";
+    }
+  }
+ if (chord == m_cpMinor)
+  {
+   fo = m_GuitarBarreChordAm.Offsets[offset];
+   for (k=0; k<m_GuitarBarreChordAm.Index[fo].length; k++)
+    {
+     if (m_GuitarBarreChordAm.Index[fo][k].Str == wstr && m_GuitarBarreChordAm.Index[fo][k].Fret == fret)
+       return "I";
+    }
+   for (k=0; k<m_GuitarBarreChordAm.Middle[fo].length; k++)
+    {
+     if (m_GuitarBarreChordAm.Middle[fo][k].Str == wstr && m_GuitarBarreChordAm.Middle[fo][k].Fret == fret)
+       return "M";
+    }
+   for (k=0; k<m_GuitarBarreChordAm.Ring[fo].length; k++)
+    {
+     if (m_GuitarBarreChordAm.Ring[fo][k].Str == wstr && m_GuitarBarreChordAm.Ring[fo][k].Fret == fret)
+       return "R";
+    }
+   for (k=0; k<m_GuitarBarreChordAm.Pinky[fo].length; k++)
+    {
+     if (m_GuitarBarreChordAm.Pinky[fo][k].Str == wstr && m_GuitarBarreChordAm.Pinky[fo][k].Fret == fret)
+       return "P";
+    }
+   for (k=0; k<m_GuitarBarreChordAm.NoPlay[fo].length; k++)
+    {
+     if (m_GuitarBarreChordAm.NoPlay[fo][k].Str == wstr && m_GuitarBarreChordAm.NoPlay[fo][k].Fret == fret)
+       return "X";
+    }
+   fo = m_GuitarBarreChordEm.Offsets[offset];
+   for (k=0; k<m_GuitarBarreChordEm.Index[fo].length; k++)
+    {
+     if (m_GuitarBarreChordEm.Index[fo][k].Str == wstr && m_GuitarBarreChordEm.Index[fo][k].Fret == fret)
+       return "I";
+    }
+   for (k=0; k<m_GuitarBarreChordEm.Middle[fo].length; k++)
+    {
+     if (m_GuitarBarreChordEm.Middle[fo][k].Str == wstr && m_GuitarBarreChordEm.Middle[fo][k].Fret == fret)
+       return "M";
+    }
+   for (k=0; k<m_GuitarBarreChordEm.Ring[fo].length; k++)
+    {
+     if (m_GuitarBarreChordEm.Ring[fo][k].Str == wstr && m_GuitarBarreChordEm.Ring[fo][k].Fret == fret)
+       return "R";
+    }
+   for (k=0; k<m_GuitarBarreChordEm.Pinky[fo].length; k++)
+    {
+     if (m_GuitarBarreChordEm.Pinky[fo][k].Str == wstr && m_GuitarBarreChordEm.Pinky[fo][k].Fret == fret)
+       return "P";
+    }
+  }
+ return "";
+}
+
+// Show Note gets the ShowNote property of the BarreIndex object for barre chord fingerings
+// the Offset lookup system is the same as GenGuitarBarreStringElement above
+
+function GenUkuleleBarreShowNote(chord, offset, wstr, fret) // chord (index to m_arrChordPattern), offset c=0, string (low = 0), fret #
+{ 
+ // for barre need to not return fingerings for open A and open E
+ if (chord == m_cpMajor)
+  {
+   fo = m_GuitarBarreChordA.Offsets[offset]; // if offset = 0, C, fo = 2
+   for (k=0; k<m_GuitarBarreChordA.Index[fo].length; k++)
+    {
+     if (m_GuitarBarreChordA.Index[fo][k].Str == wstr && m_GuitarBarreChordA.Index[fo][k].Fret == fret)
+       return m_GuitarBarreChordA.Index[fo][k].ShowNote;
+    }
+   fo = m_GuitarBarreChordE.Offsets[offset];  // if offset = 0, c, fo = 7
+   for (k=0; k<m_GuitarBarreChordE.Index[fo].length; k++)
+    {
+     if (m_GuitarBarreChordE.Index[fo][k].Str == wstr && m_GuitarBarreChordE.Index[fo][k].Fret == fret)
+       return m_GuitarBarreChordE.Index[fo][k].ShowNote;
+    }
+  }
+ if (chord == m_cpMinor)
+  {
+   fo = m_GuitarBarreChordAm.Offsets[offset];
+   for (k=0; k<m_GuitarBarreChordAm.Index[fo].length; k++)
+    {
+     if (m_GuitarBarreChordAm.Index[fo][k].Str == wstr && m_GuitarBarreChordAm.Index[fo][k].Fret == fret)
+       return m_GuitarBarreChordAm.Index[fo][k].ShowNote;
+    }
+   fo = m_GuitarBarreChordEm.Offsets[offset];
+   for (k=0; k<m_GuitarBarreChordEm.Index[fo].length; k++)
+    {
+     if (m_GuitarBarreChordEm.Index[fo][k].Str == wstr && m_GuitarBarreChordEm.Index[fo][k].Fret == fret)
+       return m_GuitarBarreChordEm.Index[fo][k].ShowNote;
+    }
+  }
+ return 1;
+}
+
+// generate a TR html for a guitar string for a specific chord
+
+function GenUkuleleString(chord, offset, wstr, key) // index to ChordPattern, offset C=0, string # low E is 0, Key object
+{
+ var midi;
+ var barre, fb, barreShowNote;
+ var html = "<tr>";
+ var fret;
+ var gradient;
+ var sw = fretStartSize; // 40 pixels
+ var w;
+
+ for (fret=0; fret<15; fret++)
+  {
+   if (fret == 0) // before the nut
+     w = fretBeforeNut;   // 25 pixels
+   else  
+     w = sw;
+   html += "<td class='fretString'>";
+
+   midi = m_arrUkulele[wstr][fret]; // get midi note of string and fret
+   fb = GenUkuleleStringElement(chord, offset, wstr, fret);
+   barre = GenUkuleleBarreStringElement(chord, offset, wstr, fret);
+   barreShowNote = GenUkuleleBarreShowNote(chord, offset, wstr, fret);
+   gradient = FigureOutGradient(chord, offset, midi);
+
+   html += GenUkuleleCell(w, fb, barre, midi, barreShowNote, key, gradient);
+  
+   html += "</td>";
+   sw -=  fretDecrease; // 1 pixel
+  }
+ html += "</tr>";
+ return html;
+}
+
+function GenUkuleleStringScale(wstr, key) // index to ChordPattern, offset C=0, string # low E is 0, Key object
+{
+ var midi;
+ var bg, fg;
+ var sn;
+ var html = "<tr>";
+ var fret;
+ var sw = fretStartSize; //vw units about 40 pixels on a 1920 display, this is the size of area between the nut and fret 1
+ var w;
+
+ for (fret=0; fret<m_arrInstruments[m_Ukulele].Frets; fret++)
+  {
+   midi = m_arrUkulele[wstr][fret]; // get midi note of string and fret
+   
+   sn = 0;
+   for(i=0; i<key.Offsets.length; i++)
+    {
+     if (m_mapMidiNotes.get(midi).Offset == key.Offsets[i])
+       sn = i+1;
+    }
+
+   if (sn > 0)
+    {
+     bg = m_arrGradientBlueGreen[sn-1];
+     fg = "#000044";
+    }
+   else
+    {
+     bg = "#CCCCCC";
+     fg = "white";
+    }
+   if (fret == 0)        // before the nut
+     w = fretBeforeNut;  // 25 pixels
+   else  
+     w = sw;
+
+   html += "<td class='fretString' style='color:" + fg + "; background-color:" + bg + ";'>";
+
+   html += GenUkuleleCellScale(w, midi, sn, key);
+  
+   html += "</td>";
+   sw -= fretDecrease; // subtract about a pixel on 1920 monitor
+  }
+ html += "</tr>";
+ return html;
+}
+
+function GenUkuleleMarks()
+{
+ var barre, fb;
+ var html = "<tr>";
+ var fret;
+ var sw = fretMarkStart; // 30 pixels, have to slide this over a bit to line up the dots like a fretboard
+
+ for (fret=0; fret<m_arrInstruments[m_Ukulele].Frets; fret++)
+  {
+   if (fret == 0) // before the nut
+     w = fretMarkBeforeNut;   // 15 pixels
+   else  
+     w = sw;
+   html += "<td class='fretMark' style='width:" + w.toString() + "vw;'>";
+   if (fret == 3 || fret == 5 || fret ==7 || fret == 10) 
+     html += symDot;
+   if (fret == 12)
+     html += symDot + symDot;
+   html += "</td>";
+   sw -= fretDecrease;
+  }
+
+ html += "</tr>";
+ return html;
+}
+
+
+// return HTML for a guitar fret by string an fret #
+
+function GenUkuleleCell(width, open, barre, midiNote, barreShowNote, key, grad) // width is cell size, open & barre are fingering letter, barreShowNote is for index no play, key is Key object, 0 thru 5 gradient color of note based on step in chord
+{
+ var html;
+ var note;
+ var color;
+
+ if (key.LookUp[m_mapMidiNotes.get(midiNote).Offset] >= 0)
+  {
+   note = m_mapMidiNotes.get(midiNote).MidiName(key);
+  }
+ else 
+   note = ""; 
+
+ if (open == "" && barre == "")
+  {
+   note = "";
+  }
+ else 
+  {
+   if (open == "X" || barre == "X")
+     note = "";
+   else 
+    {
+     if (barre == "I")
+      {
+       if (barreShowNote == 0)
+         note = "";
+      }
+    }
+  }
+
+ if (note != "")
+  {
+   color = m_arrPastels[grad]; 
+  }
+ else
+  {
+   color = "#ffffff";
+  }
+
+ html = "<div class='fretCell' style='width:" + width.toString() + "vw; background-color:" + color + "'>";
+ html += note;
+ 
+ if (open != "")
+   html += "<div class='fretCellLeft'>" + open + "</div>";
+
+ if (barre != "")
+   html += "<div class='fretCellRight'>" + barre + "</div>";
+
+ html += "</div>";
+
+ return html;
+}
+
+// return HTML for a string / fret cell for the scale fretboard
+
+function GenUkuleleCellScale(width, midiNote, scaleNum, key)
+{
+ var html;
+ var note;
+ var color;
+
+ if (key.LookUp[m_mapMidiNotes.get(midiNote).Offset] >= 0)
+   note = m_mapMidiNotes.get(midiNote).MidiName(key);
+ else 
+   note = ""; 
+
+ if (scaleNum == 0)
+  {
+   note = "";
+  }
+
+ html = "<div class='fretCell' style='width:" + width.toString() + "vw;'>";
+ html += note;
+
+ if (scaleNum > 0)
+   html += "<div class='fretCellRight'>" + scaleNum.toString() + "</div>";
+
+ html += "</div>";
+
+ return html;
+}
+
+function GenUkulele(chord, offset, key) // chord pattern index, offset C=0, Key object
+{
+ var html;
+
+ html = "<table>";
+
+ html += GenUkuleleString(chord, offset, 3, key);
+ html += GenUkuleleString(chord, offset, 2, key);
+ html += GenUkuleleString(chord, offset, 1, key);
+ html += GenUkuleleString(chord, offset, 0, key);
+ html += GenUkuleleMarks();
+
+ html += "</table>";
+  
+ return html;
+}
+
+function GenUkuleleScale(key)
+{
+ var html;
+
+ html = "<table><tr><td><table><tr>" // holds scale name and table containing notes in scale then the fretboard table
+
+ html += "<td class='scaleName'>";
+ html += key.OffsetNote(key.Offsets[0]).Text;
+ html += " ";
+ html += m_arrModes[m_CurrentMode].ModeName;
+ html += " Scale";
+ html += "</td>";
+
+ html += GenScaleInfo(key);  // returns more TDs
+
+ html += "</tr></table></tr></td><tr><td><table>";
+
+ html += GenUkuleleStringScale(3, key);
+ html += GenUkuleleStringScale(2, key);
+ html += GenUkuleleStringScale(1, key);
+ html += GenUkuleleStringScale(0, key);
+
+ html += GenUkuleleMarks();
+
+ html += "</table></td></tr></table>";
+
+ return html;
+}
+
+</script>
+
 
 <script type="text/javascript">
 
@@ -1443,8 +2899,8 @@ function GenPianoChordNote(cssName, key, midiNote, arrNotes, arrColor)
 // 0 1 2 3 4 5  6 7 8 9 1 1  1 1 1 1 1  1 1 1 2 2 2 2
 //                      0 1  2 3 4 5 6  7 8 9 0 1 2 3
 
-function GenPianoChord(octaves, chord, offset, key) // return divs of piano keys. ocatives is number of octaves to draw
-{
+function GenPianoChord(octaves, chord, offset, key) // return divs of piano keys.  # of octaves to show, index to chord pattern array, root note offset, key object
+{                                                   
  var pat = m_arrChordPatterns[chord];
  var html;
  var k;     
@@ -1452,10 +2908,22 @@ function GenPianoChord(octaves, chord, offset, key) // return divs of piano keys
  var o;
  var wMidi, sMidi, midi;
  var arrChordNotes = new Array();
+ var found;
 
  wMidi = 60; // middle c - starting note
 
- sMidi = wMidi + offset; // starting note of the chord
+ sMidi = wMidi + m_Key.Offset;  // step up to key's starting note, 
+
+ found = false;
+ for(i=0; i<m_Key.Offsets.length; i++)
+  {
+   if (m_Key.Offsets[i] == offset) // go thru the key's offsets until the current chord root note offset is found
+     found = true;
+   if (found == false)
+     sMidi += m_arrModes[m_CurrentMode].Sequences[i]; // bump the midi note # up until the offset is found
+  }
+
+ // sMidi will be the chord's root note up from the mode's starting chord root
 
  for(i=0; i<pat.Pitches.length; i++)
   {
@@ -1509,21 +2977,6 @@ function GenPianoChord(octaves, chord, offset, key) // return divs of piano keys
   }
  
  html += "</div>";
-
- return html;
-}
-
-function GenPiano(chord, offset, key)
-{
- var html;
-
- html = "<table><tr valign='center'><td>";
- html += GenChordInfo(chord, offset, key);
- html += "</td><td>";
- 
- html += GenPianoChord(2, chord, offset, key);
-
- html += "</td></tr></table>";
 
  return html;
 }
@@ -1633,17 +3086,22 @@ function GenPianoScale(key, mode)
 //               E v e n t s 
 ////////////////////////////////////////////////
 
-function eventCboInst_Change()
+function eventcboInstTH_Change()
 {
- m_CurrentInstrument = parseInt(document.getElementById("cboInst").options[document.getElementById("cboInst").selectedIndex].value);
+ m_CurrentInstrument = parseInt(document.getElementById("cboInstTH").options[document.getElementById("cboInstTH").selectedIndex].value);
  showChords();
  showScale();
  showModeChords();
 }
 
-function eventCboKeys_Change()
+function eventcboInstChord_Change()
 {
- m_CurrentKey = parseInt(document.getElementById("cboKeys").options[document.getElementById("cboKeys").selectedIndex].value);
+ m_CurrentInstrument = parseInt(document.getElementById("cboInstChord").options[document.getElementById("cboInstChord").selectedIndex].value);
+}
+
+function eventcboKeysTH_Change()
+{
+ m_CurrentKey = parseInt(document.getElementById("cboKeysTH").options[document.getElementById("cboKeysTH").selectedIndex].value);
 
  m_Key = new Key(m_CurrentMode, m_arrModes[m_CurrentMode].KeyList[m_CurrentKey]);
 
@@ -1652,11 +3110,11 @@ function eventCboKeys_Change()
  showModeChords();
 }
 
-function eventCboModes_Change()
+function eventcboModesTH_Change()
 {
- m_CurrentMode = parseInt(document.getElementById("cboModes").options[document.getElementById("cboModes").selectedIndex].value);
+ m_CurrentMode = parseInt(document.getElementById("cboModesTH").options[document.getElementById("cboModesTH").selectedIndex].value);
 
- document.getElementById("cboKeys").options.length = 0;
+ document.getElementById("cboKeysTH").options.length = 0;
 
  for (i=0;i<m_arrModes[m_CurrentMode].KeyList.length;i++)
   {
@@ -1664,7 +3122,7 @@ function eventCboModes_Change()
    oOption.style.backgroundColor=m_arrModes[m_CurrentMode].Background;
    oOption.text=m_arrModes[m_CurrentMode].KeyList[i].Text;
    oOption.value=i;
-   document.getElementById("cboKeys").options.add(oOption);
+   document.getElementById("cboKeysTH").options.add(oOption);
   }
 
  m_CurrentKey = 0;
@@ -1672,6 +3130,71 @@ function eventCboModes_Change()
  showChords();
  showScale();
  showModeChords();
+
+}
+
+function eventcboModesChord_Change()
+{
+ var html;
+
+ m_CurrentMode = parseInt(document.getElementById("cboModesChord").options[document.getElementById("cboModesChord").selectedIndex].value);
+
+ html = "<table><tr>"; 
+
+ for (i=0;i<m_arrModes[m_CurrentMode].KeyList.length;i++)
+  {
+   html += "<td class='tdChordsRoot' onclick='eventTDChordRootNote_Click(" + i + ");'>";
+   html += m_arrModes[m_CurrentMode].KeyList[i].Text;
+   html += "</td>";
+  }
+
+ html += "</tr></table>";
+ 
+ document.getElementById("tdChordRoots").innerHTML = html;
+
+ m_CurrentKey = 0;
+ m_Key = new Key(m_CurrentMode, m_arrModes[m_CurrentMode].KeyList[m_CurrentKey]);
+ 
+}
+
+function eventcboPatternsChord_Change()
+{
+ m_CurrentChordPattern =  parseInt(document.getElementById("cboPatternsChord").options[document.getElementById("cboPatternsChord").selectedIndex].value);
+}
+
+function eventTDChordRootNote_Click(keyNdx)
+{
+ var html, note, table, row, td, key, cn;
+
+ note = m_arrModes[m_CurrentMode].KeyList[keyNdx];  // note is a Note object
+
+ table = document.getElementById("tableChords");
+
+ row = table.insertRow(table.rows.length);
+ 
+ td = row.insertCell(0);
+
+ key = new Key(m_CurrentMode, note);
+
+ cn = key.Offset;
+
+ html = "<table><tr><td class='tdSideChord'>";
+ html += GenChordInfo(m_CurrentChordPattern, cn, key);
+ html += "</td><td>";
+
+ switch(m_CurrentInstrument)
+  {
+   case m_Guitar:   html += GenGuitar(m_CurrentChordPattern, cn, key);   break;
+   case m_Bass:     html += GenBass(m_CurrentChordPattern, cn, key);     break;
+   case m_Mandolin: html += GenMandolin(m_CurrentChordPattern, cn, key); break;
+   case m_Ukulele:  html += GenUkulele(m_CurrentChordPattern, cn, key);  break;
+   case m_Keyboard: html += GenPianoChord(3, m_CurrentChordPattern, cn, key); break; 
+  }
+
+ html += "</td></tr></table>";
+
+ td.innerHTML = html;
+ 
 
 }
 
@@ -1705,12 +3228,16 @@ function showChords()
  for (i=0; i<7; i++)
   {
    pattern = m_arrModes[m_CurrentMode].ChordType[i];
+   document.getElementById('tdChord' + i.toString()).innerHTML = GenChordInfo(pattern, cn, m_Key);
    switch(m_CurrentInstrument)
     {
-     case m_Guitar:   s = GenGuitar(pattern, cn, m_Key);  break;
-     case m_Keyboard: s = GenPiano(pattern, cn, m_Key);   break; 
+     case m_Guitar:   s = GenGuitar(pattern, cn, m_Key);   break;
+     case m_Bass:     s = GenBass(pattern, cn, m_Key);     break;
+     case m_Mandolin: s = GenMandolin(pattern, cn, m_Key); break;
+     case m_Ukulele:  s = GenUkulele(pattern, cn, m_Key);  break;
+     case m_Keyboard: s = GenPianoChord(3, pattern, cn, m_Key); break; 
     }
-   document.getElementById('chord' + i.toString()).innerHTML = s;
+   document.getElementById('tdChordInst' + i.toString()).innerHTML = s;
    cn += m_arrModes[m_CurrentMode].Sequences[i];
    if (cn >= 12)
      cn -= 12;
@@ -1730,10 +3257,13 @@ function showScale()
 
  switch(m_CurrentInstrument)
   {
-   case m_Guitar:   s = GenGuitarScale(m_Key); break;
+   case m_Guitar:   s = GenGuitarScale(m_Key);                break;
+   case m_Bass:     s = GenBassScale(m_Key);                  break;
+   case m_Mandolin: s = GenMandolinScale(m_Key);              break;
+   case m_Ukulele:  s = GenUkuleleScale(m_Key);                    break;
    case m_Keyboard: s = GenPianoScale(m_Key, m_CurrentMode);  break;
   }
- document.getElementById('scale').innerHTML = s;
+ document.getElementById('tdScaleInst').innerHTML = s;
 }
 
 function showModeChords()
@@ -1742,57 +3272,196 @@ function showModeChords()
 
  s = genModeChords();
 
- document.getElementById('divModeChords').innerHTML = s;
+ document.getElementById('tdModeChordsTH').innerHTML = s;
 }
 
+// tab content button click handler
+
+function openPage(pageNum, pageName, btn) 
+{
+ var i, tabs, btns;
+ 
+ // Hide all tabContent divs
+ tabs = document.getElementsByClassName("tabContent");
+ for (i=0; i<tabs.length; i++) 
+  {
+   tabs[i].style.display = "none";
+  }
+
+  // Remove the background color of all tablinks/buttons
+ btns = document.getElementsByClassName("tabLink");
+ for (i=0; i<btns.length; i++) 
+  {
+   btns[i].style.color="";
+   btns[i].style.backgroundColor = ""; // bg color diverts back to the css class
+  }
+
+  // Show the specific tab content
+ document.getElementById(pageName).style.display = "block";
+
+  // Add the specific color to the button used to open the tab content
+ btn.style.backgroundColor = "white";
+ btn.style.color = "black";
+
+ switch(pageNum)
+  {
+   case 1:
+    {
+     dynaInstLoader("cboInstTH");
+     dynaModesLoaderTH("cboModesTH");
+     showChords();
+    } break;
+   case 2:
+    {
+     dynaInstLoader("cboInstChord");
+     dynaModesLoaderChord("cboModesChord");
+     dynaPatternsLoaderChord("cboPatternsChord");
+    } break;
+  }
+}
 
 // call the constructors
+
  makeInstruments();
  makeModes();
  makeMidiNotes();
  makeChordPatterns();
  makeChordPatternPlacements();
  makeBarreChordPatterns();
+
  makeGuitar(40, 45, 50, 55, 59, 64); // E2, A2, D3, G3, B3, E4
+
+ makeBass(28, 33, 38, 43); // E1, A1, D2, G2
+
+ makeMandolin(55, 62, 69, 76); // G3, D4, A4, E5
+
+ makeUkulele(67, 60, 64, 69); //  G4, C4, E4, A4
 
 </script>
 
 </head>
 
 <body>
+
+<button class="tabLink" onclick="openPage(1, 'divTabHarmony', this)" id="btnDefault">Traditional Harmony</button>
+<button class="tabLink" onclick="openPage(2, 'divTabChords', this)">Chords</button>
+<button class="tabLink" onclick="openPage(3, 'divTabScales', this)">Scales</button>
+
+<div id="divTabHarmony" class="tabContent">
 <table>
  <tr valign=middle>
-  <td><select id="cboInst" onchange="eventCboInst_Change();"></select></td>
-  <td><select id="cboModes" onchange="eventCboModes_Change();"></select></td>
-  <td><select id="cboKeys" onchange="eventCboKeys_Change();"></select></td>
-  <td><div id='divModeChords'></div></td>
+  <td><select id="cboInstTH" onchange="eventcboInstTH_Change();"></select></td>
+  <td><select id="cboModesTH" onchange="eventcboModesTH_Change();"></select></td>
+  <td><select id="cboKeysTH" onchange="eventcboKeysTH_Change();"></select></td>
+  <td id='tdModeChordsTH'></td>
  </tr>
 </table>
 <table>
-<tr><td id="chord0">chord 0</td></tr>
-<tr><td id="chord1">chord 1</td></tr>
-<tr><td id="chord2">chord 2</td></tr>
-<tr><td id="chord3">chord 3</td></tr>
-<tr><td id="chord4">chord 4</td></tr>
-<tr><td id="chord5">chord 5</td></tr>
-<tr><td id="chord6">chord 6</td></tr>
-<tr><td id="scale">scale</td></tr>
+ <tr>
+  <td>
+   <table>
+    <tr>
+     <td class="tdSideChord"></td>
+     <td id="tdScaleInst"></td>
+    </tr>
+   </table>
+ </td>
+ </tr>
+ <tr>
+  <td>
+   <table>
+    <tr>
+     <td id="tdChord0" class="tdSideChord"></td>
+     <td id="tdChordInst0"></td>
+    </tr>
+   </table>
+ </td>
+ </tr>
+ <tr>
+  <td>
+   <table>
+    <tr>
+     <td id="tdChord1" class="tdSideChord"></td>
+     <td id="tdChordInst1"></td>
+    </tr>
+   </table>
+ </td>
+ </tr>
+ <tr>
+  <td>
+   <table>
+    <tr>
+     <td id="tdChord2" class="tdSideChord"></td>
+     <td id="tdChordInst2"></td>
+    </tr>
+   </table>
+ </td>
+ </tr>
+ <tr>
+  <td>
+   <table>
+    <tr>
+     <td id="tdChord3" class="tdSideChord"></td>
+     <td id="tdChordInst3"></td>
+    </tr>
+   </table>
+ </td>
+ </tr>
+ <tr>
+  <td>
+   <table>
+    <tr>
+     <td id="tdChord4" class="tdSideChord"></td>
+     <td id="tdChordInst4"></td>
+    </tr>
+   </table>
+ </td>
+ </tr>
+ <tr>
+  <td>
+   <table>
+    <tr>
+     <td id="tdChord5" class="tdSideChord"></td>
+     <td id="tdChordInst5"></td>
+    </tr>
+   </table>
+ </td>
+ </tr>
+ <tr>
+  <td>
+   <table>
+    <tr>
+     <td id="tdChord6" class="tdSideChord"></td>
+     <td id="tdChordInst6"></td>
+    </tr>
+   </table>
+ </td>
+ </tr>
 </table>
+</div>
+
+<div id="divTabChords" class="tabContent">
+<table>
+ <tr valign=middle>
+  <td><select id="cboInstChord" onchange="eventcboInstChord_Change();"></select></td>
+  <td><select id="cboModesChord" onchange="eventcboModesChord_Change();"></select></td>
+  <td><select id="cboPatternsChord" onchange="eventcboPatternsChord_Change();"></select></td>
+  <td id='tdChordRoots'></td>
+  <td><input class="btn" type="button" value="Clear" onclick="eventBtnChordClear_Click();">
+ </tr>
+</table>
+<table id="tableChords">
+</table>
+</div>
+
+<div id="divTabScales" class="tabContent">
+</div>
 
 <script type="text/javascript">
 
  // after document is loaded 
 
- dynaInstLoader("cboInst");
- dynaModesLoader("cboModes");
-
- showChords();
-
- // chord fingering test
-
-// document.getElementById("divFretBoard1").innerHTML = GenGuitar(m_cpMajor, 2); // D
-// document.getElementById("divFretBoard2").innerHTML = GenGuitar(m_cpMinor, 0); // C
- 
+ document.getElementById("btnDefault").click();  // open default tab
 
 </script>
 </body>
