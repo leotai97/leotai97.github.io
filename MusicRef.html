@@ -443,8 +443,26 @@ function MidiNote(id, nMidi, nOffset, nOctive, fFreq)
  this.Octave = nOctive;    // 4 is middle C
  this.Frequency = fFreq;   // in hertz
  this.MidiName = "";       // midi name contains octive D#6/Eb6
- this.Name = function(key)     { return key.OffsetNote(this.Offset).Text; };  // name does not contain octive numbers  D#/Eb
- this.MidiName = function(key) { return key.OffsetNote(this.Offset).Text + this.Octave.toString(); };
+ this.Name = function(key) // name does not contain octive numbers
+  {
+   var note;
+   
+   note = key.OffsetNote(this.Offset);
+   if (note == null)
+     return NoteText(this.Offset);
+   else 
+     return note.Text; 
+  };   
+ this.MidiName = function(key) 
+  {
+   var note;
+
+   note = key.OffsetNote(this.Offset);
+   if (note == null)
+     return NoteText(this.Offset) + "(" + this.Octave.toString() + ")";
+   else
+     return note.Text + this.Octave.toString(); 
+  };
 }
 
 // modes: ionian, dorian etc
@@ -475,13 +493,13 @@ function Key(mode, startNote) // mode index, starting Note object
  this.AllNotes = new Array();
  this.Offsets = new Array();      // offset notes of the key
  this.LookUp = new Array();       // a way to find the note name in the key only knowing what the offset is C = 0
- this.OffsetNote = function(offset) 
+ this.OffsetNote = function(offset) // return Note object
   {
    if (this.LookUp[offset] >=0)
      return this.Notes[this.LookUp[offset]];
    else
     {
-     throw new Error("offset not found");
+     return null;
     }
   };
 
@@ -839,6 +857,32 @@ function makeUkulele(m0, m1, m2, m3) // midi notes of guitar strings, m0 is the 
 
 // Utility functions
 
+function NoteText(iOffset)
+{
+ var offset;
+
+ if (iOffset > 11)
+   offset = iOffset - 12;
+ else  
+   offset = iOffset;
+
+ switch(offset)
+  {
+   case  0: return "c";
+   case  1: return "c" + symSharp + "/" + "d" + symFlat;
+   case  2: return "d";
+   case  3: return "d" + symSharp + "/" + "e" + symFlat;
+   case  4: return "e";
+   case  5: return "f";
+   case  6: return "f" + symSharp + "/" + "g" + symFlat;
+   case  7: return "g";
+   case  8: return "g" + symSharp + "/" + "a" + symFlat;
+   case  9: return "a";
+   case 10: return "a" + symSharp + "/" + "b" + symFlat;
+   case 11: return "b";
+  }
+}
+
 // if I want a spread with a total of 3
 // 2 needs to be about half and 3 the final color
 // 
@@ -989,13 +1033,20 @@ function GenChordInfo(chord, offset, key) // chord pattern index, offset is chor
 {
  var pattern;
  var html;
+ var note, noteText;
  var p, k;
 
  pattern = m_arrChordPatterns[chord]; // grab ChordPattern from modes array so it can step up through the notes
+ 
+ note = key.OffsetNote(offset);
+ if (note == null)
+   noteText = NoteText(offset);
+ else 
+   noteText = note.Text;
 
  html = "<table>"; 
 
- html += "<tr><td class='chordInfo' colspan=2>" + key.OffsetNote(offset).Text;
+ html += "<tr><td class='chordInfo' colspan=2>" + noteText;
  html += pattern.ShortName;
  html += "</td></tr>";
 
@@ -1020,7 +1071,14 @@ function GenChordInfo(chord, offset, key) // chord pattern index, offset is chor
     }
 
    html += "<TR><TD class='chordNote' style='color:#000044; background-color:" + m_arrPastels[p] + ";' colspan=2>";
-   html += key.OffsetNote(k).Text; // dm7 0-3-7-10 :  2 = d, 5 = f, 9 = a, 12  = c
+
+   note = key.OffsetNote(k);
+   if (note == null)
+     noteText = NoteText(k);
+   else 
+     noteText = note.Text;
+
+   html += noteText; // dm7 0-3-7-10 :  2 = d, 5 = f, 9 = a, 12  = c
    html += "</TD></TR>";
 
   }
@@ -1450,13 +1508,14 @@ function GenGuitarCell(width, open, barre, midiNote, barreShowNote, key, grad) /
  var html;
  var note;
  var color;
+ var midi
 
- if (key.LookUp[m_mapMidiNotes.get(midiNote).Offset] >= 0)
-  {
-   note = m_mapMidiNotes.get(midiNote).MidiName(key);
-  }
+ midi = m_mapMidiNotes.get(midiNote);
+ 
+ if (key.LookUp[midi.Offset] >= 0)
+   note = midi.MidiName(key);
  else 
-   note = ""; 
+   note = NoteText(midi.Offset) + "(" + midi.Octave.toString() + ")"; 
 
  if (open == "" && barre == "")
   {
@@ -1901,13 +1960,14 @@ function GenBassCell(width, open, barre, midiNote, barreShowNote, key, grad) // 
  var html;
  var note;
  var color;
+ var midi;
 
- if (key.LookUp[m_mapMidiNotes.get(midiNote).Offset] >= 0)
-  {
-   note = m_mapMidiNotes.get(midiNote).MidiName(key);
-  }
+ midi = m_mapMidiNotes.get(midiNote);
+ 
+ if (key.LookUp[midi.Offset] >= 0)
+   note = midi.MidiName(key);
  else 
-   note = ""; 
+   note = NoteText(midi.Offset) + "(" + midi.Octave.toString() + ")"; 
 
  if (open == "" && barre == "")
   {
@@ -2294,13 +2354,14 @@ function GenMandolinCell(width, open, barre, midiNote, barreShowNote, key, grad)
  var html;
  var note;
  var color;
+ var midi;
 
- if (key.LookUp[m_mapMidiNotes.get(midiNote).Offset] >= 0)
-  {
-   note = m_mapMidiNotes.get(midiNote).MidiName(key);
-  }
+ midi = m_mapMidiNotes.get(midiNote);
+ 
+ if (key.LookUp[midi.Offset] >= 0)
+   note = midi.MidiName(key);
  else 
-   note = ""; 
+   note = NoteText(midi.Offset) + "(" + midi.Octave.toString() + ")"; 
 
  if (open == "" && barre == "")
   {
@@ -2741,13 +2802,14 @@ function GenUkuleleCell(width, open, barre, midiNote, barreShowNote, key, grad) 
  var html;
  var note;
  var color;
+ var midi;
 
- if (key.LookUp[m_mapMidiNotes.get(midiNote).Offset] >= 0)
-  {
-   note = m_mapMidiNotes.get(midiNote).MidiName(key);
-  }
+ midi = m_mapMidiNotes.get(midiNote);
+ 
+ if (key.LookUp[midi.Offset] >= 0)
+   note = midi.MidiName(key);
  else 
-   note = ""; 
+   note = NoteText(midi.Offset) + "(" + midi.Octave.toString() + ")"; 
 
  if (open == "" && barre == "")
   {
@@ -2881,6 +2943,7 @@ function GenPianoChordNote(cssName, key, midiNote, arrNotes, arrColor)
  var fg
  var bg;
  var i;
+ var note;
 
  chordSeq = -1;
  for (i=0; i<arrNotes.length; i++)
@@ -2895,7 +2958,13 @@ function GenPianoChordNote(cssName, key, midiNote, arrNotes, arrColor)
    fg = "black";
 
    html = "<div class='" + cssName + "' style='color:" + fg + "; background-color:" + bg + ";'>";
-   html += m_mapMidiNotes.get(midiNote).Name(key);
+   
+   note = m_mapMidiNotes.get(midiNote).Name(key);
+   i = note.indexOf("/");
+   if (i>0)
+     note = note.substring(0,i) + "<br>" + note.substring(i+1);
+
+   html += note;
    html += "</div>";
   }
  else
@@ -3261,8 +3330,13 @@ function eventDialogChordPattern_Click(patternNdx)
  html += "</td></tr></table>";
 
  td.innerHTML = html;
- 
+}
 
+function eventBtnChordClear_Click()
+{
+ var table = document.getElementById("tableChords");
+
+ table.innerHTML = "";
 }
 
 </script>
@@ -3408,7 +3482,7 @@ function openPage(pageNum, pageName, btn)
 </head>
 
 <body>
-<div class="dialogBase" id="divDialogBase">
+<div class="dialogBase" id="divDialogBase" onclick="eventDialogChordPattern_Click(-1);">
  <div class="dialog" id="divDialog"></div>
 </div>
 
