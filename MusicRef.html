@@ -36,9 +36,14 @@
      .modeSequence { text-align:center; font-style:italic; font-size:0.938vw; }
         .scaleName { font-size:1.042vw; padding:0.501vw; }
 
- .tdChordsRoot { font-size:1.60vw; vertical-align:middle; text-align:center; width:2.0vw; height:2.0vw; border-radius:5px; border:1px solid black; cursor:pointer; color:black; background-color:#e9e9e9; }
+ .tdChordsRoot { font-size:1.50vw; vertical-align:middle; text-align:center; width:2.0vw; height:2.0vw; border-radius:5px; border:1px solid black; cursor:pointer; color:black; background-color:#e9e9e9; }
                    
- .btn { font-size:1.60vw; font-weight:100; }
+          .btn { font-size:1.50vw; font-weight:100; }
+
+ .tdDialogPattern { font-size:1.60vw; vertical-align:middle; text-align:center; width:12.0vw; height:2.0vw; border-radius:5px; border:1px solid black; cursor:pointer; color:black; background-color:#e9e9e9; }
+
+  .dialogBase { display:none; position:fixed; z-index:1; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgb(0,0,0); background-color:rgba(0,0,0,0.4); } /* opacity */
+      .dialog { background-color:#fefefe; margin:15% auto; padding:20px; border:1px solid #888; width:50%; }
  
 </style>
 <script type="text/javascript">
@@ -70,6 +75,7 @@ var m_CurrentChordPattern = -1;
 var m_CurrentKey = -1; 
 var m_CurrentMode = -1;
 var m_CurrentInstrument = -1;
+var m_CurrentChordRoot = -1;
 var m_Key = null;  // set to a Key object when a key is selected, contains list of notes in the key
 
 
@@ -148,8 +154,15 @@ function Instrument(id, name, strings, frets)  // ID m_Guitar etc,   "Guitar", #
  this.Frets = frets;
 }
 
-function Note(offset, letter, sharpOrFlat) // offset int (c=0), letter string C, D, etc, sharpOrFlat string (#, b or "")
+function Note(iOffset, letter, sharpOrFlat) // offset int (c=0), letter string C, D, etc, sharpOrFlat string (#, b or "")
 {
+ var offset;
+
+ if (iOffset > 11)
+   offset = iOffset - 12;
+ else 
+   offset = iOffset;
+   
  this.Offset = offset;           // 0 = C
  this.SharpFlat = sharpOrFlat;   // bb, b, "", #, or ##.  This routine will not produce either bbb or ###
  this.Letter = letter;
@@ -459,6 +472,7 @@ function Key(mode, startNote) // mode index, starting Note object
  this.Offset = startNote.Offset;  // c = 0
  this.Mode = mode;
  this.Notes = new Array();        // list of note names with special characters for sharps and flats
+ this.AllNotes = new Array();
  this.Offsets = new Array();      // offset notes of the key
  this.LookUp = new Array();       // a way to find the note name in the key only knowing what the offset is C = 0
  this.OffsetNote = function(offset) 
@@ -467,10 +481,7 @@ function Key(mode, startNote) // mode index, starting Note object
      return this.Notes[this.LookUp[offset]];
    else
     {
-    // s = "key error, offset not found in key";
-    // s += "\nKey ID: " + this.ID.toString();
-    // s += "\nOffset Not Found: " += offset.toString();
-     throw new Error("Offset Not Found - " + offset.toString());
+     throw new Error("offset not found");
     }
   };
 
@@ -3139,21 +3150,39 @@ function eventcboModesChord_Change()
 
  m_CurrentMode = parseInt(document.getElementById("cboModesChord").options[document.getElementById("cboModesChord").selectedIndex].value);
 
- html = "<table><tr>"; 
+ document.getElementById("cboKeysChord").options.length = 0;
 
  for (i=0;i<m_arrModes[m_CurrentMode].KeyList.length;i++)
   {
+   oOption=document.createElement("OPTION");
+   oOption.style.backgroundColor=m_arrModes[m_CurrentMode].Background;
+   oOption.text=m_arrModes[m_CurrentMode].KeyList[i].Text;
+   oOption.value=i;
+   document.getElementById("cboKeysChord").options.add(oOption);
+  }
+
+ eventcboKeysChord_Change();
+
+}
+
+function eventcboKeysChord_Change()
+{
+ m_CurrentKey = parseInt(document.getElementById("cboKeysChord").options[document.getElementById("cboKeysChord").selectedIndex].value);
+
+ m_Key = new Key(m_CurrentMode, m_arrModes[m_CurrentMode].KeyList[m_CurrentKey]);
+
+ html = "<table><tr>"; 
+
+ for (i=0;i<m_Key.Notes.length;i++)
+  {
    html += "<td class='tdChordsRoot' onclick='eventTDChordRootNote_Click(" + i + ");'>";
-   html += m_arrModes[m_CurrentMode].KeyList[i].Text;
+   html += m_Key.Notes[i].Text;
    html += "</td>";
   }
 
  html += "</tr></table>";
  
  document.getElementById("tdChordRoots").innerHTML = html;
-
- m_CurrentKey = 0;
- m_Key = new Key(m_CurrentMode, m_arrModes[m_CurrentMode].KeyList[m_CurrentKey]);
  
 }
 
@@ -3164,9 +3193,49 @@ function eventcboPatternsChord_Change()
 
 function eventTDChordRootNote_Click(keyNdx)
 {
- var html, note, table, row, td, key, cn;
+ var html, i, r, dlg, base;
 
- note = m_arrModes[m_CurrentMode].KeyList[keyNdx];  // note is a Note object
+ m_CurrentChordRoot = m_Key.Notes[keyNdx];  // note is a Note object
+
+ html = "<table>";
+ html += "<tr>";
+ r = 0;
+ for (i=0; i<m_arrChordPatterns.length; i++)
+  {
+   if (r==4)
+    {
+     if (i>0)
+       html += "</tr>";
+     html += "<tr>";
+     r = 0;
+    }
+   html += "<td class='tdDialogPattern' onclick='eventDialogChordPattern_Click(" + i + ");'>";
+   html += m_arrChordPatterns[i].Name;
+   html += "</td>";
+   r++;
+  }
+
+ if (r==4)
+  html += "<tr>";
+ html += "<td class='tdDialogPattern' onclick='eventDialogChordPattern_Click(-1);'>";
+ html += "Cancel";
+ html += "</td>";
+ html += "</tr>";
+ html += "</table>";
+
+ document.getElementById("divDialog").innerHTML = html;
+ document.getElementById("divDialogBase").style.display = "block";
+}
+
+function eventDialogChordPattern_Click(patternNdx)
+{
+ var html, note, table, row, td, cn;
+ 
+ document.getElementById("divDialogBase").style.display = "none";
+ document.getElementById("divDialog").innerHTML = "";
+
+ if (patternNdx < 0) // cancel?
+   return;
 
  table = document.getElementById("tableChords");
 
@@ -3174,21 +3243,19 @@ function eventTDChordRootNote_Click(keyNdx)
  
  td = row.insertCell(0);
 
- key = new Key(m_CurrentMode, note);
-
- cn = key.Offset;
+ cn = m_CurrentChordRoot.Offset;
 
  html = "<table><tr><td class='tdSideChord'>";
- html += GenChordInfo(m_CurrentChordPattern, cn, key);
+ html += GenChordInfo(patternNdx, cn, m_Key);
  html += "</td><td>";
 
  switch(m_CurrentInstrument)
   {
-   case m_Guitar:   html += GenGuitar(m_CurrentChordPattern, cn, key);   break;
-   case m_Bass:     html += GenBass(m_CurrentChordPattern, cn, key);     break;
-   case m_Mandolin: html += GenMandolin(m_CurrentChordPattern, cn, key); break;
-   case m_Ukulele:  html += GenUkulele(m_CurrentChordPattern, cn, key);  break;
-   case m_Keyboard: html += GenPianoChord(3, m_CurrentChordPattern, cn, key); break; 
+   case m_Guitar:   html += GenGuitar(patternNdx, cn, m_Key);   break;
+   case m_Bass:     html += GenBass(patternNdx, cn, m_Key);     break;
+   case m_Mandolin: html += GenMandolin(patternNdx, cn, m_Key); break;
+   case m_Ukulele:  html += GenUkulele(patternNdx, cn, m_Key);  break;
+   case m_Keyboard: html += GenPianoChord(3, patternNdx, cn, m_Key); break; 
   }
 
  html += "</td></tr></table>";
@@ -3315,7 +3382,6 @@ function openPage(pageNum, pageName, btn)
     {
      dynaInstLoader("cboInstChord");
      dynaModesLoaderChord("cboModesChord");
-     dynaPatternsLoaderChord("cboPatternsChord");
     } break;
   }
 }
@@ -3342,6 +3408,9 @@ function openPage(pageNum, pageName, btn)
 </head>
 
 <body>
+<div class="dialogBase" id="divDialogBase">
+ <div class="dialog" id="divDialog"></div>
+</div>
 
 <button class="tabLink" onclick="openPage(1, 'divTabHarmony', this)" id="btnDefault">Traditional Harmony</button>
 <button class="tabLink" onclick="openPage(2, 'divTabChords', this)">Chords</button>
@@ -3445,7 +3514,7 @@ function openPage(pageNum, pageName, btn)
  <tr valign=middle>
   <td><select id="cboInstChord" onchange="eventcboInstChord_Change();"></select></td>
   <td><select id="cboModesChord" onchange="eventcboModesChord_Change();"></select></td>
-  <td><select id="cboPatternsChord" onchange="eventcboPatternsChord_Change();"></select></td>
+  <td><select id="cboKeysChord" onchange="eventcboKeysChord_Change();"></select></td>
   <td id='tdChordRoots'></td>
   <td><input class="btn" type="button" value="Clear" onclick="eventBtnChordClear_Click();">
  </tr>
