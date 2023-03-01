@@ -81,7 +81,7 @@ var m_CurrentChordRoot = -1;
 var m_Key = null;  // set to a Key object when a key is selected, contains list of notes in the key
 
 
-var m_Guitar = 0;
+var m_Guitar = 0;  // instrument index values for m_arrInstruments
 var m_Bass = 1;
 var m_Mandolin = 2;
 var m_Ukulele = 3;
@@ -127,7 +127,7 @@ var m_arrMidiNotesHL = new Array();      // ID, Number, Offset, Octave, Frequenc
 var m_arrMidiNotesLH = new Array();      // Same as above
 var m_arrModes = new Array();            // ID, ModeName, Sequences (steps), ChordType (the pattern), Background (color)
 
-var m_arrGuitar = new Array();           // 2D array of midi notes for guitar
+var m_arrGuitar = new Array();           // 2D array of midi notes for instruments
 var m_arrBass = new Array();
 var m_arrMandolin = new Array();
 var m_arrUkulele = new Array();
@@ -148,7 +148,7 @@ var m_arrPastels = ["#b2cefe", "#baed91", "#faf884", "#f2a2e8"];
 //   Object Class Construction
 //////////////////////////////////
 
-function Instrument(id, name, strings, frets)  // ID m_Guitar etc,   "Guitar", # of strings, # frets
+function Instrument(id, name, strings, frets)  // ID m_Guitar etc,   "Guitar", # of strings, # of frets
 {
  this.ID = id;
  this.InstrumentName = name;
@@ -263,7 +263,7 @@ function ChordPattern(id, strName, strAbbrev, arrPitches)
  this.Pitches = arrPitches;              // array of steps, integers
  this.PitchCount = arrPitches.length;    // length of pitches array
  
- // Finger Placements
+ // Finger Placements, these arrays are imported from the c# program "GuitarChord", the .js is copied and pasted below quite a ways
 
  this.PatternGuitar = new Array();
  this.PatternBass = new Array();
@@ -437,8 +437,6 @@ for (i=1; i<14; i++)  // starting with Bb for the A pattern and F for the E patt
 
 function MidiNote(id, nMidi, nOffset, nOctive, fFreq)
 {
- var sfn;
-
  this.ID = id;             // unique id
  this.Number = nMidi;      // midi note C4 = 60
  this.Offset = nOffset;    // C = 0
@@ -1191,9 +1189,7 @@ function genModeChords()
 
 function GenGuitarStringElement(chord, offset, wstr, fret) // chord = chord pattern index, offset c=0, wstr is string #, fret # nut is 0
 {
- var i, k, fo, html;
-
- html = "";
+ var i, k;
 
  for (i=0; i<m_arrChordPatterns[chord].PatternGuitar.length; i++) // go thru the placements
   {
@@ -1426,7 +1422,7 @@ function GenGuitarString(chord, offset, wstr, key) // index to ChordPattern, off
  var sw = fretStartSize; // 40 pixels
  var w;
 
- for (fret=0; fret<15; fret++)
+ for (fret=0; fret<m_arrInstruments[m_Guitar].Frets; fret++)
   {
    if (fret == 0) // before the nut
      w = fretBeforeNut;   // 25 pixels
@@ -1498,7 +1494,6 @@ function GenGuitarStringScale(wstr, key) // index to ChordPattern, offset C=0, s
 
 function GenGuitarMarks()
 {
- var barre, fb;
  var html = "<tr>";
  var fret;
  var sw = fretMarkStart; // 30 pixels, have to slide this over a bit to line up the dots like a fretboard
@@ -1586,7 +1581,6 @@ function GenGuitarCellScale(width, midiNote, scaleNum, key)
 {
  var html;
  var note;
- var color;
 
  if (key.LookUp[m_mapMidiNotes.get(midiNote).Offset] >= 0)
    note = m_mapMidiNotes.get(midiNote).MidiName(key);
@@ -1672,9 +1666,7 @@ function GenGuitarScale(key)
 
 function GenBassStringElement(chord, offset, wstr, fret) // chord = chord pattern index, offset c=0, wstr is string #, fret # nut is 0
 {
- var i, k, fo, html;
-
- html = "";
+ var i, k;
 
  for (i=0; i<m_arrChordPatterns[chord].PatternGuitar.length; i++) // go thru the placements
   {
@@ -1878,7 +1870,7 @@ function GenBassString(chord, offset, wstr, key) // index to ChordPattern, offse
  var sw = fretStartSize; // 40 pixels
  var w;
 
- for (fret=0; fret<15; fret++)
+ for (fret=0; fret<m_arrInstruments[m_Bass].Frets; fret++)
   {
    if (fret == 0) // before the nut
      w = fretBeforeNut;   // 25 pixels
@@ -1950,7 +1942,6 @@ function GenBassStringScale(wstr, key) // index to ChordPattern, offset C=0, str
 
 function GenBassMarks()
 {
- var barre, fb;
  var html = "<tr>";
  var fret;
  var sw = fretMarkStart; // 30 pixels, have to slide this over a bit to line up the dots like a fretboard
@@ -1975,7 +1966,7 @@ function GenBassMarks()
 }
 
 
-// return HTML for a guitar fret by string an fret #
+// return HTML for a bass guitar fret by string an fret #
 
 function GenBassCell(width, open, barre, midiNote, barreShowNote, key, grad) // width is cell size, open & barre are fingering letter, barreShowNote is for index no play, key is Key object, 0 thru 5 gradient color of note based on step in chord
 {
@@ -2114,15 +2105,13 @@ function GenBassScale(key)
 //             M a n d o l i n 
 ////////////////////////////////////////////////
 
-// generate guitar fretboard
+// generate mandolin fretboard
 // returns a open chord fingering letter I,M,R,P or O, X based on string and fret
 // m_arrChordPatterns has been prepared that contain the fingering
 
 function GenMandolinStringElement(chord, offset, wstr, fret) // chord = chord pattern index, offset c=0, wstr is string #, fret # nut is 0
 {
- var i, k, fo, html;
-
- html = "";
+ var i, k;
 
  for (i=0; i<m_arrChordPatterns[chord].PatternMandolin.length; i++) // go thru the placements
   {
@@ -2234,7 +2223,7 @@ function GenMandolinBarreStringElement(chord, offset, wstr, fret) // ChordPatter
 }
 
 // Show Note gets the ShowNote property of the BarreIndex object for barre chord fingerings
-// the Offset lookup system is the same as GenGuitarBarreStringElement above
+// the Offset lookup system is the same as GenMandolinBarreStringElement above
 
 function GenMandolinBarreShowNote(chord, offset, wstr, fret) // chord (index to m_arrChordPattern), offset c=0, string (low = 0), fret #
 { 
@@ -2260,7 +2249,7 @@ function GenMandolinBarreShowNote(chord, offset, wstr, fret) // chord (index to 
  return 1;
 }
 
-// generate a TR html for a guitar string for a specific chord
+// generate a TR html for a mandolin string for a specific chord
 
 function GenMandolinString(chord, offset, wstr, key) // index to ChordPattern, offset C=0, string # low E is 0, Key object
 {
@@ -2272,7 +2261,7 @@ function GenMandolinString(chord, offset, wstr, key) // index to ChordPattern, o
  var sw = fretStartSize; // 40 pixels
  var w;
 
- for (fret=0; fret<15; fret++)
+ for (fret=0; fret<m_arrInstruments[m_Mandolin].Frets; fret++)
   {
    if (fret == 0) // before the nut
      w = fretBeforeNut;   // 25 pixels
@@ -2307,7 +2296,7 @@ function GenMandolinStringScale(wstr, key) // index to ChordPattern, offset C=0,
 
  for (fret=0; fret<m_arrInstruments[m_Mandolin].Frets; fret++)
   {
-   midi = m_arrGuitar[wstr][fret]; // get midi note of string and fret
+   midi = m_arrMandolin[wstr][fret]; // get midi note of string and fret
    
    sn = 0;
    for(i=0; i<key.Offsets.length; i++)
@@ -2344,7 +2333,6 @@ function GenMandolinStringScale(wstr, key) // index to ChordPattern, offset C=0,
 
 function GenMandolinMarks()
 {
- var barre, fb;
  var html = "<tr>";
  var fret;
  var sw = fretMarkStart; // 30 pixels, have to slide this over a bit to line up the dots like a fretboard
@@ -2369,7 +2357,7 @@ function GenMandolinMarks()
 }
 
 
-// return HTML for a guitar fret by string an fret #
+// return HTML for a mandolin fret by string an fret #
 
 function GenMandolinCell(width, open, barre, midiNote, barreShowNote, key, grad) // width is cell size, open & barre are fingering letter, barreShowNote is for index no play, key is Key object, 0 thru 5 gradient color of note based on step in chord
 {
@@ -2432,7 +2420,6 @@ function GenMandolinCellScale(width, midiNote, scaleNum, key)
 {
  var html;
  var note;
- var color;
 
  if (key.LookUp[m_mapMidiNotes.get(midiNote).Offset] >= 0)
    note = m_mapMidiNotes.get(midiNote).MidiName(key);
@@ -2508,48 +2495,46 @@ function GenMandolinScale(key)
 //                 U k u l e l e     
 ////////////////////////////////////////////////
 
-// generate guitar fretboard
+// generate ukulele fretboard
 // returns a open chord fingering letter I,M,R,P or O, X based on string and fret
 // m_arrChordPatterns has been prepared that contain the fingering
 
 function GenUkuleleStringElement(chord, offset, wstr, fret) // chord = chord pattern index, offset c=0, wstr is string #, fret # nut is 0
 {
- var i, k, fo, html;
+ var i, k;
 
- html = "";
-
- for (i=0; i<m_arrChordPatterns[chord].PatternGuitar.length; i++) // go thru the placements
+ for (i=0; i<m_arrChordPatterns[chord].PatternUkulele.length; i++) // go thru the placements
   {
-   if (m_arrChordPatterns[chord].PatternGuitar[i].Offset == offset) // see if offset is present C = 0
+   if (m_arrChordPatterns[chord].PatternUkulele[i].Offset == offset) // see if offset is present C = 0
     {
-     for(k=0; k<m_arrChordPatterns[chord].PatternGuitar[i].Index.length; k++) // go thru Index finger list
+     for(k=0; k<m_arrChordPatterns[chord].PatternUkulele[i].Index.length; k++) // go thru Index finger list
       {
-       if (m_arrChordPatterns[chord].PatternGuitar[i].Index[k].Str == wstr && m_arrChordPatterns[chord].PatternGuitar[i].Index[k].Fret == fret)
+       if (m_arrChordPatterns[chord].PatternUkulele[i].Index[k].Str == wstr && m_arrChordPatterns[chord].PatternUkulele[i].Index[k].Fret == fret)
          return "I"; 
       }
-     for(k=0; k<m_arrChordPatterns[chord].PatternGuitar[i].Middle.length; k++) // go thru middle finger list
+     for(k=0; k<m_arrChordPatterns[chord].PatternUkulele[i].Middle.length; k++) // go thru middle finger list
       {
-       if (m_arrChordPatterns[chord].PatternGuitar[i].Middle[k].Str == wstr && m_arrChordPatterns[chord].PatternGuitar[i].Middle[k].Fret == fret)
+       if (m_arrChordPatterns[chord].PatternUkulele[i].Middle[k].Str == wstr && m_arrChordPatterns[chord].PatternUkulele[i].Middle[k].Fret == fret)
          return "M"; 
       }
-     for(k=0; k<m_arrChordPatterns[chord].PatternGuitar[i].Ring.length; k++) // go thru ring finger list
+     for(k=0; k<m_arrChordPatterns[chord].PatternUkulele[i].Ring.length; k++) // go thru ring finger list
       {
-       if (m_arrChordPatterns[chord].PatternGuitar[i].Ring[k].Str == wstr && m_arrChordPatterns[chord].PatternGuitar[i].Ring[k].Fret == fret)
+       if (m_arrChordPatterns[chord].PatternUkulele[i].Ring[k].Str == wstr && m_arrChordPatterns[chord].PatternUkulele[i].Ring[k].Fret == fret)
          return "R"; 
       }
-     for(k=0; k<m_arrChordPatterns[chord].PatternGuitar[i].Pinky.length; k++) // go thru pinky finger list
+     for(k=0; k<m_arrChordPatterns[chord].PatternUkulele[i].Pinky.length; k++) // go thru pinky finger list
       {
-       if (m_arrChordPatterns[chord].PatternGuitar[i].Pinky[k].Str == wstr && m_arrChordPatterns[chord].PatternGuitar[i].Pinky[k].Fret == fret)
+       if (m_arrChordPatterns[chord].PatternUkulele[i].Pinky[k].Str == wstr && m_arrChordPatterns[chord].PatternUkulele[i].Pinky[k].Fret == fret)
          return "P"; 
       }
-     for(k=0; k<m_arrChordPatterns[chord].PatternGuitar[i].Open.length; k++) // go thru open string list
+     for(k=0; k<m_arrChordPatterns[chord].PatternUkulele[i].Open.length; k++) // go thru open string list
       {
-       if (m_arrChordPatterns[chord].PatternGuitar[i].Open[k].Str == wstr && m_arrChordPatterns[chord].PatternGuitar[i].Open[k].Fret == fret)
+       if (m_arrChordPatterns[chord].PatternUkulele[i].Open[k].Str == wstr && m_arrChordPatterns[chord].PatternUkulele[i].Open[k].Fret == fret)
          return "O"; 
       }
-     for(k=0; k<m_arrChordPatterns[chord].PatternGuitar[i].NoPlay.length; k++) // go thru no play finger list
+     for(k=0; k<m_arrChordPatterns[chord].PatternUkulele[i].NoPlay.length; k++) // go thru no play finger list
       {
-       if (m_arrChordPatterns[chord].PatternGuitar[i].NoPlay[k].Str == wstr && m_arrChordPatterns[chord].PatternGuitar[i].NoPlay[k].Fret == fret)
+       if (m_arrChordPatterns[chord].PatternUkulele[i].NoPlay[k].Str == wstr && m_arrChordPatterns[chord].PatternUkulele[i].NoPlay[k].Fret == fret)
          return "X"; 
       }
     }
@@ -2720,7 +2705,7 @@ function GenUkuleleString(chord, offset, wstr, key) // index to ChordPattern, of
  var sw = fretStartSize; // 40 pixels
  var w;
 
- for (fret=0; fret<15; fret++)
+ for (fret=0; fret<m_arrInstruments[m_Ukulele].Frets; fret++)
   {
    if (fret == 0) // before the nut
      w = fretBeforeNut;   // 25 pixels
@@ -2792,7 +2777,6 @@ function GenUkuleleStringScale(wstr, key) // index to ChordPattern, offset C=0, 
 
 function GenUkuleleMarks()
 {
- var barre, fb;
  var html = "<tr>";
  var fret;
  var sw = fretMarkStart; // 30 pixels, have to slide this over a bit to line up the dots like a fretboard
@@ -2880,7 +2864,6 @@ function GenUkuleleCellScale(width, midiNote, scaleNum, key)
 {
  var html;
  var note;
- var color;
 
  if (key.LookUp[m_mapMidiNotes.get(midiNote).Offset] >= 0)
    note = m_mapMidiNotes.get(midiNote).MidiName(key);
@@ -3219,6 +3202,8 @@ function eventcboKeysTH_Change()
 
 function eventcboModesTH_Change()
 {
+ var i;
+
  m_CurrentMode = parseInt(document.getElementById("cboModesTH").options[document.getElementById("cboModesTH").selectedIndex].value);
 
  document.getElementById("cboKeysTH").options.length = 0;
@@ -3237,12 +3222,11 @@ function eventcboModesTH_Change()
  showChords();
  showScale();
  showModeChords();
-
 }
 
 function eventcboModesChord_Change()
 {
- var html;
+ var i;
 
  m_CurrentMode = parseInt(document.getElementById("cboModesChord").options[document.getElementById("cboModesChord").selectedIndex].value);
 
@@ -3258,12 +3242,11 @@ function eventcboModesChord_Change()
   }
 
  eventcboKeysChord_Change();
-
 }
 
 function eventcboModesScale_Change()
 {
- var html;
+ var i;
 
  m_CurrentMode = parseInt(document.getElementById("cboModesScale").options[document.getElementById("cboModesScale").selectedIndex].value);
 
@@ -3279,12 +3262,13 @@ function eventcboModesScale_Change()
   }
 
  eventcboKeysScale_Change();
-
 }
 
 
 function eventcboKeysChord_Change()
 {
+ var html, i;
+
  m_CurrentKey = parseInt(document.getElementById("cboKeysChord").options[document.getElementById("cboKeysChord").selectedIndex].value);
 
  m_Key = new Key(m_CurrentMode, m_arrModes[m_CurrentMode].KeyList[m_CurrentKey]);
@@ -3318,7 +3302,7 @@ function eventcboPatternsChord_Change()
 
 function eventTDChordRootNote_Click(keyNdx)
 {
- var html, i, r, dlg, base;
+ var html, i, r;
 
  m_CurrentChordRoot = m_Key.Notes[keyNdx];  // note is a Note object
 
@@ -3354,7 +3338,7 @@ function eventTDChordRootNote_Click(keyNdx)
 
 function eventDialogChordPattern_Click(patternNdx)
 {
- var html, note, table, row, td, cn;
+ var html, table, row, td, cn;
  
  document.getElementById("divDialogBase").style.display = "none";
  document.getElementById("divDialog").innerHTML = "";
@@ -3397,7 +3381,9 @@ function eventBtnChordClear_Click()
 
 function eventBtnScaleAdd_Click()
 {
- var table = document.getElementById("tableScales");
+ var html, table;
+
+ table = document.getElementById("tableScales");
 
  row = table.insertRow(table.rows.length);
  
@@ -3581,7 +3567,7 @@ function openPage(pageNum, pageName, btn)
  <div class="dialog" id="divDialog"></div>
 </div>
 
-<button class="tabLink" onclick="openPage(1, 'divTabHarmony', this)" id="btnDefault">Traditional Harmony</button>
+<button class="tabLink" onclick="openPage(1, 'divTabHarmony', this)" id="btnDefault">Harmony</button>
 <button class="tabLink" onclick="openPage(2, 'divTabChords', this)">Chords</button>
 <button class="tabLink" onclick="openPage(3, 'divTabScales', this)">Scales</button>
 
