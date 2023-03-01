@@ -3698,6 +3698,11 @@ function openPage(pageNum, pageName, btn)
 
  document.getElementById("btnDefault").click();  // open default tab
 
+ window.onorientationchange = function()
+ {
+  window.location.reload();  
+ };
+
 </script>
 </body>
 </html>
