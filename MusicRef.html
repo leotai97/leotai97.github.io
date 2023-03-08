@@ -3492,6 +3492,19 @@ function showModeChords()
  document.getElementById('tdModeChordsTH').innerHTML = s;
 }
 
+function hideChords()
+{
+ var i;
+
+ document.getElementById("scale").innerHTML="";
+ for (i=0; i<7; i++)
+  {
+   document.getElementById("chord" + i.toString()).innerHTML="";
+  }
+ return;
+}
+
+
 // tab content button click handler
 
 function openPage(pageNum, pageName, btn) 
@@ -3532,11 +3545,13 @@ function openPage(pageNum, pageName, btn)
     {
      dynaInstLoader("cboInstChord");
      dynaModesLoaderChord("cboModesChord");
+     hideChords();
     } break;
    case 3:
     {
      dynaInstLoader("cboInstScale");
      dynaModesLoaderScale("cboModesScale");
+     hideChords();
     } break;
   }
 }
@@ -3696,24 +3711,6 @@ function openPage(pageNum, pageName, btn)
  // after document is loaded 
 
  document.getElementById("btnDefault").click();  // open default tab
-
-
- if (/(iPad|iPhone|iPod)/g.test(navigator.userAgent) && window.addEventListener && document.querySelector) 
-  {
-   window.addEventListener('orientationchange', rotateWithNoScale, false);
-  }
-
-function rotateWithNoScale() 
- {
-  var viewport = document.querySelector("meta[name=viewport]");
-
-  if (viewport) 
-   {
-    var content = viewport.getAttribute("content");
-    viewport.setAttribute("content", content + ", maximum-scale=1.0");
-    setTimeout(function () { viewport.setAttribute("content", content); }, 90);
-   }
-}
 
 
 </script>
