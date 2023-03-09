@@ -3200,7 +3200,7 @@ function eventcboModesTH_Change()
   {
    oOption=document.createElement("OPTION");
    oOption.style.backgroundColor=m_arrModes[m_CurrentMode].Background;
-   oOption.text=m_arrModes[m_CurrentMode].KeyList[i].Text;
+   oOption.text="Key of " + m_arrModes[m_CurrentMode].KeyList[i].Text;
    oOption.value=i;
    document.getElementById("cboKeysTH").options.add(oOption);
   }
@@ -3224,7 +3224,7 @@ function eventcboModesChord_Change()
   {
    oOption=document.createElement("OPTION");
    oOption.style.backgroundColor=m_arrModes[m_CurrentMode].Background;
-   oOption.text=m_arrModes[m_CurrentMode].KeyList[i].Text;
+   oOption.text="Key of " + m_arrModes[m_CurrentMode].KeyList[i].Text;
    oOption.value=i;
    document.getElementById("cboKeysChord").options.add(oOption);
   }
@@ -3244,7 +3244,7 @@ function eventcboModesScale_Change()
   {
    oOption=document.createElement("OPTION");
    oOption.style.backgroundColor=m_arrModes[m_CurrentMode].Background;
-   oOption.text=m_arrModes[m_CurrentMode].KeyList[i].Text;
+   oOption.text="Key of " + m_arrModes[m_CurrentMode].KeyList[i].Text;
    oOption.value=i;
    document.getElementById("cboKeysScale").options.add(oOption);
   }
