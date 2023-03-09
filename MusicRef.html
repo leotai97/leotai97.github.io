@@ -9,7 +9,8 @@
         body, html { margin: 0; }
             select { font-size: 2.60vw; }  
 
-          .tabLink { background-color:#555; color:white; float:left; border:none; outline:none; cursor:pointer; padding:0.729vw 0.833vw; font-size:2.4vw; width:33%; }
+          .tabLink { background-color:#555; color:white; float:left; border:none; outline:none; cursor:pointer; padding:0.729vw 0.833vw; font-size:2.4vw; height:4.6vw; }
+        
     .tabLink:hover { background-color:#777; }
        .tabContent { color:black; display:none; padding:5.208vw 1.042vw; width:100%; }
 
@@ -3171,22 +3172,9 @@ function GenPianoScale(key, mode)
 //               E v e n t s 
 ////////////////////////////////////////////////
 
-function eventcboInstTH_Change()
+function eventcboInstrument_Change()
 {
- m_CurrentInstrument = parseInt(document.getElementById("cboInstTH").options[document.getElementById("cboInstTH").selectedIndex].value);
- showChords();
- showScale();
- showModeChords();
-}
-
-function eventcboInstChord_Change()
-{
- m_CurrentInstrument = parseInt(document.getElementById("cboInstChord").options[document.getElementById("cboInstChord").selectedIndex].value);
-}
-
-function eventcboInstScale_Change()
-{
- m_CurrentInstrument = parseInt(document.getElementById("cboInstScale").options[document.getElementById("cboInstScale").selectedIndex].value);
+ m_CurrentInstrument = parseInt(document.getElementById("cboInstrument").options[document.getElementById("cboInstrument").selectedIndex].value);
 }
 
 function eventcboKeysTH_Change()
@@ -3435,7 +3423,7 @@ function showChords()
   {
    for (i=0; i<7; i++)
     {
-     document.getElementById("chord" + i.toString()).innerHTML="";
+     document.getElementById("tdChord" + i.toString()).innerHTML="";
     }
    return;
   }
@@ -3468,7 +3456,7 @@ function showScale()
 
  if (m_CurrentKey == -1 || m_CurrentMode == -1)
   {
-   document.getElementById("scale").innerHTML="";
+   document.getElementById("tdScaleInst").innerHTML="";
    return;
   }
 
@@ -3496,10 +3484,10 @@ function hideChords()
 {
  var i;
 
- document.getElementById("scale").innerHTML="";
+ document.getElementById("tdScaleInst").innerHTML="";
  for (i=0; i<7; i++)
   {
-   document.getElementById("chord" + i.toString()).innerHTML="";
+   document.getElementById("tdChord" + i.toString()).innerHTML="";
   }
  return;
 }
@@ -3525,6 +3513,7 @@ function openPage(pageNum, pageName, btn)
    btns[i].style.color="";
    btns[i].style.backgroundColor = ""; // bg color diverts back to the css class
   }
+ 
 
   // Show the specific tab content
  document.getElementById(pageName).style.display = "block";
@@ -3535,21 +3524,22 @@ function openPage(pageNum, pageName, btn)
 
  switch(pageNum)
   {
+   case 0:
+    {
+     dynaInstLoader("cboInstrument");
+    } break;
    case 1:
     {
-     dynaInstLoader("cboInstTH");
      dynaModesLoaderTH("cboModesTH");
      showChords();
     } break;
    case 2:
     {
-     dynaInstLoader("cboInstChord");
      dynaModesLoaderChord("cboModesChord");
      hideChords();
     } break;
    case 3:
     {
-     dynaInstLoader("cboInstScale");
      dynaModesLoaderScale("cboModesScale");
      hideChords();
     } break;
@@ -3581,17 +3571,24 @@ function openPage(pageNum, pageName, btn)
 <div class="dialogBase" id="divDialogBase" onclick="eventDialogChordPattern_Click(-1);">
  <div class="dialog" id="divDialog"></div>
 </div>
+<button class="tabLink" style="width: 12%; font-size: 2.1vw;" onclick="openPage(0, 'divProperties', this)" id="btnDefault">&#9728;</button>
+<button class="tabLink" style="width:29%;" onclick="openPage(1, 'divTabHarmony', this)">Harmony</button>
+<button class="tabLink" style="width:29%;" onclick="openPage(2, 'divTabChords', this)">Chords</button>
+<button class="tabLink" style="width:29%;" onclick="openPage(3, 'divTabScales', this)">Scales</button>
 
-<button class="tabLink" onclick="openPage(1, 'divTabHarmony', this)" id="btnDefault">Harmony</button>
-<button class="tabLink" onclick="openPage(2, 'divTabChords', this)">Chords</button>
-<button class="tabLink" onclick="openPage(3, 'divTabScales', this)">Scales</button>
+<div id="divProperties" class="tabContent">
+<table>
+ <tr valign=middle>
+  <td><select id="cboInstrument" onchange="eventcboInstrument_Change();"></select></td>
+ </tr>
+</table>
+</div>
 
 <div id="divTabHarmony" class="tabContent">
 <table>
  <tr valign=middle>
-  <td><select id="cboInstTH" onchange="eventcboInstTH_Change();"></select></td>
   <td><select id="cboModesTH" onchange="eventcboModesTH_Change();"></select></td>
-  <td><select id="cboKeysTH" onchange="eventcboKeysTH_Change();"></select></td>
+  <td><select id="cboKeysTH" title="Choose Key" onchange="eventcboKeysTH_Change();"></select></td>
   <td id='tdModeChordsTH'></td>
  </tr>
 </table>
@@ -3682,9 +3679,8 @@ function openPage(pageNum, pageName, btn)
 <div id="divTabChords" class="tabContent">
 <table>
  <tr valign=middle>
-  <td><select id="cboInstChord" onchange="eventcboInstChord_Change();"></select></td>
   <td><select id="cboModesChord" onchange="eventcboModesChord_Change();"></select></td>
-  <td><select id="cboKeysChord" onchange="eventcboKeysChord_Change();"></select></td>
+  <td><select id="cboKeysChord" title="Choose Key" onchange="eventcboKeysChord_Change();"></select></td>
   <td id='tdChordRoots'></td>
   <td><input class="btn" type="button" value="Clear" onclick="eventBtnChordClear_Click();">
  </tr>
@@ -3696,9 +3692,8 @@ function openPage(pageNum, pageName, btn)
 <div id="divTabScales" class="tabContent">
 <table>
  <tr valign=middle>
-  <td><select id="cboInstScale" onchange="eventcboInstScale_Change();"></select></td>
   <td><select id="cboModesScale" onchange="eventcboModesScale_Change();"></select></td>
-  <td><select id="cboKeysScale" onchange="eventcboKeysScale_Change();"></select></td>
+  <td><select id="cboKeysScale" title="Choose Key" onchange="eventcboKeysScale_Change();"></select></td>
   <td><input class="btn" type="button" value="Add" onclick="eventBtnScaleAdd_Click();"></td>
   <td><input class="btn" type="button" value="Clear" onclick="eventBtnScaleClear_Click();"></td>
  </tr>
