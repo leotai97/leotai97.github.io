@@ -6,8 +6,14 @@
 <title>Music Reference</title>
 <style>
 
-        body, html { margin: 0; }
-            select { font-size: 2.60vw; }  
+        body, html { margin:0; }
+            select { font-size:2.60vw; }
+             input { vertical-align:middle; font-size:2.4vw; }
+
+           .radBtn { width:2.4vw; height:2.4vw; }
+
+           .thInst { font-size:2.4vw; padding:2.4vw; }
+           .tdInst { font-size:2.4vw; vertical-align:middle; padding:2.4vw; }
 
           .tabLink { background-color:#555; color:white; float:left; border:none; outline:none; cursor:pointer; padding:0.729vw 0.833vw; font-size:2.4vw; height:4.6vw; }
         
@@ -59,6 +65,8 @@ var symDim7='\u00F8';  // 0 with slash
 var symFDim='\u00B0';  // degree symbol
 var symMajor='\u25B3'; // delta symbol
 var symDot = '\u25CF'; // dot
+var symNote = '\u266B'; // 2 notes
+var symNot = '\u2205';  // circle with line thru it
 
 var fretStartSize = 5; // 80 pixels on 1920 x 1200
 var fretBeforeNut = 2.604; // 50 pixels
@@ -79,8 +87,19 @@ var m_CurrentKey = -1;
 var m_CurrentMode = -1;
 var m_CurrentInstrument = -1;
 var m_CurrentChordRoot = -1;
-var m_Key = null;  // set to a Key object when a key is selected, contains list of notes in the key
 
+var m_CurrentGuitarCapo = 0;
+var m_CurrentBassCapo = 0;
+var m_CurrentMandolinCapo = 0;
+var m_CurrentUkuleleCapo = 0;
+
+var m_CurrentGuitarTuning = 0;
+var m_CurrentBassTuning = 0;
+var m_CurrentMandolinTuning = 0;
+var m_CurrentUkuleleTuning = 0;
+var m_CurrentKeyboardTuning = 0;
+
+var m_Key = null;  // set to a Key object when a key is selected, contains list of notes in the key
 
 var m_Guitar = 0;  // instrument index values for m_arrInstruments
 var m_Bass = 1;
@@ -155,6 +174,14 @@ function Instrument(id, name, strings, frets)  // ID m_Guitar etc,   "Guitar", #
  this.InstrumentName = name;
  this.Strings = strings;
  this.Frets = frets;
+ this.Tunings = new Array();
+}
+
+function Tuning(id, tuningName, arrMidiNotes)
+{
+ this.TuningID = id;
+ this.TuningName = tuningName;
+ this.TuningMidiNotes = arrMidiNotes;
 }
 
 function Note(iOffset, letter, sharpOrFlat) // offset int (c=0), letter string C, D, etc, sharpOrFlat string (#, b or "")
@@ -542,11 +569,52 @@ function Key(mode, startNote) // mode index, starting Note object
 
 function makeInstruments()
 {
- m_arrInstruments[0] = new Instrument(m_Guitar, "Guitar", 6, 24);
- m_arrInstruments[1] = new Instrument(m_Bass, "Bass Guitar", 4, 24);
- m_arrInstruments[2] = new Instrument(m_Mandolin, "Mandolin", 4, 17);
- m_arrInstruments[3] = new Instrument(m_Ukulele, "Ukulele", 4, 20);
- m_arrInstruments[4] = new Instrument(m_Keyboard, "Keyboard", 24, 1);
+ m_arrInstruments[m_Guitar] = new Instrument(m_Guitar, "Guitar", 6, 24);
+ m_arrInstruments[m_Guitar].Tunings[0] =  new Tuning(0, "Standard Tuning", [40, 45, 50, 55, 59, 64]); // E2 A2 D3 G3 B3 E4
+ m_arrInstruments[m_Guitar].Tunings[1] =  new Tuning(1, "Half-Step Down", [39, 44, 49, 54, 58, 63]);
+ m_arrInstruments[m_Guitar].Tunings[2] =  new Tuning(2, "Full-Step Down", [38, 43, 48, 53, 57, 62]);
+ m_arrInstruments[m_Guitar].Tunings[3] =  new Tuning(3, "Drop-D", [38, 45, 50, 55, 59, 64]);
+ m_arrInstruments[m_Guitar].Tunings[4] =  new Tuning(4, "Double-D", [38, 45, 50, 55, 59, 62]);
+ m_arrInstruments[m_Guitar].Tunings[5] =  new Tuning(5, "D-Suspended (Modal)", [38, 45, 50, 55, 57, 62]);
+ m_arrInstruments[m_Guitar].Tunings[6] =  new Tuning(6, "Open-D (Fingerstyle)", [38, 45, 50, 54, 57, 62]);
+ m_arrInstruments[m_Guitar].Tunings[7] =  new Tuning(7, "Open-C (Fingerstyle)", [36, 43, 48, 55, 60, 64]);
+ m_arrInstruments[m_Guitar].Tunings[8] =  new Tuning(8, "Open-G (Slide)", [38, 43, 50, 55, 59, 62]);
+ m_arrInstruments[m_Guitar].Tunings[9] =  new Tuning(9, "Open-E (Blues)", [40, 47, 52, 56, 59, 64]);
+ m_arrInstruments[m_Guitar].Tunings[10] = new Tuning(10,"Open-D (Minor)", [38, 45, 50, 53, 57, 62]);
+ m_arrInstruments[m_Guitar].Tunings[11] = new Tuning(11,"Open-G (Minor)", [38, 43, 50, 55, 58, 62]);
+
+ m_arrInstruments[m_Bass] = new Instrument(m_Bass, "Bass Guitar", 4, 24);
+ m_arrInstruments[m_Bass].Tunings[0] =  new Tuning(0, "Standard Tuning", [28, 33, 38, 43]);  // E1 A1 D2 G2
+ m_arrInstruments[m_Bass].Tunings[1] =  new Tuning(1, "Half-Step Down", [27, 32, 37, 42]);
+ m_arrInstruments[m_Bass].Tunings[2] =  new Tuning(2, "Full-Step Down", [26, 31, 36, 41]);
+ m_arrInstruments[m_Bass].Tunings[3] =  new Tuning(3, "Fifths (Extended Range)", [24, 31, 38, 45]);
+ m_arrInstruments[m_Bass].Tunings[4] =  new Tuning(4, "Drop-D", [26, 33, 38, 43]);
+ m_arrInstruments[m_Bass].Tunings[5] =  new Tuning(5, "Drop-C", [24, 33, 38, 43]);
+ m_arrInstruments[m_Bass].Tunings[6] =  new Tuning(6, "Big Bottom", [24, 31, 36, 41]);
+ m_arrInstruments[m_Bass].Tunings[7] =  new Tuning(7, "Drop-B", [23, 30, 35, 40]);
+ m_arrInstruments[m_Bass].Tunings[1] =  new Tuning(8, "Low-B", [23, 28, 33, 38]);
+
+ m_arrInstruments[m_Mandolin] = new Instrument(m_Mandolin, "Mandolin", 4, 17);
+ m_arrInstruments[m_Mandolin].Tunings[0] =  new Tuning(0, "Standard Tuning", [55, 62, 69, 76]); // G3  D4  A4  E5
+ m_arrInstruments[m_Mandolin].Tunings[1] =  new Tuning(1, "Half-Step Down", [54, 61, 68, 75]);  // Gb Db Ab Eb
+ m_arrInstruments[m_Mandolin].Tunings[2] =  new Tuning(2, "Full-Step Down", [53, 60, 67, 74]);  // F  C  G  D
+ m_arrInstruments[m_Mandolin].Tunings[3] =  new Tuning(3, "Drop-D", [55, 62, 69, 74]);          // G  D  A  D
+ m_arrInstruments[m_Mandolin].Tunings[4] =  new Tuning(4, "D (Modal)", [62, 67, 69, 74]);       // G  D  A  D
+ m_arrInstruments[m_Mandolin].Tunings[5] =  new Tuning(5, "Fourths", [50, 55, 60, 65]);         // D  G  C  F 
+ m_arrInstruments[m_Mandolin].Tunings[6] =  new Tuning(6, "Open-D", [57, 62, 66, 74]);          // A  D  Gb D
+ m_arrInstruments[m_Mandolin].Tunings[7] =  new Tuning(7, "Open-E", [56, 64, 67, 76]);          // G# E  B  E        
+ m_arrInstruments[m_Mandolin].Tunings[8] =  new Tuning(8, "Open-G", [55, 62, 71, 74]);          // G  D  B  D  
+
+ m_arrInstruments[m_Ukulele] = new Instrument(m_Ukulele, "Ukulele", 4, 20);
+ m_arrInstruments[m_Ukulele].Tunings[0] =  new Tuning(0, "Standard Tuning", [55, 62, 69, 76]); // G D A E
+
+ m_arrInstruments[m_Keyboard] = new Instrument(m_Keyboard, "Keyboard", 24, 1);
+
+ var piano = new Array();
+ for (i=0;i<m_arrInstruments[m_Keyboard].Frets; i++)
+   piano.push(60 + i) // C4
+
+ m_arrInstruments[m_Keyboard].Tunings[0] =  new Tuning("Keyboard", piano);
 }
 
 
@@ -646,7 +714,7 @@ function makeMidiNotes()
  m_arrMidiNotesHL[64] = new MidiNote(64, 63, 3, 4, 311.13);
  m_arrMidiNotesHL[65] = new MidiNote(65, 62, 2, 4, 293.66);
  m_arrMidiNotesHL[66] = new MidiNote(66, 61, 1, 4, 277.18);
- m_arrMidiNotesHL[67] = new MidiNote(67, 60, 0, 4, 261.63);   // middle C
+ m_arrMidiNotesHL[67] = new MidiNote(67, 60, 0, 4, 261.63);   // middle C4
  m_arrMidiNotesHL[68] = new MidiNote(68, 59, 11, 3, 246.94);
  m_arrMidiNotesHL[69] = new MidiNote(69, 58, 10, 3, 233.08);
  m_arrMidiNotesHL[70] = new MidiNote(70, 57, 9, 3, 220.00);
@@ -775,7 +843,7 @@ function makeBarreChordPatterns()
 
 }
 
-function makeGuitar(m0, m1, m2, m3, m4, m5) // midi notes of guitar strings, m0 is the thick string
+function makeGuitar() // midi notes of guitar strings, 0 index is low E 
 {
  var i;
 
@@ -788,16 +856,16 @@ function makeGuitar(m0, m1, m2, m3, m4, m5) // midi notes of guitar strings, m0 
 
  for (i=0; i<m_arrInstruments[m_Guitar].Frets; i++)
   {
-   m_arrGuitar[0].push(m0 + i);
-   m_arrGuitar[1].push(m1 + i);
-   m_arrGuitar[2].push(m2 + i);
-   m_arrGuitar[3].push(m3 + i);
-   m_arrGuitar[4].push(m4 + i);
-   m_arrGuitar[5].push(m5 + i);  
+   m_arrGuitar[0].push(m_arrInstruments[m_Guitar].Tunings[m_CurrentGuitarTuning].TuningMidiNotes[0] + i);
+   m_arrGuitar[1].push(m_arrInstruments[m_Guitar].Tunings[m_CurrentGuitarTuning].TuningMidiNotes[1] + i);
+   m_arrGuitar[2].push(m_arrInstruments[m_Guitar].Tunings[m_CurrentGuitarTuning].TuningMidiNotes[2] + i);
+   m_arrGuitar[3].push(m_arrInstruments[m_Guitar].Tunings[m_CurrentGuitarTuning].TuningMidiNotes[3] + i);
+   m_arrGuitar[4].push(m_arrInstruments[m_Guitar].Tunings[m_CurrentGuitarTuning].TuningMidiNotes[4] + i);
+   m_arrGuitar[5].push(m_arrInstruments[m_Guitar].Tunings[m_CurrentGuitarTuning].TuningMidiNotes[5] + i);
   }
 }
 
-function makeBass(m0, m1, m2, m3) // midi notes of guitar strings, m0 is the thick string
+function makeBass() // midi notes of bass strings
 {
  var i;
 
@@ -808,14 +876,14 @@ function makeBass(m0, m1, m2, m3) // midi notes of guitar strings, m0 is the thi
 
  for (i=0; i<m_arrInstruments[m_Bass].Frets; i++)
   {
-   m_arrBass[0].push(m0 + i);
-   m_arrBass[1].push(m1 + i);
-   m_arrBass[2].push(m2 + i);
-   m_arrBass[3].push(m3 + i);
+   m_arrBass[0].push(m_arrInstruments[m_Bass].Tunings[m_CurrentBassTuning].TuningMidiNotes[0] + i);
+   m_arrBass[1].push(m_arrInstruments[m_Bass].Tunings[m_CurrentBassTuning].TuningMidiNotes[1] + i);
+   m_arrBass[2].push(m_arrInstruments[m_Bass].Tunings[m_CurrentBassTuning].TuningMidiNotes[2] + i);
+   m_arrBass[3].push(m_arrInstruments[m_Bass].Tunings[m_CurrentBassTuning].TuningMidiNotes[3] + i);
   }
 }
 
-function makeMandolin(m0, m1, m2, m3) // midi notes of guitar strings, m0 is the thick string
+function makeMandolin() // midi notes of mandolin strings
 {
  var i;
 
@@ -826,14 +894,14 @@ function makeMandolin(m0, m1, m2, m3) // midi notes of guitar strings, m0 is the
 
  for (i=0; i<m_arrInstruments[m_Mandolin].Frets; i++)
   {
-   m_arrMandolin[0].push(m0 + i);
-   m_arrMandolin[1].push(m1 + i);
-   m_arrMandolin[2].push(m2 + i);
-   m_arrMandolin[3].push(m3 + i);
+   m_arrMandolin[0].push(m_arrInstruments[m_Mandolin].Tunings[m_CurrentMandolinTuning].TuningMidiNotes[0] + i);
+   m_arrMandolin[1].push(m_arrInstruments[m_Mandolin].Tunings[m_CurrentMandolinTuning].TuningMidiNotes[1] + i);
+   m_arrMandolin[2].push(m_arrInstruments[m_Mandolin].Tunings[m_CurrentMandolinTuning].TuningMidiNotes[2] + i);
+   m_arrMandolin[3].push(m_arrInstruments[m_Mandolin].Tunings[m_CurrentMandolinTuning].TuningMidiNotes[3] + i);
   }
 }
 
-function makeUkulele(m0, m1, m2, m3) // midi notes of guitar strings, m0 is the thick string
+function makeUkulele() // midi notes of ukulele strings
 {
  var i;
 
@@ -844,10 +912,10 @@ function makeUkulele(m0, m1, m2, m3) // midi notes of guitar strings, m0 is the 
 
  for (i=0; i<m_arrInstruments[m_Ukulele].Frets; i++)
   {
-   m_arrUkulele[0].push(m0 + i);
-   m_arrUkulele[1].push(m1 + i);
-   m_arrUkulele[2].push(m2 + i);
-   m_arrUkulele[3].push(m3 + i);
+   m_arrUkulele[0].push(m_arrInstruments[m_Ukulele].Tunings[m_CurrentUkuleleTuning].TuningMidiNotes[0] + i);
+   m_arrUkulele[1].push(m_arrInstruments[m_Ukulele].Tunings[m_CurrentUkuleleTuning].TuningMidiNotes[1] + i);
+   m_arrUkulele[2].push(m_arrInstruments[m_Ukulele].Tunings[m_CurrentUkuleleTuning].TuningMidiNotes[2] + i);
+   m_arrUkulele[3].push(m_arrInstruments[m_Ukulele].Tunings[m_CurrentUkuleleTuning].TuningMidiNotes[3] + i);
   }
 }
 
@@ -858,7 +926,7 @@ function makeUkulele(m0, m1, m2, m3) // midi notes of guitar strings, m0 is the 
 
 // Utility functions
 
-function NoteText(iOffset)
+function NoteText(iOffset) // this exists to provide note info if the note is out of key
 {
  var offset;
 
@@ -938,6 +1006,26 @@ function FigureOutGradient(chord, offset, midi)  // chord note colors.  chord is
   }
 
  return -1;
+}
+
+function MidiNoteInChord(chord, offset, midi)  // returns true if midi note is in the chord, root is offset
+{
+ var pat = m_arrChordPatterns[chord];
+ var midiNote = m_mapMidiNotes.get(midi);
+ var i, off;
+
+ off = offset; // root of chord, c = 0
+
+ for(i=1; i<pat.Pitches.length; i++) // 1st pitch in the array is 0, so start at 1 
+  {
+   if (off == midiNote.Offset)
+     return true;
+   off += pat.Pitches[i];
+   if (off >= 12) 
+     off -= 12;
+  }
+
+ return false;
 }
 
 </script>
@@ -1039,6 +1127,93 @@ function dynaPatternsLoaderChord(cboName)
    document.getElementById(cboName).options.add(oOption);
   } 
  eventcboPatternsChord_Change();
+}
+
+function dynaCapoLoader()
+{
+ var i, s, oOption;
+
+ for(i=0;i<m_arrInstruments[m_Guitar].Frets; i++)
+  {
+   oOption=document.createElement("OPTION");
+   if (i==0)
+     s="None";
+   else
+     s="Fret " + i.toString();
+   oOption.text=s;
+   oOption.value=i;   
+   document.getElementById("cboGuitarCapo").options.add(oOption);
+  }
+ for(i=0;i<m_arrInstruments[m_Bass].Frets; i++)
+  {
+   oOption=document.createElement("OPTION");
+   if (i==0)
+     s="None";
+   else
+     s="Fret " + i.toString();
+   oOption.text=s;
+   oOption.value=i;   
+   document.getElementById("cboBassCapo").options.add(oOption);
+  }
+ for(i=0;i<m_arrInstruments[m_Mandolin].Frets; i++)
+  {
+   oOption=document.createElement("OPTION");
+   if (i==0)
+     s="None";
+   else
+     s="Fret " + i.toString();
+   oOption.text=s;
+   oOption.value=i;   
+   document.getElementById("cboMandolinCapo").options.add(oOption);
+  }
+ for(i=0;i<m_arrInstruments[m_Ukulele].Frets; i++)
+  {
+   oOption=document.createElement("OPTION");
+   if (i==0)
+     s="None";
+   else
+     s="Fret " + i.toString();
+   oOption.text=s;
+   oOption.value=i;   
+   document.getElementById("cboUkuleleCapo").options.add(oOption);
+  }
+}
+
+function dynaTuneLoader()
+{
+ var i, oOption;
+
+ for (i=0; i<m_arrInstruments[m_Guitar].Tunings.length; i++)
+  {
+   oOption=document.createElement("OPTION");
+   oOption.text= m_arrInstruments[m_Guitar].Tunings[i].TuningName;
+   oOption.value=i;   
+   document.getElementById("cboGuitarTune").options.add(oOption);
+  }
+
+ for (i=0; i<m_arrInstruments[m_Bass].Tunings.length; i++)
+  {
+   oOption=document.createElement("OPTION");
+   oOption.text= m_arrInstruments[m_Bass].Tunings[i].TuningName;
+   oOption.value=i;   
+   document.getElementById("cboBassTune").options.add(oOption);
+  }
+
+ for (i=0; i<m_arrInstruments[m_Mandolin].Tunings.length; i++)
+  {
+   oOption=document.createElement("OPTION");
+   oOption.text= m_arrInstruments[m_Mandolin].Tunings[i].TuningName;
+   oOption.value=i;   
+   document.getElementById("cboMandolinTune").options.add(oOption);
+  }
+
+ for (i=0; i<m_arrInstruments[m_Ukulele].Tunings.length; i++)
+  {
+   oOption=document.createElement("OPTION");
+   oOption.text= m_arrInstruments[m_Ukulele].Tunings[i].TuningName;
+   oOption.value=i;   
+   document.getElementById("cboUkuleleTune").options.add(oOption);
+  }
 }
 
 
@@ -1422,6 +1597,7 @@ function GenGuitarString(chord, offset, wstr, key) // index to ChordPattern, off
  var gradient;
  var sw = fretStartSize; // 40 pixels
  var w;
+ var inChord;
 
  for (fret=0; fret<m_arrInstruments[m_Guitar].Frets; fret++)
   {
@@ -1432,12 +1608,15 @@ function GenGuitarString(chord, offset, wstr, key) // index to ChordPattern, off
    html += "<td class='fretString'>";
 
    midi = m_arrGuitar[wstr][fret]; // get midi note of string and fret
-   fb = GenGuitarStringElement(chord, offset, wstr, fret);
-   barre = GenGuitarBarreStringElement(chord, offset, wstr, fret);
-   barreShowNote = GenGuitarBarreShowNote(chord, offset, wstr, fret);
-   gradient = FigureOutGradient(chord, offset, midi);
 
-   html += GenGuitarCell(w, fb, barre, midi, barreShowNote, key, gradient);
+   inChord = MidiNoteInChord(chord, offset, midi); // is the midi note in the chord?
+
+   fb = GenGuitarStringElement(chord, offset, wstr, fret); // returns a finger letter or O X  for open chords
+   barre = GenGuitarBarreStringElement(chord, offset, wstr, fret); // returns barre equivilent for barre chords
+   barreShowNote = GenGuitarBarreShowNote(chord, offset, wstr, fret); // if it's "I" index do I show the note
+   gradient = FigureOutGradient(chord, offset, midi);  // returns which color to use
+
+   html += GenGuitarCell(w, fb, barre, midi, barreShowNote, key, gradient, inChord);  // figure out the html for a fret cell
   
    html += "</td>";
    sw -=  fretDecrease; // 1 pixel
@@ -1502,10 +1681,14 @@ function GenGuitarMarks()
  for (fret=0; fret<m_arrInstruments[m_Guitar].Frets; fret++)
   {
    if (fret == 0) // before the nut
+    {
      w = fretMarkBeforeNut;   // 15 pixels
+    }
    else  
      w = sw;
    html += "<td class='fretMark' style='width:" + w.toString() + "vw;'>";
+   if (fret == 0)
+     html += "Nut";
    if (fret == 3 || fret == 5 || fret ==7 || fret == 9 || fret == 15 || fret==17 || fret==19) 
      html += symDot;
    if (fret == 12)
@@ -1521,7 +1704,7 @@ function GenGuitarMarks()
 
 // return HTML for a guitar fret by string an fret #
 
-function GenGuitarCell(width, open, barre, midiNote, barreShowNote, key, grad) // width is cell size, open & barre are fingering letter, barreShowNote is for index no play, key is Key object, 0 thru 5 gradient color of note based on step in chord
+function GenGuitarCell(width, open, barre, midiNote, barreShowNote, key, grad, inChord) // width is cell size, open & barre are fingering letter, barreShowNote is for index no play, key is Key object, 0 thru 5 gradient color of note based on step in chord
 {
  var html;
  var note;
@@ -1535,22 +1718,34 @@ function GenGuitarCell(width, open, barre, midiNote, barreShowNote, key, grad) /
  else 
    note = NoteText(midi.Offset) + "(" + midi.Octave.toString() + ")"; 
 
- if (open == "" && barre == "")
+ if (m_CurrentGuitarTuning == 0) // is it standard tuning?
   {
-   note = "";
-  }
- else 
-  {
-   if (open == "X" || barre == "X")
+   if (open == "" && barre == "")
+    {
      note = "";
+    }
    else 
     {
-     if (barre == "I")
+     if (open == "X" || barre == "X")
+       note = "";
+     else 
       {
-       if (barreShowNote == 0)
-         note = "";
+       if (barre == "I")
+        {
+         if (barreShowNote == 0)
+           note = "";
+        }
       }
     }
+  }
+ else // non standard tuning, just show notes that are in the chord
+  {
+   open = "";
+   barre = "";
+   if (inChord == false)
+    {
+     note = "";
+    }   
   }
 
  if (note != "")
@@ -1869,6 +2064,7 @@ function GenBassString(chord, offset, wstr, key) // index to ChordPattern, offse
  var fret;
  var gradient;
  var sw = fretStartSize; // 40 pixels
+ var inChord;
  var w;
 
  for (fret=0; fret<m_arrInstruments[m_Bass].Frets; fret++)
@@ -1880,12 +2076,13 @@ function GenBassString(chord, offset, wstr, key) // index to ChordPattern, offse
    html += "<td class='fretString'>";
 
    midi = m_arrBass[wstr][fret]; // get midi note of string and fret
+   inChord = MidiNoteInChord(chord, offset, midi); // is midi in the chord?
    fb = GenBassStringElement(chord, offset, wstr, fret);
    barre = GenBassBarreStringElement(chord, offset, wstr, fret);
    barreShowNote = GenBassBarreShowNote(chord, offset, wstr, fret);
    gradient = FigureOutGradient(chord, offset, midi);
 
-   html += GenBassCell(w, fb, barre, midi, barreShowNote, key, gradient);
+   html += GenBassCell(w, fb, barre, midi, barreShowNote, key, gradient, inChord);
   
    html += "</td>";
    sw -=  fretDecrease; // 1 pixel
@@ -1954,6 +2151,8 @@ function GenBassMarks()
    else  
      w = sw;
    html += "<td class='fretMark' style='width:" + w.toString() + "vw;'>";
+   if (fret == 0)
+     html += "Nut";
    if (fret == 3 || fret == 5 || fret ==7 || fret == 9 || fret == 15 || fret==17 || fret==19) 
      html += symDot;
    if (fret == 12)
@@ -1969,7 +2168,7 @@ function GenBassMarks()
 
 // return HTML for a bass guitar fret by string an fret #
 
-function GenBassCell(width, open, barre, midiNote, barreShowNote, key, grad) // width is cell size, open & barre are fingering letter, barreShowNote is for index no play, key is Key object, 0 thru 5 gradient color of note based on step in chord
+function GenBassCell(width, open, barre, midiNote, barreShowNote, key, grad, inChord) // width is cell size, open & barre are fingering letter, barreShowNote is for index no play, key is Key object, 0 thru 5 gradient color of note based on step in chord
 {
  var html;
  var note;
@@ -1983,22 +2182,34 @@ function GenBassCell(width, open, barre, midiNote, barreShowNote, key, grad) // 
  else 
    note = NoteText(midi.Offset) + "(" + midi.Octave.toString() + ")"; 
 
- if (open == "" && barre == "")
+if (m_CurrentBassTuning == 0) // is it standard tuning?
   {
-   note = "";
-  }
- else 
-  {
-   if (open == "X" || barre == "X")
+   if (open == "" && barre == "")
+    {
      note = "";
+    }
    else 
     {
-     if (barre == "I")
+     if (open == "X" || barre == "X")
+       note = "";
+     else 
       {
-       if (barreShowNote == 0)
-         note = "";
+       if (barre == "I")
+        {
+         if (barreShowNote == 0)
+           note = "";
+        }
       }
     }
+  }
+ else // non standard tuning, just show notes that are in the chord
+  {
+   open = "";
+   barre = "";
+   if (inChord == false)
+    {
+     note = "";
+    }   
   }
 
  if (note != "")
@@ -2260,6 +2471,7 @@ function GenMandolinString(chord, offset, wstr, key) // index to ChordPattern, o
  var fret;
  var gradient;
  var sw = fretStartSize; // 40 pixels
+ var inChord;
  var w;
 
  for (fret=0; fret<m_arrInstruments[m_Mandolin].Frets; fret++)
@@ -2271,12 +2483,13 @@ function GenMandolinString(chord, offset, wstr, key) // index to ChordPattern, o
    html += "<td class='fretString'>";
 
    midi = m_arrMandolin[wstr][fret]; // get midi note of string and fret
+   inChord = MidiNoteInChord(chord, offset, midi);
    fb = GenMandolinStringElement(chord, offset, wstr, fret);
    barre = GenMandolinBarreStringElement(chord, offset, wstr, fret);
    barreShowNote = GenMandolinBarreShowNote(chord, offset, wstr, fret);
    gradient = FigureOutGradient(chord, offset, midi);
 
-   html += GenMandolinCell(w, fb, barre, midi, barreShowNote, key, gradient);
+   html += GenMandolinCell(w, fb, barre, midi, barreShowNote, key, gradient, inChord);
   
    html += "</td>";
    sw -=  fretDecrease; // 1 pixel
@@ -2345,6 +2558,8 @@ function GenMandolinMarks()
    else  
      w = sw;
    html += "<td class='fretMark' style='width:" + w.toString() + "vw;'>";
+   if (fret == 0)
+     html += "Nut";
    if (fret == 5 || fret ==7 || fret == 10 || fret == 15) 
      html += symDot;
    if (fret == 12)
@@ -2360,7 +2575,7 @@ function GenMandolinMarks()
 
 // return HTML for a mandolin fret by string an fret #
 
-function GenMandolinCell(width, open, barre, midiNote, barreShowNote, key, grad) // width is cell size, open & barre are fingering letter, barreShowNote is for index no play, key is Key object, 0 thru 5 gradient color of note based on step in chord
+function GenMandolinCell(width, open, barre, midiNote, barreShowNote, key, grad, inChord) // width is cell size, open & barre are fingering letter, barreShowNote is for index no play, key is Key object, 0 thru 5 gradient color of note based on step in chord
 {
  var html;
  var note;
@@ -2374,22 +2589,34 @@ function GenMandolinCell(width, open, barre, midiNote, barreShowNote, key, grad)
  else 
    note = NoteText(midi.Offset) + "(" + midi.Octave.toString() + ")"; 
 
- if (open == "" && barre == "")
+if (m_CurrentMandolinTuning == 0) // is it standard tuning?
   {
-   note = "";
-  }
- else 
-  {
-   if (open == "X" || barre == "X")
+   if (open == "" && barre == "")
+    {
      note = "";
+    }
    else 
     {
-     if (barre == "I")
+     if (open == "X" || barre == "X")
+       note = "";
+     else 
       {
-       if (barreShowNote == 0)
-         note = "";
+       if (barre == "I")
+        {
+         if (barreShowNote == 0)
+           note = "";
+        }
       }
     }
+  }
+ else // non standard tuning, just show notes that are in the chord
+  {
+   open = "";
+   barre = "";
+   if (inChord == false)
+    {
+     note = "";
+    }   
   }
 
  if (note != "")
@@ -2704,6 +2931,7 @@ function GenUkuleleString(chord, offset, wstr, key) // index to ChordPattern, of
  var fret;
  var gradient;
  var sw = fretStartSize; // 40 pixels
+ var inChord;
  var w;
 
  for (fret=0; fret<m_arrInstruments[m_Ukulele].Frets; fret++)
@@ -2715,12 +2943,13 @@ function GenUkuleleString(chord, offset, wstr, key) // index to ChordPattern, of
    html += "<td class='fretString'>";
 
    midi = m_arrUkulele[wstr][fret]; // get midi note of string and fret
+   inChord = MidiNoteInChord(chord, offset, midi);
    fb = GenUkuleleStringElement(chord, offset, wstr, fret);
    barre = GenUkuleleBarreStringElement(chord, offset, wstr, fret);
    barreShowNote = GenUkuleleBarreShowNote(chord, offset, wstr, fret);
    gradient = FigureOutGradient(chord, offset, midi);
 
-   html += GenUkuleleCell(w, fb, barre, midi, barreShowNote, key, gradient);
+   html += GenUkuleleCell(w, fb, barre, midi, barreShowNote, key, gradient, inChord);
   
    html += "</td>";
    sw -=  fretDecrease; // 1 pixel
@@ -2789,6 +3018,8 @@ function GenUkuleleMarks()
    else  
      w = sw;
    html += "<td class='fretMark' style='width:" + w.toString() + "vw;'>";
+   if (fret == 0)
+     html += "Nut";
    if (fret == 3 || fret == 5 || fret ==7 || fret == 10) 
      html += symDot;
    if (fret == 12)
@@ -2804,7 +3035,7 @@ function GenUkuleleMarks()
 
 // return HTML for a guitar fret by string an fret #
 
-function GenUkuleleCell(width, open, barre, midiNote, barreShowNote, key, grad) // width is cell size, open & barre are fingering letter, barreShowNote is for index no play, key is Key object, 0 thru 5 gradient color of note based on step in chord
+function GenUkuleleCell(width, open, barre, midiNote, barreShowNote, key, grad, inChord) // width is cell size, open & barre are fingering letter, barreShowNote is for index no play, key is Key object, 0 thru 5 gradient color of note based on step in chord
 {
  var html;
  var note;
@@ -2818,22 +3049,34 @@ function GenUkuleleCell(width, open, barre, midiNote, barreShowNote, key, grad) 
  else 
    note = NoteText(midi.Offset) + "(" + midi.Octave.toString() + ")"; 
 
- if (open == "" && barre == "")
+if (m_CurrentUkuleleTuning == 0) // is it standard tuning?
   {
-   note = "";
-  }
- else 
-  {
-   if (open == "X" || barre == "X")
+   if (open == "" && barre == "")
+    {
      note = "";
+    }
    else 
     {
-     if (barre == "I")
+     if (open == "X" || barre == "X")
+       note = "";
+     else 
       {
-       if (barreShowNote == 0)
-         note = "";
+       if (barre == "I")
+        {
+         if (barreShowNote == 0)
+           note = "";
+        }
       }
     }
+  }
+ else // non standard tuning, just show notes that are in the chord
+  {
+   open = "";
+   barre = "";
+   if (inChord == false)
+    {
+     note = "";
+    }   
   }
 
  if (note != "")
@@ -3172,9 +3415,9 @@ function GenPianoScale(key, mode)
 //               E v e n t s 
 ////////////////////////////////////////////////
 
-function eventcboInstrument_Change()
+function eventRadInstrument(inst)
 {
- m_CurrentInstrument = parseInt(document.getElementById("cboInstrument").options[document.getElementById("cboInstrument").selectedIndex].value);
+ m_CurrentInstrument = inst;
 }
 
 function eventcboKeysTH_Change()
@@ -3290,15 +3533,26 @@ function eventcboPatternsChord_Change()
 
 function eventTDChordRootNote_Click(keyNdx)
 {
- var html, i, r;
+ var html, i, k, r;
+ var outofkey, off;
 
- m_CurrentChordRoot = m_Key.Notes[keyNdx];  // note is a Note object
+ m_CurrentChordRoot = m_Key.Notes[keyNdx];  // m_CurrentChordRoot is a Note object
 
  html = "<table class='tableDialogPattern'>";
  html += "<tr>";
  r = 0;
  for (i=0; i<m_arrChordPatterns.length; i++)
   {
+   off = m_CurrentChordRoot.Offset;
+   outofkey = false;  // see if this chord pattern results in notes that would be out of key
+   for (k=0; k<m_arrChordPatterns[i].PitchCount; k++)
+    {
+     off += m_arrChordPatterns[i].Pitches[k];
+     if (off >= 12)
+       off -= 12;
+     if (m_Key.OffsetNote(off) == null) // see if the note is out of key
+       outofkey = true;
+    }      
    if (r==4)
     {
      if (i>0)
@@ -3306,7 +3560,14 @@ function eventTDChordRootNote_Click(keyNdx)
      html += "<tr>";
      r = 0;
     }
-   html += "<td class='tdDialogPattern' onclick='eventDialogChordPattern_Click(" + i + ");'>";
+   html += "<td class='tdDialogPattern' ";
+   if (outofkey == true)
+     html += "title='This chord would be out of key' ";
+   html += "onclick='eventDialogChordPattern_Click(" + i + ");'>";
+   if (outofkey == true)
+     html += "<span style='color:red;'>" + symNot + "</span> &nbsp; ";
+   else
+     html += "<span style='color:green;'>" + symNote + "</span> &nbsp; ";
    html += m_arrChordPatterns[i].Name;
    html += "</td>";
    r++;
@@ -3403,6 +3664,51 @@ function eventBtnScaleClear_Click()
 
  table.innerHTML = "";
 }
+
+function eventcboGuitarCapo_Change()
+{
+ m_CurrentGuitarCapo =  parseInt(document.getElementById("cboGuitarCapo").options[document.getElementById("cboGuitarCapo").selectedIndex].value);
+}
+
+function eventcboBassCapo_Change()
+{
+ m_CurrentBassCapo =  parseInt(document.getElementById("cboBassCapo").options[document.getElementById("cboBassCapo").selectedIndex].value);
+}
+
+function eventcboMandolinCapo_Change()
+{
+ m_CurrentMandolinCapo =  parseInt(document.getElementById("cboMandolinCapo").options[document.getElementById("cboMandolinCapo").selectedIndex].value);
+}
+
+function eventcboUkuleleCapo_Change()
+{
+ m_CurrentUkuleleCapo =  parseInt(document.getElementById("cboUkuleleCapo").options[document.getElementById("cboUkuleleCapo").selectedIndex].value);
+}
+
+function eventcboGuitarTune_Change()
+{
+ m_CurrentGuitarTuning =  parseInt(document.getElementById("cboGuitarTune").options[document.getElementById("cboGuitarTune").selectedIndex].value);
+ makeGuitar();
+}
+
+function eventcboBassTune_Change()
+{
+ m_CurrentBassTuning =  parseInt(document.getElementById("cboBassTune").options[document.getElementById("cboBassTune").selectedIndex].value);
+ makeBass();
+}
+
+function eventcboMandolinTune_Change()
+{
+ m_CurrentMandolinTuning =  parseInt(document.getElementById("cboMandolinTune").options[document.getElementById("cboMandolinTune").selectedIndex].value);
+ makeMandolin();
+}
+
+function eventcboUkuleleTune_Change()
+{
+ m_CurrentUkuleleTuning =  parseInt(document.getElementById("cboUkuleleTune").options[document.getElementById("cboUkuleleTune").selectedIndex].value);
+ makeUkulele();
+}
+
 </script>
 
 <script type="text/javascript">
@@ -3526,7 +3832,6 @@ function openPage(pageNum, pageName, btn)
   {
    case 0:
     {
-     dynaInstLoader("cboInstrument");
     } break;
    case 1:
     {
@@ -3555,13 +3860,13 @@ function openPage(pageNum, pageName, btn)
  makeChordPatternPlacements();
  makeBarreChordPatterns();
 
- makeGuitar(40, 45, 50, 55, 59, 64); // E2, A2, D3, G3, B3, E4
+ makeGuitar(); // E2, A2, D3, G3, B3, E4
 
- makeBass(28, 33, 38, 43); // E1, A1, D2, G2
+ makeBass(); // E1, A1, D2, G2
 
- makeMandolin(55, 62, 69, 76); // G3, D4, A4, E5
+ makeMandolin(); // G3, D4, A4, E5
 
- makeUkulele(67, 60, 64, 69); //  G4, C4, E4, A4
+ makeUkulele(); //  G4, C4, E4, A4
 
 </script>
 
@@ -3577,9 +3882,42 @@ function openPage(pageNum, pageName, btn)
 <button class="tabLink" style="width:29%;" onclick="openPage(3, 'divTabScales', this)">Scales</button>
 
 <div id="divProperties" class="tabContent">
-<table>
- <tr valign=middle>
-  <td><select id="cboInstrument" onchange="eventcboInstrument_Change();"></select></td>
+<table cellspacing="">
+ <tr>
+  <th></th>
+  <th class="thInst">Instrument</th>
+  <th class="thInst">Capo</th>
+  <th class="thInst">Tuning</th>
+ </tr>
+ <tr>
+  <td class="tdInst"><input type="radio" name="Inst" id="radGuitar" class="radBtn" onclick="eventRadInstrument(m_Guitar);"></td>
+  <td class="tdInst">Guitar</td>
+  <td><select id="cboGuitarCapo" onchange="eventcboGuitarCapo_Change();"></select></td>
+  <td><select id="cboGuitarTune" onchange="eventcboGuitarTune_Change();"></select></td>
+ </tr>
+ <tr>
+  <td class="tdInst"><input type="radio" name="Inst" id="radBass" class="radBtn" onclick="eventRadInstrument(m_Bass);"></td>
+  <td class="tdInst">Bass</td>
+  <td><select id="cboBassCapo" onchange="eventcboBassCapo_Change();"></select></td>
+  <td><select id="cboBassTune" onchange="eventcboBassTune_Change();"></select></td>
+ </tr>
+ <tr>
+  <td class="tdInst"><input type="radio" name="Inst" id="radMandolin" class="radBtn" onclick="eventRadInstrument(m_Mandolin);"></td>
+  <td class="tdInst">Mandolin</td>
+  <td><select id="cboMandolinCapo" onchange="eventcboMandolinCapo_Change();"></select></td>
+  <td><select id="cboMandolinTune" onchange="eventcboMandolinTune_Change();"></select></td>
+ </tr>
+ <tr>
+  <td class="tdInst"><input type="radio" name="Inst" id="radUkulele" class="radBtn" onclick="eventRadInstrument(m_Ukulele);"></td>
+  <td class="tdInst">Ukulele</td>
+  <td><select id="cboUkuleleCapo" onchange="eventcboUkuleleCapo_Change();"></select></td>
+  <td><select id="cboUkuleleTune" onchange="eventcboUkuleleTune_Change();"></select></td>
+ </tr>
+  <tr>
+  <td class="tdInst"><input type="radio" name="Inst" id="radKeyboard" class="radBtn" onclick="eventRadInstrument(m_Keyboard);"></td>
+  <td class="tdInst">Keyboard</td>
+  <td></td>
+  <td></td>
  </tr>
 </table>
 </div>
@@ -3706,7 +4044,11 @@ function openPage(pageNum, pageName, btn)
  // after document is loaded 
 
  document.getElementById("btnDefault").click();  // open default tab
+ document.getElementById("radGuitar").checked = true;
+ m_CurrentInstrument = m_Guitar;
 
+ dynaCapoLoader();
+ dynaTuneLoader();
 
 </script>
 </body>
