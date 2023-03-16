@@ -58,7 +58,7 @@
 <script type="text/javascript">
 
 // web audio api context
-var audio = new(window.AudioContext || window.webkitAudioContext)();
+
 
 // special characters 
 
@@ -1019,6 +1019,7 @@ function MidiNoteInChord(chord, offset, midi)  // returns true if midi note is i
 
 function PlayNote(midi, milli) 
 {
+ var audio = new(window.AudioContext || window.webkitAudioContext)();
  var oscillator = audio.createOscillator(); // create the player
  var midiNote;
 
