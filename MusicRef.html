@@ -34,14 +34,14 @@
        .pianoBlack { position:absolute; top:0; width:2.4vw; height:13vw; background-color:black; }
    .pianoBlackText { position:absolute; top:9vw; left:0.2vw; width:2.0vw; font-size:1.4vw; text-align:center; color:white; background-color:black; border:none; }
 
-        .chordInfo { font-size:1.042vw; padding:0.521vw; color:#000044; }
+        .chordInfo { font-size:1.042vw; padding:0.521vw; color:#000044; cursor:pointer; }
         .scaleInfo { font-size:1.022vw; padding:0.501vw; color:#000044; }
-        .modeChord { border:0.052vw solid lightsteelblue; width:1.823vw; text-align:center; }
+        .modeChord { border:0.052vw solid lightsteelblue; width:1.823vw; text-align:center; cursor:pointer; }
         .chordNote { border:0.052vw solid lightsteelblue; width: 1.823vw; text-align: center; }
      .chordFormula { text-align:center; font-style:italic; font-size:0.93vw; }
         .chordStep { text-align:center; font-size:0.93vw; }
      .modeSequence { text-align:center; font-style:italic; font-size:0.938vw; }
-        .scaleName { font-size:1.042vw; padding:0.501vw; }
+        .scaleName { font-size:1.042vw; padding:0.501vw; cursor:pointer; }
 
  .tableChordsRoot { border-spacing:0.9vw; }
  .tdChordsRoot { font-size:2.40vw; vertical-align:middle; text-align:center; width:4.0vw; height:3.2vw; border-radius:0.26vw; border:0.052vw solid black; cursor:pointer; color:black; background-color:#e9e9e9; }
@@ -57,6 +57,9 @@
 </style>
 <script type="text/javascript">
 
+// web audio api context
+var audio = new(window.AudioContext || window.webkitAudioContext)();
+
 // special characters 
 
 var symSharp='\u266F'; // Arial unicode MS
@@ -67,6 +70,8 @@ var symMajor='\u25B3'; // delta symbol
 var symDot = '\u25CF'; // dot
 var symNote = '\u266B'; // 2 notes
 var symNot = '\u2205';  // circle with line thru it
+
+// measurements in vw & vh viewport units
 
 var fretStartSize = 5; // 80 pixels on 1920 x 1200
 var fretBeforeNut = 2.604; // 50 pixels
@@ -87,6 +92,7 @@ var m_CurrentKey = -1;
 var m_CurrentMode = -1;
 var m_CurrentInstrument = -1;
 var m_CurrentChordRoot = -1;
+var m_CurrentMidiNote = -1;
 
 var m_CurrentGuitarCapo = 0;
 var m_CurrentBassCapo = 0;
@@ -147,7 +153,7 @@ var m_arrMidiNotesHL = new Array();      // ID, Number, Offset, Octave, Frequenc
 var m_arrMidiNotesLH = new Array();      // Same as above
 var m_arrModes = new Array();            // ID, ModeName, Sequences (steps), ChordType (the pattern), Background (color)
 
-var m_arrGuitar = new Array();           // 2D array of midi notes for instruments
+var m_arrGuitar = new Array();           // 2D array of midi notes for instrument fretboards
 var m_arrBass = new Array();
 var m_arrMandolin = new Array();
 var m_arrUkulele = new Array();
@@ -160,9 +166,7 @@ var m_arrGradientBlueGreen = ["#189753", "#1ea55c", "#24b266", "#2ac06f", "#30cc
 
 var m_arrPastels = ["#b2cefe", "#baed91", "#faf884", "#f2a2e8"];     
 
-</script>
-
-<script type="text/javascript">
+var m_arrPlayMidi = new Array(); // array of midi note numbers
 
 //////////////////////////////////
 //   Object Class Construction
@@ -172,16 +176,16 @@ function Instrument(id, name, strings, frets)  // ID m_Guitar etc,   "Guitar", #
 {
  this.ID = id;
  this.InstrumentName = name;
- this.Strings = strings;
- this.Frets = frets;
- this.Tunings = new Array();
+ this.Strings = strings;         // number of strings
+ this.Frets = frets;             // number of frets
+ this.Tunings = new Array();     // tuning arrays
 }
 
 function Tuning(id, tuningName, arrMidiNotes)
 {
  this.TuningID = id;
  this.TuningName = tuningName;
- this.TuningMidiNotes = arrMidiNotes;
+ this.TuningMidiNotes = arrMidiNotes;  // array of midi notes, starting with top string (low E on guitar)
 }
 
 function Note(iOffset, letter, sharpOrFlat) // offset int (c=0), letter string C, D, etc, sharpOrFlat string (#, b or "")
@@ -195,8 +199,8 @@ function Note(iOffset, letter, sharpOrFlat) // offset int (c=0), letter string C
    
  this.Offset = offset;           // 0 = C
  this.SharpFlat = sharpOrFlat;   // bb, b, "", #, or ##.  This routine will not produce either bbb or ###
- this.Letter = letter;
- switch(this.SharpFlat)
+ this.Letter = letter;           // C thru B
+ switch(this.SharpFlat)          // set Text to the letter and proper # or b symbol
   { 
    case "bb": this.Text = letter + symFlat + symFlat;   this.SharpFlatOffset = -2; break; // -2 thru 2
    case "b":  this.Text = letter + symFlat;             this.SharpFlatOffset = -1; break;
@@ -206,7 +210,7 @@ function Note(iOffset, letter, sharpOrFlat) // offset int (c=0), letter string C
    default: throw new Error("function Note(offset, letter, sharpOrFlat) invalid sharpOrFlat value"); 
   }
 
- this.NextNote = function(step)
+ this.NextNote = function(step)  // object function that returns a Note object from this note based on the step
   {
    var next;
    var nType;  // 1  =  EF  and   BC
@@ -360,8 +364,8 @@ function ChordPattern(id, strName, strAbbrev, arrPitches)
 
 function Fingering(str, fret)
 {
- this.Str = str;
- this.Fret = fret;
+ this.Str = str;    // string number, top string is 0 (low E on guitar)
+ this.Fret = fret;  // fret number
 }
 
 // Fingering for the barre chord index finger
@@ -504,10 +508,6 @@ function Mode(nNdx, sBGColor, sName, arrPitches, arrChordType, arrKeyList)
  this.KeyList = arrKeyList;   // Array of key "Note" objects to display for the mode
 }
 
-</script>
-
-<script type="text/javascript">
-
 // key signature
 
 function Key(mode, startNote) // mode index, starting Note object
@@ -517,7 +517,6 @@ function Key(mode, startNote) // mode index, starting Note object
  this.Offset = startNote.Offset;  // c = 0
  this.Mode = mode;
  this.Notes = new Array();        // list of note names with special characters for sharps and flats
- this.AllNotes = new Array();
  this.Offsets = new Array();      // offset notes of the key
  this.LookUp = new Array();       // a way to find the note name in the key only knowing what the offset is C = 0
  this.OffsetNote = function(offset) // return Note object
@@ -557,10 +556,6 @@ function Key(mode, startNote) // mode index, starting Note object
      this.LookUp.push(-1); // offset of note is not in this key
   }
 }
-
-</script>
-
-<script type="text/javascript">
 
 //////////////////////////////////
 //   Array Building Functions
@@ -918,11 +913,6 @@ function makeUkulele() // midi notes of ukulele strings
   }
 }
 
-
-</script>
-
-<script type="text/javascript">
-
 // Utility functions
 
 function NoteText(iOffset) // this exists to provide note info if the note is out of key
@@ -1027,199 +1017,66 @@ function MidiNoteInChord(chord, offset, midi)  // returns true if midi note is i
  return false;
 }
 
-</script>
-
-<script type="text/javascript">
-
-//////////////////////////////////////////////
-//            Load Combo Boxes
-//////////////////////////////////////////////
-
-function dynaInstLoader(cboName)
+function PlayNote(midi, milli) 
 {
- document.getElementById(cboName).options.length=0;
- for (i=0;i<m_arrInstruments.length;i++)
-  {
-   oOption=document.createElement("OPTION");
-   oOption.style.backgroundColor="white";
-   oOption.text=m_arrInstruments[i].InstrumentName;
-   oOption.value=m_arrInstruments[i].ID;
-   document.getElementById(cboName).options.add(oOption);
-  } 
- m_CurrentInstrument = m_arrInstruments[0].ID;
+ var oscillator = audio.createOscillator(); // create the player
+ var midiNote;
+
+ midiNote = m_mapMidiNotes.get(midi);
+
+ oscillator.type = 'square';
+ oscillator.frequency.value = midiNote.Frequency;
+ oscillator.connect(audio.destination);
+ oscillator.start();
+
+ setTimeout(function(){oscillator.stop(); PlayMidiNotes(milli); }, milli); // 1/4 second?
 }
 
-function dynaModesLoaderTH(cboName)
+function PlayMidiNotes(milli)
 {
- var i,oOption;
- 
- document.getElementById(cboName).options.length=0;
- 
- for (i=0;i<m_arrModes.length;i++)
+ if (m_CurrentMidiNote < m_arrPlayMidi.length) 
   {
-   if (m_arrModes[i].KeyList.length > 0)  // only add modes that I've filled out the key list
-    {
-     oOption=document.createElement("OPTION");
-     oOption.style.backgroundColor=m_arrModes[i].Background;
-     oOption.text=m_arrModes[i].ModeName;
-     oOption.value=m_arrModes[i].ID;
-     document.getElementById(cboName).options.add(oOption);
-    }
-  } 
- eventcboModesTH_Change();
-}
-
-function dynaModesLoaderChord(cboName)
-{
- var i,oOption;
- 
- document.getElementById(cboName).options.length=0;
- 
- for (i=0;i<m_arrModes.length;i++)
-  {
-   if (m_arrModes[i].KeyList.length > 0)  // only add modes that I've filled out the key list
-    {
-     oOption=document.createElement("OPTION");
-     oOption.style.backgroundColor=m_arrModes[i].Background;
-     oOption.text=m_arrModes[i].ModeName;
-     oOption.value=m_arrModes[i].ID;
-     document.getElementById(cboName).options.add(oOption);
-    }
-  } 
- eventcboModesChord_Change();
-}
-
-function dynaModesLoaderScale(cboName)
-{
- var i,oOption;
- 
- document.getElementById(cboName).options.length=0;
- 
- for (i=0;i<m_arrModes.length;i++)
-  {
-   if (m_arrModes[i].KeyList.length > 0)  // only add modes that I've filled out the key list
-    {
-     oOption=document.createElement("OPTION");
-     oOption.style.backgroundColor=m_arrModes[i].Background;
-     oOption.text=m_arrModes[i].ModeName;
-     oOption.value=m_arrModes[i].ID;
-     document.getElementById(cboName).options.add(oOption);
-    }
-  } 
- eventcboModesScale_Change();
-}
-
-function dynaPatternsLoaderChord(cboName)
-{
- var s,i,oOption;
- 
- document.getElementById(cboName).options.length=0;
- 
- for (i=0;i<m_arrChordPatterns.length;i++)
-  {
-   oOption=document.createElement("OPTION");
-   s=m_arrChordPatterns[i].Name+" ";
-   s+="("+m_arrChordPatterns[i].Formula+")";
-   oOption.text=s;
-   oOption.value=i;
-
-   document.getElementById(cboName).options.add(oOption);
-  } 
- eventcboPatternsChord_Change();
-}
-
-function dynaCapoLoader()
-{
- var i, s, oOption;
-
- for(i=0;i<m_arrInstruments[m_Guitar].Frets; i++)
-  {
-   oOption=document.createElement("OPTION");
-   if (i==0)
-     s="None";
-   else
-     s="Fret " + i.toString();
-   oOption.text=s;
-   oOption.value=i;   
-   document.getElementById("cboGuitarCapo").options.add(oOption);
-  }
- for(i=0;i<m_arrInstruments[m_Bass].Frets; i++)
-  {
-   oOption=document.createElement("OPTION");
-   if (i==0)
-     s="None";
-   else
-     s="Fret " + i.toString();
-   oOption.text=s;
-   oOption.value=i;   
-   document.getElementById("cboBassCapo").options.add(oOption);
-  }
- for(i=0;i<m_arrInstruments[m_Mandolin].Frets; i++)
-  {
-   oOption=document.createElement("OPTION");
-   if (i==0)
-     s="None";
-   else
-     s="Fret " + i.toString();
-   oOption.text=s;
-   oOption.value=i;   
-   document.getElementById("cboMandolinCapo").options.add(oOption);
-  }
- for(i=0;i<m_arrInstruments[m_Ukulele].Frets; i++)
-  {
-   oOption=document.createElement("OPTION");
-   if (i==0)
-     s="None";
-   else
-     s="Fret " + i.toString();
-   oOption.text=s;
-   oOption.value=i;   
-   document.getElementById("cboUkuleleCapo").options.add(oOption);
+   PlayNote(m_arrPlayMidi[m_CurrentMidiNote], milli);
+   m_CurrentMidiNote++;
   }
 }
 
-function dynaTuneLoader()
+function PlayKeyScale()
 {
- var i, oOption;
+ var start;
+ var i;
+ 
+ start = 48 + m_Key.Offset;  // c3
+ m_arrPlayMidi = new Array();
 
- for (i=0; i<m_arrInstruments[m_Guitar].Tunings.length; i++)
+ for (i=0; i<m_arrModes[m_CurrentMode].Sequences.length; i++)
   {
-   oOption=document.createElement("OPTION");
-   oOption.text= m_arrInstruments[m_Guitar].Tunings[i].TuningName;
-   oOption.value=i;   
-   document.getElementById("cboGuitarTune").options.add(oOption);
+   start += m_arrModes[m_CurrentMode].Sequences[i];
+   m_arrPlayMidi[i] = start;
   }
-
- for (i=0; i<m_arrInstruments[m_Bass].Tunings.length; i++)
-  {
-   oOption=document.createElement("OPTION");
-   oOption.text= m_arrInstruments[m_Bass].Tunings[i].TuningName;
-   oOption.value=i;   
-   document.getElementById("cboBassTune").options.add(oOption);
-  }
-
- for (i=0; i<m_arrInstruments[m_Mandolin].Tunings.length; i++)
-  {
-   oOption=document.createElement("OPTION");
-   oOption.text= m_arrInstruments[m_Mandolin].Tunings[i].TuningName;
-   oOption.value=i;   
-   document.getElementById("cboMandolinTune").options.add(oOption);
-  }
-
- for (i=0; i<m_arrInstruments[m_Ukulele].Tunings.length; i++)
-  {
-   oOption=document.createElement("OPTION");
-   oOption.text= m_arrInstruments[m_Ukulele].Tunings[i].TuningName;
-   oOption.value=i;   
-   document.getElementById("cboUkuleleTune").options.add(oOption);
-  }
+// m_arrPlayMidi.push(start + 12); // add the root's octave to give that completion sound
+ m_CurrentMidiNote = 0;
+ PlayMidiNotes(169);
 }
 
+function PlayChord(chord, offset) // using m_Key
+{
+ var start;
+ var i;
+ var midi;
 
-</script>
+ start = 48 + offset; // c3
+ m_arrPlayMidi = new Array();
 
-<script type="text/javascript">
+ for (i=0; i<m_arrChordPatterns[chord].Pitches.length; i++)
+  {
+   midi = start + m_arrChordPatterns[chord].Pitches[i];
+   m_arrPlayMidi[i] = midi;   
+  }
 
+ m_CurrentMidiNote = 0;
+ PlayMidiNotes(69);
+}
 ////////////////////////////////////////////////
 //       G e n e r a t e    H T M L
 ////////////////////////////////////////////////
@@ -1241,7 +1098,7 @@ function GenChordInfo(chord, offset, key) // chord pattern index, offset is chor
 
  html = "<table>"; 
 
- html += "<tr><td class='chordInfo' colspan=2>" + noteText;
+ html += "<tr><td class='chordInfo' onclick='PlayChord(" + chord.toString() + "," + offset.toString() + ");' colspan=2>" + noteText;
  html += pattern.ShortName;
  html += "</td></tr>";
 
@@ -1303,7 +1160,6 @@ function GenScaleInfo(key) // chord pattern index, offset C = 0, Key object
      case 4: s+="M 3<BR />4"; break;
     }
    s+="</TD>";
-
   }
 
  return s;
@@ -1324,7 +1180,7 @@ function genModeChords()
  for (i=0;i<m_arrModes[m_CurrentMode].Sequences.length;i++)
   {
    pattern = m_arrModes[m_CurrentMode].ChordType[i];
-   s += "<TD class='modeChord'>";
+   s += "<TD class='modeChord' onclick='PlayChord(" + pattern.toString() + "," + cn.toString() + ");'>";
    
    s += m_Key.OffsetNote(cn).Text;
    s += m_arrChordPatterns[pattern].ShortName;
@@ -1349,10 +1205,6 @@ function genModeChords()
 
  return s;
 }
-
-</script>
-
-<script type="text/javascript">
 
 ////////////////////////////////////////////////
 //                 G u i t a r     
@@ -1823,7 +1675,7 @@ function GenGuitarScale(key)
 
  html = "<table><tr><td><table><tr>" // holds scale name and table containing notes in scale then the fretboard table
 
- html += "<td class='scaleName'>";
+ html += "<td class='scaleName' onclick='PlayKeyScale();'>";
  html += key.OffsetNote(key.Offsets[0]).Text;
  html += " ";
  html += m_arrModes[m_CurrentMode].ModeName;
@@ -1846,10 +1698,6 @@ function GenGuitarScale(key)
 
  return html;
 }
-
-</script>
-
-<script type="text/javascript">
 
 ////////////////////////////////////////////////
 //           B a s s    G u i t a r     
@@ -2308,10 +2156,6 @@ function GenBassScale(key)
  return html;
 }
 
-</script>
-
-<script type="text/javascript">
-
 ////////////////////////////////////////////////
 //             M a n d o l i n 
 ////////////////////////////////////////////////
@@ -2714,10 +2558,6 @@ function GenMandolinScale(key)
  return html;
 }
 
-</script>
-
-<script type="text/javascript">
-
 ////////////////////////////////////////////////
 //                 U k u l e l e     
 ////////////////////////////////////////////////
@@ -3031,8 +2871,7 @@ function GenUkuleleMarks()
  return html;
 }
 
-
-// return HTML for a guitar fret by string an fret #
+// return HTML for a ukulele fret by string an fret #
 
 function GenUkuleleCell(width, open, barre, midiNote, barreShowNote, key, grad, inChord) // width is cell size, open & barre are fingering letter, barreShowNote is for index no play, key is Key object, 0 thru 5 gradient color of note based on step in chord
 {
@@ -3174,11 +3013,6 @@ function GenUkuleleScale(key)
 
  return html;
 }
-
-</script>
-
-
-<script type="text/javascript">
 
 ////////////////////////////////////////////////
 //            K e y b o a r d     
@@ -3406,9 +3240,189 @@ function GenPianoScale(key, mode)
  return html; 
 }
 
-</script>
+//////////////////////////////////////////////
+//            Load Combo Boxes
+//////////////////////////////////////////////
 
-<script type="text/javascript">
+function dynaInstLoader(cboName)
+{
+ document.getElementById(cboName).options.length=0;
+ for (i=0;i<m_arrInstruments.length;i++)
+  {
+   oOption=document.createElement("OPTION");
+   oOption.style.backgroundColor="white";
+   oOption.text=m_arrInstruments[i].InstrumentName;
+   oOption.value=m_arrInstruments[i].ID;
+   document.getElementById(cboName).options.add(oOption);
+  } 
+ m_CurrentInstrument = m_arrInstruments[0].ID;
+}
+
+function dynaModesLoaderTH(cboName)
+{
+ var i,oOption;
+ 
+ document.getElementById(cboName).options.length=0;
+ 
+ for (i=0;i<m_arrModes.length;i++)
+  {
+   if (m_arrModes[i].KeyList.length > 0)  // only add modes that I've filled out the key list
+    {
+     oOption=document.createElement("OPTION");
+     oOption.style.backgroundColor=m_arrModes[i].Background;
+     oOption.text=m_arrModes[i].ModeName;
+     oOption.value=m_arrModes[i].ID;
+     document.getElementById(cboName).options.add(oOption);
+    }
+  } 
+ eventcboModesTH_Change();
+}
+
+function dynaModesLoaderChord(cboName)
+{
+ var i,oOption;
+ 
+ document.getElementById(cboName).options.length=0;
+ 
+ for (i=0;i<m_arrModes.length;i++)
+  {
+   if (m_arrModes[i].KeyList.length > 0)  // only add modes that I've filled out the key list
+    {
+     oOption=document.createElement("OPTION");
+     oOption.style.backgroundColor=m_arrModes[i].Background;
+     oOption.text=m_arrModes[i].ModeName;
+     oOption.value=m_arrModes[i].ID;
+     document.getElementById(cboName).options.add(oOption);
+    }
+  } 
+ eventcboModesChord_Change();
+}
+
+function dynaModesLoaderScale(cboName)
+{
+ var i,oOption;
+ 
+ document.getElementById(cboName).options.length=0;
+ 
+ for (i=0;i<m_arrModes.length;i++)
+  {
+   if (m_arrModes[i].KeyList.length > 0)  // only add modes that I've filled out the key list
+    {
+     oOption=document.createElement("OPTION");
+     oOption.style.backgroundColor=m_arrModes[i].Background;
+     oOption.text=m_arrModes[i].ModeName;
+     oOption.value=m_arrModes[i].ID;
+     document.getElementById(cboName).options.add(oOption);
+    }
+  } 
+ eventcboModesScale_Change();
+}
+
+function dynaPatternsLoaderChord(cboName)
+{
+ var s,i,oOption;
+ 
+ document.getElementById(cboName).options.length=0;
+ 
+ for (i=0;i<m_arrChordPatterns.length;i++)
+  {
+   oOption=document.createElement("OPTION");
+   s=m_arrChordPatterns[i].Name+" ";
+   s+="("+m_arrChordPatterns[i].Formula+")";
+   oOption.text=s;
+   oOption.value=i;
+
+   document.getElementById(cboName).options.add(oOption);
+  } 
+ eventcboPatternsChord_Change();
+}
+
+function dynaCapoLoader()
+{
+ var i, s, oOption;
+
+ for(i=0;i<m_arrInstruments[m_Guitar].Frets; i++)
+  {
+   oOption=document.createElement("OPTION");
+   if (i==0)
+     s="None";
+   else
+     s="Fret " + i.toString();
+   oOption.text=s;
+   oOption.value=i;   
+   document.getElementById("cboGuitarCapo").options.add(oOption);
+  }
+ for(i=0;i<m_arrInstruments[m_Bass].Frets; i++)
+  {
+   oOption=document.createElement("OPTION");
+   if (i==0)
+     s="None";
+   else
+     s="Fret " + i.toString();
+   oOption.text=s;
+   oOption.value=i;   
+   document.getElementById("cboBassCapo").options.add(oOption);
+  }
+ for(i=0;i<m_arrInstruments[m_Mandolin].Frets; i++)
+  {
+   oOption=document.createElement("OPTION");
+   if (i==0)
+     s="None";
+   else
+     s="Fret " + i.toString();
+   oOption.text=s;
+   oOption.value=i;   
+   document.getElementById("cboMandolinCapo").options.add(oOption);
+  }
+ for(i=0;i<m_arrInstruments[m_Ukulele].Frets; i++)
+  {
+   oOption=document.createElement("OPTION");
+   if (i==0)
+     s="None";
+   else
+     s="Fret " + i.toString();
+   oOption.text=s;
+   oOption.value=i;   
+   document.getElementById("cboUkuleleCapo").options.add(oOption);
+  }
+}
+
+function dynaTuneLoader()
+{
+ var i, oOption;
+
+ for (i=0; i<m_arrInstruments[m_Guitar].Tunings.length; i++)
+  {
+   oOption=document.createElement("OPTION");
+   oOption.text= m_arrInstruments[m_Guitar].Tunings[i].TuningName;
+   oOption.value=i;   
+   document.getElementById("cboGuitarTune").options.add(oOption);
+  }
+
+ for (i=0; i<m_arrInstruments[m_Bass].Tunings.length; i++)
+  {
+   oOption=document.createElement("OPTION");
+   oOption.text= m_arrInstruments[m_Bass].Tunings[i].TuningName;
+   oOption.value=i;   
+   document.getElementById("cboBassTune").options.add(oOption);
+  }
+
+ for (i=0; i<m_arrInstruments[m_Mandolin].Tunings.length; i++)
+  {
+   oOption=document.createElement("OPTION");
+   oOption.text= m_arrInstruments[m_Mandolin].Tunings[i].TuningName;
+   oOption.value=i;   
+   document.getElementById("cboMandolinTune").options.add(oOption);
+  }
+
+ for (i=0; i<m_arrInstruments[m_Ukulele].Tunings.length; i++)
+  {
+   oOption=document.createElement("OPTION");
+   oOption.text= m_arrInstruments[m_Ukulele].Tunings[i].TuningName;
+   oOption.value=i;   
+   document.getElementById("cboUkuleleTune").options.add(oOption);
+  }
+}
 
 ////////////////////////////////////////////////
 //               E v e n t s 
@@ -3706,10 +3720,6 @@ function eventcboUkuleleTune_Change()
  m_CurrentUkuleleTuning =  parseInt(document.getElementById("cboUkuleleTune").options[document.getElementById("cboUkuleleTune").selectedIndex].value);
  makeUkulele();
 }
-
-</script>
-
-<script type="text/javascript">
 
 ////////////////////////////////////////////////
 //               S h o w   
