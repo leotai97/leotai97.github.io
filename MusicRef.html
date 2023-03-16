@@ -87,6 +87,8 @@ var pianoBlackWidth = 2.8; // width of a black piano key
 //    Global Variables
 /////////////////////////////
 
+var m_Audio = null;
+
 var m_CurrentChordPattern = -1;
 var m_CurrentKey = -1; 
 var m_CurrentMode = -1;
@@ -1019,15 +1021,18 @@ function MidiNoteInChord(chord, offset, midi)  // returns true if midi note is i
 
 function PlayNote(midi, milli) 
 {
- var audio = new(window.AudioContext || window.webkitAudioContext)();
- var oscillator = audio.createOscillator(); // create the player
+ var oscillator; 
  var midiNote;
+
+ if (m_Audio == null)
+   m_Audio = new(window.AudioContext || window.webkitAudioContext)();
 
  midiNote = m_mapMidiNotes.get(midi);
 
+ oscillator = m_Audio.createOscillator(); // create the player
  oscillator.type = 'square';
  oscillator.frequency.value = midiNote.Frequency;
- oscillator.connect(audio.destination);
+ oscillator.connect(m_Audio.destination);
  oscillator.start();
 
  setTimeout(function(){oscillator.stop(); PlayMidiNotes(milli); }, milli); // 1/4 second?
