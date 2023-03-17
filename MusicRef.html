@@ -25,7 +25,7 @@
          .fretCell { font-size:1.042vw; position:relative; color:#000044; text-align:center; height:2.3vw; }
      .fretCellLeft { font-size:0.938vw; position:absolute; top:1.344vw; left:0.1vw; color:#000044;}
     .fretCellRight { font-size:0.938vw; position:absolute; top:1.344vw; right:0.1vw; color:#000044; } 
-       .fretString { outline:thin solid lightsteelblue; }
+       .fretString { outline:thin solid lightsteelblue; cursor:pointer; }
          .fretMark { font-size:0.938vw; text-align:center; }
 
        .pianoWhite { position:absolute; top:0; width:4vw; height:20vw; background-color:white; border:0.052vw solid black; }
@@ -34,14 +34,15 @@
        .pianoBlack { position:absolute; top:0; width:2.4vw; height:13vw; background-color:black; }
    .pianoBlackText { position:absolute; top:9vw; left:0.2vw; width:2.0vw; font-size:1.4vw; text-align:center; color:white; background-color:black; border:none; }
 
-        .chordInfo { font-size:1.042vw; padding:0.521vw; color:#000044; cursor:pointer; }
+        .chordInfo { font-size:1.042vw; padding:0.521vw; color:#000044; cursor:pointer; border:0.2vw solid lime; }
         .scaleInfo { font-size:1.022vw; padding:0.501vw; color:#000044; }
-        .modeChord { border:0.052vw solid lightsteelblue; width:1.823vw; text-align:center; cursor:pointer; }
+        .modeChord { border:0.052vw solid lightsteelblue; width:1.823vw; text-align:center; cursor:pointer; border:0.2vw solid lime; }
         .chordNote { border:0.052vw solid lightsteelblue; width: 1.823vw; text-align: center; }
      .chordFormula { text-align:center; font-style:italic; font-size:0.93vw; }
         .chordStep { text-align:center; font-size:0.93vw; }
      .modeSequence { text-align:center; font-style:italic; font-size:0.938vw; }
-        .scaleName { font-size:1.042vw; padding:0.501vw; cursor:pointer; }
+        .scaleName { font-size:1.042vw; padding:0.501vw; cursor:pointer; border:0.2vw solid lime; }
+        .scaleNote { border:0.052vw solid lightsteelblue; width:1.823vw; text-align:center; cursor:pointer; }
 
  .tableChordsRoot { border-spacing:0.9vw; }
  .tdChordsRoot { font-size:2.40vw; vertical-align:middle; text-align:center; width:4.0vw; height:3.2vw; border-radius:0.26vw; border:0.052vw solid black; cursor:pointer; color:black; background-color:#e9e9e9; }
@@ -211,14 +212,14 @@ function Note(iOffset, letter, sharpOrFlat) // offset int (c=0), letter string C
    case "##": this.Text = letter + symSharp + symSharp; this.SharpFlatOffset = 2;  break;
    default: throw new Error("function Note(offset, letter, sharpOrFlat) invalid sharpOrFlat value"); 
   }
-
+/*
  this.NextNote = function(step)  // object function that returns a Note object from this note based on the step
   {
    var next;
    var nType;  // 1  =  EF  and   BC
 
    if (step<1 || step>2)
-     throw new Error("Note.NextNote(step) - step is not 1 or 2");
+     throw new Error("Note.NextNote(step) - step out of range");
    switch(this.Letter)
     {
      case "C": next = "D"; nType = 2; break;
@@ -285,6 +286,111 @@ function Note(iOffset, letter, sharpOrFlat) // offset int (c=0), letter string C
       }
     } 
   };
+*/
+ this.NextNote = function(step)  // object function that returns a Note object from this note based on the step
+  {
+   var next;
+   var nType;  // 1  =  EF  and   BC
+
+   if (step<1 || step>3)
+     throw new Error("Note.NextNote(step) - step out of range");
+   switch(this.Letter)
+    {
+     case "C": next = "D"; nType = 2; break;
+     case "D": next = "E"; nType = 2; break;
+     case "E": next = "F"; nType = 1; break;
+     case "F": next = "G"; nType = 2; break;
+     case "G": next = "A"; nType = 2; break;
+     case "A": next = "B"; nType = 2; break;
+     case "B": next = "C"; nType = 1; break;
+     default: throw new Error("Note.NextNote(step) Invalid Note.Letter value");
+    }
+   if (nType == 2) // nType is the distance between note letters, E to F and B to C is 1, but all others is 2
+    {
+     switch(step)
+      {
+       case 1:
+        {
+         switch(this.SharpFlat)
+          {
+           case "bb": throw new Error("Dbbb?")
+           case "b":  return new Note(this.Offset + 1, next, "bb"); // Cb to Dbb
+           case "":   return new Note(this.Offset + 1, next, "b");  // C to Db
+           case "#":  return new Note(this.Offset + 1, next, "");   // C# to D
+           case "##": return new Note(this.Offset + 1, next, "#");  // C## To D#
+           default: throw new Error("Note.NextNote(step) Invalid this.SharpFlat");
+          }
+        } break;
+       case 2:
+        {
+         switch(this.SharpFlat)
+          {
+           case "bb": return new Note(this.Offset + 2, next, "bb"); // Cbb to Dbb
+           case "b":  return new Note(this.Offset + 2, next, "b");  // Cb to Db
+           case "":   return new Note(this.Offset + 2, next, "");   // C to D
+           case "#":  return new Note(this.Offset + 2, next, "#");  // C# to D
+           case "##": return new Note(this.Offset + 2, next, "##"); // C## To D#
+           default: throw new Error("Note.NextNote(step) Invalid this.SharpFlat value");
+          }
+        } break;
+       case 3:
+        {
+         switch(this.SharpFlat)
+          {
+           case "bb": return new Note(this.Offset + 3, next, "bbb"); // Cbb to Dbbb
+           case "b":  return new Note(this.Offset + 3, next, "bb");  // Cb to Dbb
+           case "":   return new Note(this.Offset + 3, next, "b");   // C to Db
+           case "#":  return new Note(this.Offset + 3, next, "");  // C# to D
+           case "##": return new Note(this.Offset + 3, next, "#"); // C## To D#
+           default: throw new Error("Note.NextNote(step) Invalid this.SharpFlat value");
+          }
+        } break;
+      }
+    }
+   else 
+    {
+     switch(step)
+      {
+       case 1: // 1 step to next note, this time we are working with E to F and B to C
+        {
+         switch(this.SharpFlat)
+          {
+           case "bb": return new Note(this.Offset + 1, next, "bb");  // Ebb to Fbb
+           case "b":  return new Note(this.Offset + 1, next, "b");   // Eb to Fb
+           case "":   return new Note(this.Offset + 1, next, "");    // E to F
+           case "#": return new Note(this.Offset + 1,  next, "#");    // C## To D#
+           case "##": return new Note(this.Offset + 1, next, "##");    // C## To D#
+           default: throw new Error("Note.NextNote(step) Invalid this.SharpFlat value");
+          }
+        } break;
+       case 2: // step == 2
+        {
+         switch(this.SharpFlat)
+          {
+           case "bb": return new Note(this.Offset + 2, next, "b"); // Ebb to Fb
+           case "b":  return new Note(this.Offset + 2, next, "");  // Eb to F
+           case "":   return new Note(this.Offset + 2, next, "#");   // E to F#
+           case "#":  return new Note(this.Offset + 2, next, "##");  // E# to F##
+           case "##": throw new Error("F### ?");                     // not going to do ###s or bbb's
+           default: throw new Error("Note.NextNote(step) Invalid this.SharpFlat value");
+          }
+        } break;
+       case 3: // step == 3
+        {
+         switch(this.SharpFlat)
+          { 
+           case "bb": return new Note(this.Offset + 2, next, "");  // Ebb to F
+           case "b":  return new Note(this.Offset + 2, next, "#");  // Eb to F#
+           case "":   return new Note(this.Offset + 2, next, "##");   // E to F##
+           case "#":  return new Note(this.Offset + 2, next, "###");  // E# to F###
+           case "##": throw new Error("F### ?");                     
+           default: throw new Error("Note.NextNote(step) Invalid this.SharpFlat value");
+          }
+        } break;
+      }
+    } 
+  };
+
 } 
 
 // chord pattern consists of a name and an array of pitches
@@ -1057,8 +1163,8 @@ function PlayKeyScale()
 
  for (i=0; i<m_arrModes[m_CurrentMode].Sequences.length; i++)
   {
-   start += m_arrModes[m_CurrentMode].Sequences[i];
    m_arrPlayMidi[i] = start;
+   start += m_arrModes[m_CurrentMode].Sequences[i]; // have to increment after it's consumed
   }
 // m_arrPlayMidi.push(start + 12); // add the root's octave to give that completion sound
  m_CurrentMidiNote = 0;
@@ -1082,6 +1188,15 @@ function PlayChord(chord, offset) // using m_Key
 
  m_CurrentMidiNote = 0;
  PlayMidiNotes(69);
+}
+
+function PlaySingleNote(midi)
+{
+
+ m_arrPlayMidi = new Array();
+ m_arrPlayMidi[0] = midi;
+ m_CurrentMidiNote = 0;
+ PlayMidiNotes(250);
 }
 ////////////////////////////////////////////////
 //       G e n e r a t e    H T M L
@@ -1150,12 +1265,15 @@ function GenScaleInfo(key) // chord pattern index, offset C = 0, Key object
 {
  var s="";
  var i;
+ var midi = 48 + key.Offset; // 48 is C3
 
  for (i=0;i<m_arrModes[m_CurrentMode].Sequences.length;i++)
   {
-   s += "<TD class='modeChord' style='background-color:" + m_arrGradientBlueGreen[i] + ";'>";
+   s += "<TD class='scaleNote' style='background-color:" + m_arrGradientBlueGreen[i] + ";' onclick='PlaySingleNote(" + midi + ");'>";
    s += m_Key.Notes[i].Text;
    s += "</TD>";
+
+   midi += m_arrModes[m_CurrentMode].Sequences[i]; // have to increment midi after it's consumed above
 
    s+="<TD class='modeSequence'>"; 
    switch(m_arrModes[m_CurrentMode].Sequences[i])
@@ -1458,13 +1576,15 @@ function GenGuitarString(chord, offset, wstr, key) // index to ChordPattern, off
 
  for (fret=0; fret<m_arrInstruments[m_Guitar].Frets; fret++)
   {
+   midi = m_arrGuitar[wstr][fret]; // get midi note of string and fret
+   
    if (fret == 0) // before the nut
      w = fretBeforeNut;   // 25 pixels
    else  
      w = sw;
-   html += "<td class='fretString'>";
+   html += "<td class='fretString' onclick='PlaySingleNote(" + midi.toString() + ");'>";
 
-   midi = m_arrGuitar[wstr][fret]; // get midi note of string and fret
+  
 
    inChord = MidiNoteInChord(chord, offset, midi); // is the midi note in the chord?
 
@@ -1518,7 +1638,7 @@ function GenGuitarStringScale(wstr, key) // index to ChordPattern, offset C=0, s
    else  
      w = sw;
 
-   html += "<td class='fretString' style='color:" + fg + "; background-color:" + bg + ";'>";
+   html += "<td class='fretString' style='color:" + fg + "; background-color:" + bg + ";' onclick='PlaySingleNote(" + midi.toString() + ");'>";
 
    html += GenGuitarCellScale(w, midi, sn, key);
   
