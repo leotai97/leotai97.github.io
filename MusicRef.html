@@ -21,6 +21,7 @@
        .tabContent { color:black; display:none; padding:5.208vw 1.042vw; width:100%; }
 
       .tdSideChord { width:3vw; }
+        .tdVersion { font-size:1.8vw; }
 
          .fretCell { font-size:1.042vw; position:relative; color:#000044; text-align:center; height:2.3vw; }
      .fretCellLeft { font-size:0.938vw; position:absolute; top:1.344vw; left:0.1vw; color:#000044;}
@@ -37,23 +38,24 @@
         .chordInfo { font-size:1.042vw; padding:0.521vw; color:#000044; cursor:pointer; border:0.2vw solid lime; }
         .scaleInfo { font-size:1.022vw; padding:0.501vw; color:#000044; }
         .modeChord { border:0.052vw solid lightsteelblue; width:1.823vw; text-align:center; cursor:pointer; border:0.2vw solid lime; }
-        .chordNote { border:0.052vw solid lightsteelblue; width: 1.823vw; text-align: center; }
+        .chordNote { border:0.2vw solid limegreen; width: 1.823vw; text-align: center; cursor:pointer; }
      .chordFormula { text-align:center; font-style:italic; font-size:0.93vw; }
         .chordStep { text-align:center; font-size:0.93vw; }
      .modeSequence { text-align:center; font-style:italic; font-size:0.938vw; }
         .scaleName { font-size:1.042vw; padding:0.501vw; cursor:pointer; border:0.2vw solid lime; }
         .scaleNote { border:0.052vw solid lightsteelblue; width:1.823vw; text-align:center; cursor:pointer; }
+     .spanPatInKey { border:0.2vw solid limegreen; cursor:pointer; }
 
- .tableChordsRoot { border-spacing:0.9vw; }
- .tdChordsRoot { font-size:2.40vw; vertical-align:middle; text-align:center; width:4.0vw; height:3.2vw; border-radius:0.26vw; border:0.052vw solid black; cursor:pointer; color:black; background-color:#e9e9e9; }
+  .tableChordsRoot { border-spacing:0.9vw; }
+     .tdChordsRoot { font-size:2.40vw; vertical-align:middle; text-align:center; width:4.0vw; height:3.2vw; border-radius:0.26vw; border:0.052vw solid black; cursor:pointer; color:black; background-color:#e9e9e9; }
                    
-          .btn { font-size:2.50vw; font-weight:100; }
+              .btn { font-size:2.50vw; font-weight:100; }
 
- .tableDialogPattern { border-spacing:2vw; }
- .tdDialogPattern { font-size:2.50vw; vertical-align:middle; text-align:center; width:32.0vw; height:4.0vw; border-radius:0.26vw; border:0.052vw solid black; cursor:pointer; color:black; background-color:#e9e9e9; }
+  .tableDlgPattern { border-spacing:2vw; }
+     .tdDlgPattern { font-size:2.50vw; vertical-align:middle; text-align:center; width:32.0vw; height:4.0vw; border-radius:0.26vw; border:0.052vw solid black; cursor:pointer; color:black; background-color:#e9e9e9; }
 
-  .dialogBase { display:none; position:fixed; z-index:1; left:0; top:0; width:100vw; height:100vh; overflow:visible; background-color:rgb(0,0,0); background-color:rgba(0,0,0,0.4); } /* opacity */
-      .dialog { background-color:#fefefe; margin:7vw auto; padding:0.104vw; border:0.052vw solid #888; width:90vw; }
+       .dialogBase { display:none; position:fixed; z-index:1; left:0; top:0; width:100vw; height:100vh; overflow:visible; background-color:rgb(0,0,0); background-color:rgba(0,0,0,0.4); } /* opacity */
+           .dialog { background-color:#fefefe; margin:7vw auto; padding:0.104vw; border:0.052vw solid #888; width:90vw; }
  
 </style>
 <script type="text/javascript">
@@ -88,21 +90,22 @@ var pianoBlackWidth = 2.8; // width of a black piano key
 //    Global Variables
 /////////////////////////////
 
-var m_Audio = null;
+var m_Version = "1.0.3";
+var m_Audio = null;              // used in frequency generation
 
-var m_CurrentChordPattern = -1;
-var m_CurrentKey = -1; 
-var m_CurrentMode = -1;
-var m_CurrentInstrument = -1;
-var m_CurrentChordRoot = -1;
-var m_CurrentMidiNote = -1;
+var m_CurrentChordPattern = -1; // index to m_arrChordPatterns, set when cbo dropdown is changed
+var m_CurrentKey = -1;          // index to m_arrModes.KeyList array, used to generate m_Key Key object
+var m_CurrentMode = -1;         // index to m_arrModes, set when a cboMode dropdown is changed  
+var m_CurrentInstrument = -1;   // index to m_arrInstruments, set when radio button is clicked
+var m_CurrentChordRoot = -1;    // set when generated chord root note TD is clicked in Chord section, chord type dialog is popped and chord is generated
+var m_CurrentMidiNote = -1;     // index to m_arrPlayMidi, it is used to cycle thru notes that are played when things are clicked
 
-var m_CurrentGuitarCapo = 0;
+var m_CurrentGuitarCapo = 0;    // all set when capo drop downs are changed
 var m_CurrentBassCapo = 0;
 var m_CurrentMandolinCapo = 0;
 var m_CurrentUkuleleCapo = 0;
 
-var m_CurrentGuitarTuning = 0;
+var m_CurrentGuitarTuning = 0;   // all set when tuning dropdowns are changed
 var m_CurrentBassTuning = 0;
 var m_CurrentMandolinTuning = 0;
 var m_CurrentUkuleleTuning = 0;
@@ -169,7 +172,7 @@ var m_arrGradientBlueGreen = ["#189753", "#1ea55c", "#24b266", "#2ac06f", "#30cc
 
 var m_arrPastels = ["#b2cefe", "#baed91", "#faf884", "#f2a2e8"];     
 
-var m_arrPlayMidi = new Array(); // array of midi note numbers
+var m_arrPlayMidi = new Array(); // array of midi note numbers that are played when things are clicked
 
 //////////////////////////////////
 //   Object Class Construction
@@ -212,91 +215,16 @@ function Note(iOffset, letter, sharpOrFlat) // offset int (c=0), letter string C
    case "##": this.Text = letter + symSharp + symSharp; this.SharpFlatOffset = 2;  break;
    default: throw new Error("function Note(offset, letter, sharpOrFlat) invalid sharpOrFlat value"); 
   }
-/*
- this.NextNote = function(step)  // object function that returns a Note object from this note based on the step
-  {
-   var next;
-   var nType;  // 1  =  EF  and   BC
-
-   if (step<1 || step>2)
-     throw new Error("Note.NextNote(step) - step out of range");
-   switch(this.Letter)
-    {
-     case "C": next = "D"; nType = 2; break;
-     case "D": next = "E"; nType = 2; break;
-     case "E": next = "F"; nType = 1; break;
-     case "F": next = "G"; nType = 2; break;
-     case "G": next = "A"; nType = 2; break;
-     case "A": next = "B"; nType = 2; break;
-     case "B": next = "C"; nType = 1; break;
-     default: throw new Error("Note.NextNote(step) Invalid Note.Letter value");
-    }
-   if (nType == 2) // nType is the distance between note letters, E to F and B to C is 1, but all others is 2
-    {
-     if (step == 1)
-      {
-       switch(this.SharpFlat)
-        {
-         case "bb": throw new Error("Dbbb?")
-         case "b":  return new Note(this.Offset + 1, next, "bb"); // Cb to Dbb
-         case "":   return new Note(this.Offset + 1, next, "b");  // C to Db
-         case "#":  return new Note(this.Offset + 1, next, "");   // C# to D
-         case "##": return new Note(this.Offset + 1, next, "#");  // C## To D#
-         default: throw new Error("Note.NextNote(step) Invalid this.SharpFlat");
-        }
-      }
-     else
-      {
-       switch(this.SharpFlat)
-        {
-         case "bb": return new Note(this.Offset + 2, next, "bb"); // Cbb to Dbb
-         case "b":  return new Note(this.Offset + 2, next, "b");  // Cb to Db
-         case "":   return new Note(this.Offset + 2, next, "");   // C to D
-         case "#":  return new Note(this.Offset + 2, next, "#");  // C# to D
-         case "##": return new Note(this.Offset + 2, next, "##"); // C## To D#
-         default: throw new Error("Note.NextNote(step) Invalid this.SharpFlat value");
-        }
-      }
-    }
-   else 
-    {
-     if (step == 1) // 1 step to next note, this time we are working with E to F and B to C
-      {
-       switch(this.SharpFlat)
-        {
-         case "bb": return new Note(this.Offset + 1, next, "bb");  // Ebb to Fbb
-         case "b":  return new Note(this.Offset + 1, next, "b");   // Eb to Fb
-         case "":   return new Note(this.Offset + 1, next, "");    // E to F
-         case "#": return new Note(this.Offset + 1,  next, "#");    // C## To D#
-         case "##": return new Note(this.Offset + 1, next, "##");    // C## To D#
-         default: throw new Error("Note.NextNote(step) Invalid this.SharpFlat value");
-        }
-      }
-     else // step == 2
-      {
-       switch(this.SharpFlat)
-        {
-         case "bb": return new Note(this.Offset + 2, next, "b"); // Ebb to Fb
-         case "b":  return new Note(this.Offset + 2, next, "");  // Eb to F
-         case "":   return new Note(this.Offset + 2, next, "#");   // E to F#
-         case "#":  return new Note(this.Offset + 2, next, "##");  // E# to F##
-         case "##": throw new Error("F### ?");                     // not going to do ###s or bbb's
-         default: throw new Error("Note.NextNote(step) Invalid this.SharpFlat value");
-        }
-      }
-    } 
-  };
-*/
- this.NextNote = function(step)  // object function that returns a Note object from this note based on the step
-  {
-   var next;
-   var nType;  // 1  =  EF  and   BC
+ this.NextNote = function(step)  // object function that returns the next Note object in the current mode from this note based on the step
+  {                              // this is used by the Key object to generate a list of notes in the key where the notes of the key always increment to the next letter
+   var next;                     // so starting from the root each new note will be the next note letter in the series, eg D E F# G A B C#.  Sharps & Flats added as necessary.
+   var nType; // 1=EF & BC          some modes end up with very wild sharp flat setups, check out gypsy minor results.
 
    if (step<1 || step>3)
-     throw new Error("Note.NextNote(step) - step out of range");
+     throw new Error("Note.NextNote(step) - step out of range"); // currently none of the modes have steps greater then 3
    switch(this.Letter)
     {
-     case "C": next = "D"; nType = 2; break;
+     case "C": next = "D"; nType = 2; break;  // this is fairly straight forward
      case "D": next = "E"; nType = 2; break;
      case "E": next = "F"; nType = 1; break;
      case "F": next = "G"; nType = 2; break;
@@ -313,19 +241,19 @@ function Note(iOffset, letter, sharpOrFlat) // offset int (c=0), letter string C
         {
          switch(this.SharpFlat)
           {
-           case "bb": throw new Error("Dbbb?")
-           case "b":  return new Note(this.Offset + 1, next, "bb"); // Cb to Dbb
-           case "":   return new Note(this.Offset + 1, next, "b");  // C to Db
-           case "#":  return new Note(this.Offset + 1, next, "");   // C# to D
-           case "##": return new Note(this.Offset + 1, next, "#");  // C## To D#
-           default: throw new Error("Note.NextNote(step) Invalid this.SharpFlat");
+           case "bb": throw new Error("Dbbb?")                      // may need to enable this, not sure, problem is all these case statemments are coded for up to bb and ##
+           case "b":  return new Note(this.Offset + 1, next, "bb"); // Cb to Dbb so nType = 2 (e.g. C to D), step = 1, so C has to go to D, C to D is 2 steps, so extra b is added 
+           case "":   return new Note(this.Offset + 1, next, "b");  // C to Db, C natural + 1 is Db, fairly easy
+           case "#":  return new Note(this.Offset + 1, next, "");   // C# to D, C# + 1 is a natural D
+           case "##": return new Note(this.Offset + 1, next, "#");  // C## To D#, C##
+           default: throw new Error("Note.NextNote(step) Invalid this.SharpFlat");  
           }
         } break;
        case 2:
         {
          switch(this.SharpFlat)
           {
-           case "bb": return new Note(this.Offset + 2, next, "bb"); // Cbb to Dbb
+           case "bb": return new Note(this.Offset + 2, next, "bb"); // Cbb to Dbb, step 2 if fairly simple, all the flats and sharps are carried over to the next note letter
            case "b":  return new Note(this.Offset + 2, next, "b");  // Cb to Db
            case "":   return new Note(this.Offset + 2, next, "");   // C to D
            case "#":  return new Note(this.Offset + 2, next, "#");  // C# to D
@@ -337,7 +265,7 @@ function Note(iOffset, letter, sharpOrFlat) // offset int (c=0), letter string C
         {
          switch(this.SharpFlat)
           {
-           case "bb": return new Note(this.Offset + 3, next, "bbb"); // Cbb to Dbbb
+           case "bb": return new Note(this.Offset + 3, next, "bbb"); // Cbb to Dbbb, 3 steps is only found in Gypsy Minor
            case "b":  return new Note(this.Offset + 3, next, "bb");  // Cb to Dbb
            case "":   return new Note(this.Offset + 3, next, "b");   // C to Db
            case "#":  return new Note(this.Offset + 3, next, "");  // C# to D
@@ -349,13 +277,13 @@ function Note(iOffset, letter, sharpOrFlat) // offset int (c=0), letter string C
     }
    else 
     {
-     switch(step)
+     switch(step)  // this handles going from E to F and B to C.  These notes are next to each other.
       {
        case 1: // 1 step to next note, this time we are working with E to F and B to C
         {
          switch(this.SharpFlat)
           {
-           case "bb": return new Note(this.Offset + 1, next, "bb");  // Ebb to Fbb
+           case "bb": return new Note(this.Offset + 1, next, "bb");  // Ebb to Fbb, so 1 step here is like 2 steps above, all sharps and flats carry over to C and F
            case "b":  return new Note(this.Offset + 1, next, "b");   // Eb to Fb
            case "":   return new Note(this.Offset + 1, next, "");    // E to F
            case "#": return new Note(this.Offset + 1,  next, "#");    // C## To D#
@@ -365,10 +293,10 @@ function Note(iOffset, letter, sharpOrFlat) // offset int (c=0), letter string C
         } break;
        case 2: // step == 2
         {
-         switch(this.SharpFlat)
+         switch(this.SharpFlat) // again, the next note always must be the next letter in the series regardless of step or the number of steps between the letters
           {
-           case "bb": return new Note(this.Offset + 2, next, "b"); // Ebb to Fb
-           case "b":  return new Note(this.Offset + 2, next, "");  // Eb to F
+           case "bb": return new Note(this.Offset + 2, next, "b"); // Ebb to Fb, Ebb + 2 = Fb, going up 2, what F equivlent for Ebb + 2,  Ebb Eb E, what F = E, it's Fb   
+           case "b":  return new Note(this.Offset + 2, next, "");  // Eb to F, up 2
            case "":   return new Note(this.Offset + 2, next, "#");   // E to F#
            case "#":  return new Note(this.Offset + 2, next, "##");  // E# to F##
            case "##": throw new Error("F### ?");                     // not going to do ###s or bbb's
@@ -671,8 +599,8 @@ function Key(mode, startNote) // mode index, starting Note object
 
 function makeInstruments()
 {
- m_arrInstruments[m_Guitar] = new Instrument(m_Guitar, "Guitar", 6, 24);
- m_arrInstruments[m_Guitar].Tunings[0] =  new Tuning(0, "Standard Tuning", [40, 45, 50, 55, 59, 64]); // E2 A2 D3 G3 B3 E4
+ m_arrInstruments[m_Guitar] = new Instrument(m_Guitar, "Guitar", 6, 24); // 6 strings 24 frets
+ m_arrInstruments[m_Guitar].Tunings[0] =  new Tuning(0, "Standard Tuning", [40, 45, 50, 55, 59, 64]); // E2 A2 D3 G3 B3 E4  midi notes
  m_arrInstruments[m_Guitar].Tunings[1] =  new Tuning(1, "Half-Step Down", [39, 44, 49, 54, 58, 63]);
  m_arrInstruments[m_Guitar].Tunings[2] =  new Tuning(2, "Full-Step Down", [38, 43, 48, 53, 57, 62]);
  m_arrInstruments[m_Guitar].Tunings[3] =  new Tuning(3, "Drop-D", [38, 45, 50, 55, 59, 64]);
@@ -863,7 +791,7 @@ function makeMidiNotes()
  for (i = 0; i<107; i++)
   {
    m_arrMidiNotesLH[i] = m_arrMidiNotesHL[k];
-   m_mapMidiNotes.set(m_arrMidiNotesHL[k].Number, m_arrMidiNotesHL[k]);
+   m_mapMidiNotes.set(m_arrMidiNotesHL[k].Number, m_arrMidiNotesHL[k]); // this map is used to look up the Midi object given a midi note number
    k--;
   }
 }
@@ -1141,7 +1069,7 @@ function PlayNote(midi, milli)
  oscillator.connect(m_Audio.destination);
  oscillator.start();
 
- setTimeout(function(){oscillator.stop(); PlayMidiNotes(milli); }, milli); // 1/4 second?
+ setTimeout(function(){oscillator.stop(); PlayMidiNotes(milli); }, milli); 
 }
 
 function PlayMidiNotes(milli)
@@ -1208,6 +1136,7 @@ function GenChordInfo(chord, offset, key) // chord pattern index, offset is chor
  var html;
  var note, noteText;
  var p, k;
+ var midi;
 
  pattern = m_arrChordPatterns[chord]; // grab ChordPattern from modes array so it can step up through the notes
  
@@ -1225,25 +1154,26 @@ function GenChordInfo(chord, offset, key) // chord pattern index, offset is chor
 
  for (p=0; p<pattern.Pitches.length; p++)
   {
+   midi = 48 + offset + pattern.Pitches[p];
    k = offset + pattern.Pitches[p];
    if (k>11)
      k -= 12;
 
   if (p > 0)
-    {
-     html += "<TR><TD class='chordFormula'>"; 
-     switch(p)
-      {
-       case 1: html += pattern.Third; break;
-       case 2: html += pattern.Fifth; break;
-       case 3: html += pattern.Seventh; break;
-       case 4: html += pattern.Ninth; break;
-      }
-     html += "<TD class='chordStep'>" + pattern.Pitches[p].toString() + "</TD>";
-     html += "</TD></TR>";
-    }
+   {
+    html += "<TR><TD class='chordFormula'>"; 
+    switch(p)
+     {
+      case 1: html += pattern.Third; break;
+      case 2: html += pattern.Fifth; break;
+      case 3: html += pattern.Seventh; break;
+      case 4: html += pattern.Ninth; break;
+     }
+    html += "<TD class='chordStep'>" + pattern.Pitches[p].toString() + "</TD>";
+    html += "</TD></TR>";
+   }
 
-   html += "<TR><TD class='chordNote' style='color:#000044; background-color:" + m_arrPastels[p] + ";' colspan=2>";
+   html += "<TR><TD class='chordNote' onclick='PlaySingleNote(" + midi.toString() + ");' style='color:#000044; background-color:" + m_arrPastels[p] + ";' colspan=2>";
 
    note = key.OffsetNote(k);
    if (note == null)
@@ -1253,7 +1183,6 @@ function GenChordInfo(chord, offset, key) // chord pattern index, offset is chor
 
    html += noteText; // dm7 0-3-7-10 :  2 = d, 5 = f, 9 = a, 12  = c
    html += "</TD></TR>";
-
   }
 
  html += "</table>";
@@ -1288,7 +1217,6 @@ function GenScaleInfo(key) // chord pattern index, offset C = 0, Key object
 
  return s;
 }
-
 
 function genModeChords()
 {
@@ -2260,7 +2188,7 @@ function GenBassScale(key)
 
  html = "<table><tr><td><table><tr>" // holds scale name and table containing notes in scale then the fretboard table
 
- html += "<td class='scaleName'>";
+ html += "<td class='scaleName' onclick='PlayKeyScale();'>";
  html += key.OffsetNote(key.Offsets[0]).Text;
  html += " ";
  html += m_arrModes[m_CurrentMode].ModeName;
@@ -2662,7 +2590,7 @@ function GenMandolinScale(key)
 
  html = "<table><tr><td><table><tr>" // holds scale name and table containing notes in scale then the fretboard table
 
- html += "<td class='scaleName'>";
+ html += "<td class='scaleName' onclick='PlayKeyScale();'>";
  html += key.OffsetNote(key.Offsets[0]).Text;
  html += " ";
  html += m_arrModes[m_CurrentMode].ModeName;
@@ -3117,7 +3045,7 @@ function GenUkuleleScale(key)
 
  html = "<table><tr><td><table><tr>" // holds scale name and table containing notes in scale then the fretboard table
 
- html += "<td class='scaleName'>";
+ html += "<td class='scaleName' onclick='PlayKeyScale();'>";
  html += key.OffsetNote(key.Offsets[0]).Text;
  html += " ";
  html += m_arrModes[m_CurrentMode].ModeName;
@@ -3198,7 +3126,7 @@ function GenPianoChord(octaves, chord, offset, key) // return divs of piano keys
  var arrChordNotes = new Array();
  var found;
 
- wMidi = 60; // middle c - starting note
+ wMidi = 48; //  c3 - starting note
 
  sMidi = wMidi + m_Key.Offset;  // step up to key's starting note, 
 
@@ -3229,7 +3157,7 @@ function GenPianoChord(octaves, chord, offset, key) // return divs of piano keys
    midi = wMidi;
    for (k=0; k<7; k++)  // 7 white keys from C to B
     {
-     html += "<div class='pianoWhite' style='left:" + w.toString() + "vw;'>";
+     html += "<div class='pianoWhite' style='left:" + w.toString() + "vw;' onclick='PlaySingleNote(" + midi.toString() +");'>";
      html += GenPianoChordNote("pianoWhiteText", key, midi, arrChordNotes, m_arrPastels);
      html += "</div>";
      if (k==2 || k==6)  // E or B  key ??
@@ -3246,7 +3174,7 @@ function GenPianoChord(octaves, chord, offset, key) // return divs of piano keys
    midi = wMidi + 1;  // starting midi note of black keys
    for (k=0; k<5; k++) // 5 black keys
     {
-     html += "<div class='pianoBlack' style='left:" + w.toString() + "vw;'>";
+     html += "<div class='pianoBlack' style='left:" + w.toString() + "vw;' onclick='PlaySingleNote(" + midi.toString() +");'>";
      html += GenPianoChordNote("pianoBlackText", key, midi, arrChordNotes, m_arrPastels);
      html += "</div>"; 
      if (k==1 || k==4) // is the next key an f# or c#
@@ -3277,7 +3205,7 @@ function GenPianoScaleKeys(octaves, key, arrScaleNotes) // return divs of piano 
  var o;
  var wMidi, midi;
 
- wMidi = 60; // middle c - starting note
+ wMidi = 48; // c3 - starting note
 
  html = "<div style='position:relative; width:" + octaves * pianoWhiteWidth * 7 + "vw; height:" + pianoWhiteHeight + "vw;'>";
 
@@ -3290,7 +3218,7 @@ function GenPianoScaleKeys(octaves, key, arrScaleNotes) // return divs of piano 
    midi = wMidi;
    for (k=0; k<7; k++)  // 7 white keys from C to B
     {
-     html += "<div class='pianoWhite' style='left:" + w.toString() + "vw;'>";
+     html += "<div class='pianoWhite' style='left:" + w.toString() + "vw;' onclick='PlaySingleNote(" + midi.toString() +");'>";
      html += GenPianoChordNote("pianoWhiteText", key, midi, arrScaleNotes, m_arrGradientBlueGreen);
      html += "</div>";
      if (k==2 || k==6)  // E or B  key ??
@@ -3307,7 +3235,7 @@ function GenPianoScaleKeys(octaves, key, arrScaleNotes) // return divs of piano 
    midi = wMidi + 1;  // starting midi note of black keys
    for (k=0; k<5; k++) // 5 black keys
     {
-     html += "<div class='pianoBlack' style='left:" + w.toString() + "vw;'>";
+     html += "<div class='pianoBlack' style='left:" + w.toString() + "vw;' onclick='PlaySingleNote(" + midi.toString() +");'>";
      html += GenPianoChordNote("pianoBlackText", key, midi, arrScaleNotes, m_arrGradientBlueGreen);
      html += "</div>"; 
      if (k==1 || k==4) // is the next key an f# or c#
@@ -3337,7 +3265,7 @@ function GenPianoScale(key, mode)
  var wMidi, midi;
  var i;
 
- wMidi = 60;                 // keyboard's starting midi note
+ wMidi = 48;                 // keyboard's starting midi note c3
  midi = wMidi + key.Offset;  // scale's starting midi note
 
  for (i=0; i<m_arrModes[mode].Sequences.length; i++)
@@ -3348,7 +3276,7 @@ function GenPianoScale(key, mode)
 
  html = "<table><tr><td><table><tr>" // holds scale name and table containing notes in scale then the fretboard table
 
- html += "<td class='scaleName'>";
+ html += "<td class='scaleName' onclick='PlayKeyScale();'>";
  html += key.OffsetNote(key.Offsets[0]).Text;
  html += " ";
  html += m_arrModes[m_CurrentMode].ModeName;
@@ -3677,7 +3605,7 @@ function eventTDChordRootNote_Click(keyNdx)
 
  m_CurrentChordRoot = m_Key.Notes[keyNdx];  // m_CurrentChordRoot is a Note object
 
- html = "<table class='tableDialogPattern'>";
+ html = "<table class='tableDlgPattern'>";
  html += "<tr>";
  r = 0;
  for (i=0; i<m_arrChordPatterns.length; i++)
@@ -3698,14 +3626,15 @@ function eventTDChordRootNote_Click(keyNdx)
      html += "<tr>";
      r = 0;
     }
-   html += "<td class='tdDialogPattern' ";
+   html += "<td class='tdDlgPattern' ";
    if (outofkey == true)
      html += "title='This chord would be out of key' ";
    html += "onclick='eventDialogChordPattern_Click(" + i + ");'>";
+   html += "<span class='spanPatInKey' onclick='PlayChord(" + i.toString() + ", " + m_CurrentChordRoot.Offset.toString() + "); event.stopPropagation();' ";
    if (outofkey == true)
-     html += "<span style='color:red;'>" + symNot + "</span> &nbsp; ";
+     html += "style='color:red;'>" + symNot + "</span> &nbsp; ";
    else
-     html += "<span style='color:green;'>" + symNote + "</span> &nbsp; ";
+     html += "style='color:green;'>" + symNote + "</span> &nbsp; ";
    html += m_arrChordPatterns[i].Name;
    html += "</td>";
    r++;
@@ -3713,7 +3642,7 @@ function eventTDChordRootNote_Click(keyNdx)
 
  if (r==4)
   html += "<tr>";
- html += "<td class='tdDialogPattern' onclick='eventDialogChordPattern_Click(-1);'>";
+ html += "<td class='tdDlgPattern' onclick='eventDialogChordPattern_Click(-1);'>";
  html += "Cancel";
  html += "</td>";
  html += "</tr>";
@@ -4053,8 +3982,15 @@ function openPage(pageNum, pageName, btn)
   <td></td>
   <td></td>
  </tr>
+ <tr>
+  <td class="tdInst">
+  <td class="tdVersion">Developer Discord Channel: <a target="_blank" href="https://discord.gg/6auAGhj"> https://discord.gg/6auAGhj </a></td>
+ </tr>
+ <tr>
+  <td class="tdInst"></td>
+  <td class="tdVersion" id="tdVersion"></td>"
+ </tr>
 </table>
-<span>Version 1.0.1</span>
 </div>
 
 <div id="divTabHarmony" class="tabContent">
@@ -4184,6 +4120,8 @@ function openPage(pageNum, pageName, btn)
 
  dynaCapoLoader();
  dynaTuneLoader();
+
+ document.getElementById("tdVersion").innerHTML = "Music Reference Copyright © 2023 Brian L Hughes Version " + m_Version;
 
 </script>
 </body>
