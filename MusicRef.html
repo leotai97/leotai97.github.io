@@ -93,7 +93,7 @@ var optFingeringLetters = 2;
 //    Global Variables
 /////////////////////////////
 
-var m_Version = "1.0.7";
+var m_Version = "1.0.8";
 var m_Audio = null;              // used in frequency generation
 
 var m_CurrentChordPattern = -1; // index to m_arrChordPatterns, set when cbo dropdown is changed
@@ -1479,7 +1479,7 @@ function GenGuitarString(chord, offset, wstr, key) // index to ChordPattern, off
     }
    else
     {
-     html += "<td class='fretString' style='width:" + wstr.toString() + "vw; background-color:lightgray;'>";
+     html += "<td class='fretString' style='width:" + w.toString() + "vw; background-color:lightgray;'>";
     }  
    html += "</td>";
    sw -=  fretDecrease; // 1 pixel
@@ -1531,7 +1531,7 @@ function GenGuitarStringScale(wstr, key) // index to ChordPattern, offset C=0, s
     }
    else
     {
-     html += "<td class='fretString' style='color:" + fg + "; background-color:lightgray;'>";
+     html += "<td class='fretString' style='width:" + w.toString() + "vw; color:" + fg + "; background-color:lightgray;'>";
     }
    html += "</td>";
    sw -= fretDecrease; // subtract about a pixel on 1920 monitor
