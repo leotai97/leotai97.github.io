@@ -93,7 +93,7 @@ var optFingeringLetters = 2;
 //    Global Variables
 /////////////////////////////
 
-var m_Version = "1.0.5";
+var m_Version = "1.0.6";
 var m_Audio = null;              // used in frequency generation
 
 var m_CurrentChordPattern = -1; // index to m_arrChordPatterns, set when cbo dropdown is changed
@@ -1133,7 +1133,7 @@ function PlayChord(chord, offset) // using m_Key
   }
 
  m_CurrentMidiNote = 0;
- PlayMidiNotes(69);
+ PlayMidiNotes(128);
 }
 
 function PlaySingleNote(midi)
