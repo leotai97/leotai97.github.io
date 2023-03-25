@@ -93,7 +93,7 @@ var optFingeringLetters = 2;
 //    Global Variables
 /////////////////////////////
 
-var m_Version = "1.0.6";
+var m_Version = "1.0.7";
 var m_Audio = null;              // used in frequency generation
 
 var m_CurrentChordPattern = -1; // index to m_arrChordPatterns, set when cbo dropdown is changed
@@ -166,7 +166,7 @@ var m_arrUkulele = new Array();
 
 // blue green gradient color array
 
-var m_arrGradientBlueGreen = ["#189753", "#1ea55c", "#24b266", "#2ac06f", "#30cc79", "#36da82", "#42f696"];
+var m_arrGradientBlueGreen = ["#189753", "#1ea55c", "#24b266", "#2ac06f", "#30cc79", "#36da82", "#42f696", "#50ffa0"];
 
 // array of pastel colors for chord notes
 
@@ -1112,6 +1112,9 @@ function PlayKeyScale()
    m_arrPlayMidi[i] = start;
    start += m_arrModes[m_CurrentMode].Sequences[i]; // have to increment after it's consumed
   }
+
+ m_arrPlayMidi.push(start);
+
 // m_arrPlayMidi.push(start + 12); // add the root's octave to give that completion sound
  m_CurrentMidiNote = 0;
  PlayMidiNotes(169);
@@ -1236,6 +1239,10 @@ function GenScaleInfo(key) // chord pattern index, offset C = 0, Key object
    s+="</TD>";
   }
 
+ s += "<TD class='scaleNote' style='background-color:" + m_arrGradientBlueGreen[7] + ";' onclick='PlaySingleNote(" + midi + ");'>";
+ s += m_Key.Notes[0].Text;
+ s += "</TD>";
+
  return s;
 }
 
@@ -1274,6 +1281,16 @@ function genModeChords()
    if (cn >= 12)
      cn -= 12;
   }
+
+ pattern = m_arrModes[m_CurrentMode].ChordType[0];
+
+ s += "<TD class='modeChord' onclick='PlayChord(" + pattern.toString() + "," + cn.toString() + ");'>";
+ 
+ s += m_Key.OffsetNote(m_Key.Offset).Text;
+ s += m_arrChordPatterns[pattern].ShortName;
+  
+ s += "</TD>";
+
  s+="</TR><TR></TABLE>";
 
  return s;
