@@ -48,9 +48,9 @@
 
   .tableChordsRoot { border-spacing:0.9vw; }
      .tdChordsRoot { font-size:2.40vw; vertical-align:middle; text-align:center; width:4.0vw; height:3.2vw; border-radius:0.26vw; border:0.052vw solid black; cursor:pointer; color:black; background-color:#e9e9e9; }
-              .btn { font-size:2.40vw; vertical-align:middle; text-align:center; width:6.0vw; height:3.2vw; border-radius:0.26vw; border:0.052vw solid black; cursor:pointer; color:black; background-color:#e9e9e9; }
+                   
+              .btn { font-size:2.55vw; font-weight:400; }
 
-                  
   .tableDlgPattern { border-spacing:2vw; }
      .tdDlgPattern { font-size:2.50vw; vertical-align:middle; text-align:center; width:32.0vw; height:4.0vw; border-radius:0.26vw; border:0.052vw solid black; cursor:pointer; color:black; background-color:#e9e9e9; }
 
@@ -93,7 +93,7 @@ var optFingeringLetters = 2;
 //    Global Variables
 /////////////////////////////
 
-var m_Version = "1.0.4";
+var m_Version = "1.0.5";
 var m_Audio = null;              // used in frequency generation
 
 var m_CurrentChordPattern = -1; // index to m_arrChordPatterns, set when cbo dropdown is changed
@@ -3917,7 +3917,7 @@ function openPage(pageNum, pageName, btn)
   <td><select id="cboModesChord" onchange="eventcboModesChord_Change();"></select></td>
   <td><select id="cboKeysChord" title="Choose Key" onchange="eventcboKeysChord_Change();"></select></td>
   <td id='tdChordRoots'></td>
-  <td><div class="btn" onclick="eventBtnChordClear_Click();"> Clear </div>
+  <td><input class="btn" type="button" value="Clear" onclick="eventBtnChordClear_Click();">
  </tr>
 </table>
 <table id="tableChords">
@@ -3929,8 +3929,8 @@ function openPage(pageNum, pageName, btn)
  <tr valign=middle>
   <td><select id="cboModesScale" onchange="eventcboModesScale_Change();"></select></td>
   <td><select id="cboKeysScale" title="Choose Key" onchange="eventcboKeysScale_Change();"></select></td>
-  <td><div class="btn" onclick="eventBtnScaleAdd_Click();"> Add </div></td>
-  <td><div class="btn" onclick="eventBtnScaleClear_Click();"> Clear </div></td>
+  <td><input class="btn" type="button" value="Add" onclick="eventBtnScaleAdd_Click();"></td>
+  <td><input class="btn" type="button" value="Clear" onclick="eventBtnScaleClear_Click();"></td>
  </tr>
 </table>
 <table id="tableScales">
