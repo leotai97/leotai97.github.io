@@ -95,7 +95,8 @@ var optFingeringLetters = 2;
 /////////////////////////////
 
 var m_Version = "1.0.8";
-var m_Audio = null;              // used in frequency generation
+var m_Audio = null;             // used in frequency generation
+var m_CurrentWave = "square";   // sine square triangle sawtooth
 
 var m_CurrentChordPattern = -1; // index to m_arrChordPatterns, set when cbo dropdown is changed
 var m_CurrentKey = -1;          // index to m_arrModes.KeyList array, used to generate m_Key Key object
@@ -1076,6 +1077,8 @@ function PlayNote(midi, milli)
 {
  var oscillator; 
  var midiNote;
+ var volumeCtrl = document.getElementById("audioVolumeControl");
+ var volume;
 
  if (m_Audio == null)
    m_Audio = new(window.AudioContext || window.webkitAudioContext)();
@@ -1083,9 +1086,13 @@ function PlayNote(midi, milli)
  midiNote = m_mapMidiNotes.get(midi);
 
  oscillator = m_Audio.createOscillator(); // create the player
- oscillator.type = 'square';
+ oscillator.type = m_CurrentWave;
+
+ volume = m_Audio.createGain();
+ oscillator.connect(volume);
+ volume.connect(m_Audio.destination);
+ volume.gain.value = volumeCtrl.value;
  oscillator.frequency.value = midiNote.Frequency;
- oscillator.connect(m_Audio.destination);
  oscillator.start();
 
  setTimeout(function(){oscillator.stop(); PlayMidiNotes(milli); }, milli); 
@@ -1114,9 +1121,8 @@ function PlayKeyScale()
    start += m_arrModes[m_CurrentMode].Sequences[i]; // have to increment after it's consumed
   }
 
- m_arrPlayMidi.push(start);
+ m_arrPlayMidi.push(start); // push the octave
 
-// m_arrPlayMidi.push(start + 12); // add the root's octave to give that completion sound
  m_CurrentMidiNote = 0;
  PlayMidiNotes(169);
 }
@@ -1140,7 +1146,6 @@ function PlayChord(chord, midiRoot) // index to m_arrChordPattern and the chord'
 
 function PlaySingleNote(midi)
 {
-
  m_arrPlayMidi = new Array();
  m_arrPlayMidi[0] = midi;
  m_CurrentMidiNote = 0;
@@ -3674,6 +3679,10 @@ function eventRadFingering(opt)
    m_arrFingering = ["I", "M", "R", "P"];
 }
 
+function eventcboAudioWave_Change()
+{
+ m_CurrentWave = document.getElementById("cboAudioWave").options[document.getElementById("cboAudioWave").selectedIndex].value;
+}
 ////////////////////////////////////////////////
 //               S h o w   
 ////////////////////////////////////////////////
@@ -3886,10 +3895,27 @@ function openPage(pageNum, pageName, btn)
   </td>
  </tr>
  <tr>
-  <td class="tdVersion" colspan="4">Developer Discord Channel: <a target="_blank" href="https://discord.gg/6auAGhj"> https://discord.gg/6auAGhj </a></td>
+  <td colspan=2><span class="tdHarmonyInst">Audio Settings: </span>
+   <select id="cboAudioWave" onchange="eventcboAudioWave_Change();">
+    <option selected value="square">Square</option>
+    <option value="sine">Sine</option>
+    <option value="sawtooth">Sawtooth</option>
+    <option value="triangle">Triangle</option>
+   </select>
+  </td>
+  <td colspan=2>
+    <input type="range" id="audioVolumeControl" min="0" max="3" value="1" step="0.01" />
+    <input type="button" class="btn" value="Test" onclick="PlayChord(0, 48);">
+  </td>
  </tr>
  <tr>
-  <td class="tdVersion" id="tdVersion" colspan="4"></td>"
+  <td colspan=4>&nbsp;</td>
+ </tr>
+ <tr>
+  <td colspan=4 class="tdVersion">Developer Discord Channel: <a target="_blank" href="https://discord.gg/6auAGhj"> https://discord.gg/6auAGhj </a></td>
+ </tr>
+ <tr>
+  <td colspan=4 class="tdVersion" id="tdVersion"></td>"
  </tr>
 </table>
 </div>
