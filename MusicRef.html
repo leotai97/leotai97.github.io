@@ -44,7 +44,7 @@
         .chordStep { text-align:center; font-size:0.93vw; }
      .modeSequence { text-align:center; font-style:italic; font-size:0.938vw; }
         .scaleName { font-size:1.042vw; padding:0.501vw; cursor:pointer; border:0.2vw solid lime; }
-        .scaleNote { border:0.052vw solid lightsteelblue; width:1.823vw; text-align:center; cursor:pointer; }
+        .scaleNote { border:0.052vw solid lightsteelblue; width:2.823vw; text-align:center; cursor:pointer; }
      .spanPatInKey { border:0.2vw solid limegreen; cursor:pointer; }
 
   .tableChordsRoot { border-spacing:0.9vw; }
@@ -95,7 +95,7 @@ var optFingeringLetters = 2;
 //    Global Variables
 /////////////////////////////
 
-var m_Version = "1.0.9";
+var m_Version = "1.1.0";
 var m_Audio = null;             // used in frequency generation
 var m_CurrentWave = "square";   // sine square triangle sawtooth
 
@@ -1301,7 +1301,7 @@ function GenStringCellScale(width, midiNote, scaleNum, key)
  html += note;
 
  if (scaleNum > 0)
-   html += "<div class='fretCellRight'>" + scaleNum.toString() + "</div>";
+   html += "<br><div class='fretCellInfo'>" + scaleNum.toString() + "</div>";
 
  html += "</div>";
 
