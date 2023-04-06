@@ -67,21 +67,21 @@
 
 // special characters 
 
-var symSharp='\u266F'; // Arial unicode MS
-var symFlat='\u266D';  
-var symDim7='\u00F8';  // 0 with slash
-var symFDim='\u00B0';  // degree symbol
-var symMajor='\u25B3'; // delta symbol
-var symDot = '\u25CF'; // dot
+var symSharp= '\u266F'; // Arial unicode MS  sharp symbol
+var symFlat=  '\u266D'; // flat symbol
+var symDim7=  '\u00F8'; // 0 with slash
+var symFDim=  '\u00B0'; // degree symbol
+var symMajor= '\u25B3'; // delta symbol
+var symDot =  '\u25CF'; // dot
 var symNote = '\u266B'; // 2 notes
-var symNot = '\u2205';  // circle with line thru it
+var symNot =  '\u2205'; // circle with line thru it
 
 // measurements in vw & vh viewport units
 
-var fretStartSize = 5; // 80 pixels on 1920 x 1200
-var fretBeforeNut = 2.604; // 50 pixels
-var fretDecrease = 0.110;  // 2 pixel
-var fretMarkStart = 3.126; // 60 pixels, slid over to line up dots
+var fretStartSize = 5;         // 80 pixels on 1920 x 1200
+var fretBeforeNut = 2.604;     // 50 pixels
+var fretDecrease = 0.110;      // 2 pixel
+var fretMarkStart = 3.126;     // 60 pixels, slid over to line up dots
 var fretMarkBeforeNut = 1.562; // 30 pixels
 
 var pianoWhiteWidth = 4;   // width of a white piano key in "vw" viewport units  ( 4 = 4% of the view port width
@@ -95,7 +95,7 @@ var optFingeringLetters = 2;
 //    Global Variables
 /////////////////////////////
 
-var m_Version = "1.1.0";
+var m_Version = "1.1.2";
 var m_Audio = null;             // used in frequency generation
 var m_CurrentWave = "square";   // sine square triangle sawtooth
 
@@ -103,7 +103,7 @@ var m_CurrentChordPattern = -1; // index to m_arrChordPatterns, set when cbo dro
 var m_CurrentKey = -1;          // index to m_arrModes.KeyList array, used to generate m_Key Key object
 var m_CurrentMode = -1;         // index to m_arrModes, set when a cboMode dropdown is changed  
 var m_CurrentInstrument = -1;   // index to m_arrInstruments, set when radio button is clicked
-var m_CurrentChordRoot = -1;    // set when generated chord root note TD is clicked in Chord section, chord type dialog is popped and chord is generated
+var m_CurrentChordRoot = null;  // set when generated chord root note TD is clicked in Chord section, chord type dialog is popped and chord is generated, Note object
 var m_CurrentMidiNote = -1;     // index to m_arrPlayMidi, it is used to cycle thru notes that are played when things are clicked
 
 var m_CurrentGuitarCapo = 0;    // all set when capo drop downs are changed
@@ -116,7 +116,7 @@ var m_CurrentBassTuning = 0;
 var m_CurrentMandolinTuning = 0;
 var m_CurrentUkuleleTuning = 0;
 var m_CurrentKeyboardTuning = 0;
-var m_CurrentFingeringOption = optFingeringLetters;  // whether to show numbers 1234 or letters IMRP for chord fingerings
+var m_CurrentFingeringOption = optFingeringNumbers;  // whether to show numbers 1234 or letters IMRP for chord fingerings
 
 var m_Key = null;  // set to a Key object when a key is selected, contains list of notes in the key
 
@@ -127,7 +127,7 @@ var m_Ukulele = 3;
 var m_Keyboard = 4;
 
 var m_cpMajor=0;  // these variables can be used to access the specific elements of the m_arrChordPatterns array
-var m_cpMinor=1;
+var m_cpMinor=1;  // these must match the same set of variables in the GuitarCode C# program
 var m_cpSus2=2;
 var m_cpSus=3
 var m_cpAug=4;
@@ -142,11 +142,6 @@ var m_cpDim7=12;
 var m_cpMajor9=13;
 var m_cpMinor9=14;
 var m_cpDom9=15;
-
-// these variables can be used to access the specific elements of the m_arrModes array
-
-var m_modeIonian = 0;      // Major
-var m_modeAeolian = 5;     // Minor
 
 // arrays
 
@@ -172,13 +167,14 @@ var m_arrUkulele = new Array();
 
 var m_arrGradientBlueGreen = ["#189753", "#1ea55c", "#24b266", "#2ac06f", "#30cc79", "#36da82", "#42f696", "#50ffa0"];
 
+
 // array of pastel colors for chord notes
 
-var m_arrPastels = ["#b2cefe", "#baed91", "#faf884", "#f2a2e8", "#e0ffff"]; //blue, green, yellow, pink, cyan    
+var m_arrPastels = ["#b2cefe", "#baed91", "#faf884", "#f2a2e8", "#e0ffff"]; //blue, green, yellow, pink, cyan  
 
 var m_arrPlayMidi = new Array(); // array of midi note numbers that are played when things are clicked
 
-var m_arrFingering = ["I", "M", "R", "P"];  
+var m_arrFingering = new Array(); // array of fingering, either numbers 1 2 3 4 or letter I M R P. Loaded when option changes.
 
 //////////////////////////////////
 //   Object Class Construction
@@ -332,12 +328,12 @@ function Note(iOffset, letter, sharpOrFlat) // offset int (c=0), letter string C
 function ChordPattern(id, strName, strAbbrev, arrPitches, arrNames)
 {
  this.ID = id;                           // unique id
- this.Name = strName;                    // Major, Minor
+ this.Name = strName;                    // Major, Minor, Dorian etc
  this.ShortName = strAbbrev;             // symbols etc
- this.Pitches = arrPitches;              // array of steps, integers
- this.PitchNames = arrNames;             // array of strings denoting the short name of each note of a chord
+ this.Pitches = arrPitches;              // array of distances of chord notes from the chord's root note, integers
+ this.PitchNames = arrNames;             // array of strings denoting the short name of each note of a chord, root, major third, perfect 5th etc
  
- // Finger Placements, these arrays are imported from the c# program "GuitarChord", the .js is copied and pasted below quite a ways
+ // Finger Placements, these arrays are imported from the c# program "GuitarChord", the .js is copied and pasted below quite a ways down in the code
 
  this.PatternGuitar = new Array();
  this.PatternBass = new Array();
@@ -403,7 +399,7 @@ function ChordPattern(id, strName, strAbbrev, arrPitches, arrNames)
 
 }
 
-// Fingering
+// Fingering object are stored in the Placement and BarrePlacement object below
 
 function Fingering(str, fret)
 {
@@ -411,9 +407,9 @@ function Fingering(str, fret)
  this.Fret = fret;  // fret number
 }
 
-// Fingering for the barre chord index finger
+// Fingering for the barre chord index finger, it has the ShowNote property when true the Index finger's note info is part of the chord and displayed
 
-function BarreIndex(str, fret, showNote)
+function BarreIndex(str, fret, showNote) // this object is only stored in the instrument barre fingering array
 {
  this.Str = str;
  this.Fret = fret;
@@ -427,18 +423,22 @@ function Placement(id, instrument, offset, arrIndex, arrMiddle, arrRing, arrPink
  this.ID = id;
  this.Instrument = instrument;  // m_Guitar etc
  this.Offset = offset;          // C = 0
- this.Index = arrIndex;         // list of Fingering
- this.Middle = arrMiddle;
+ this.Index = arrIndex;         // list of Fingering for the index finger
+ this.Middle = arrMiddle;       // middle finger
  this.Ring = arrRing;
  this.Pinky = arrPinky;
- this.Open = arrOpen;
- this.NoPlay = arrNoPlay;
+ this.Open = arrOpen;           // open notes on either the nut or capo
+ this.NoPlay = arrNoPlay;       // string shouldn't be played, it's note is not part of the chord or the string's note is not the root of the chord such as E string in the case of A major chord
 }
 
 // C C#/Db D D#/Eb E  F  F#/Gb G G#/Ab A A#/Bb B/Cb
 // 0   1   2   3   4  5    6   7   8   9  10    11
 
-// E and A Barre pattern placement
+// Barre pattern placement
+// The way this can show barre chords on the entire fretboard is by the "Offsets" array. The array contains the shift distance up the fret it would take to play the chord
+// For example: with the A major pattern to play a chord such as D major the D offset "2" is used to look up the Offset in the OFfsets array which results in "4" 
+// so the A major pattern needs to be moved up 4 frets to play a D major.  The shift upwards is not from the nut, but rather from the 1st fret "Bb major" position of the barre chord.
+// the Bb major lookup B offset is 10.  The 10 Offsets array result is 0, the A major barre from Bb doesn't need to slide up.    
 
 function BarrePlacement(id, offset, chordPattern, instrument, arrIndex, arrMiddle, arrRing, arrPinky, arrNoPlay)
 {
@@ -473,7 +473,7 @@ function BarrePlacement(id, offset, chordPattern, instrument, arrIndex, arrMiddl
  // Index Fingering.Fret = 0  and all others are # of frets past the Index 
  // so the barre chord can moved about on the fretboard
 
-for (i=1; i<14; i++)  // starting with Bb for the A pattern and F for the E pattern, they are stored in the array at index 0
+for (i=1; i<14; i++)  // for A major barre starting with Bb for the A pattern and F for the E pattern, they are stored in the array at index 0
   {
    fa = new Array();
    for (k=0; k<arrIndex.length; k++)
@@ -510,7 +510,9 @@ for (i=1; i<14; i++)  // starting with Bb for the A pattern and F for the E patt
   }
 }
 
-// a midi note consists of the midi number, offset distance from "C", the octive, and frequency
+// a midi note consists of the midi number, offset distance from "C", the octive, and frequency plus functions to generate the name
+// the Name object function returns the note's name based on the current Key, if sharp or flat it will return either #  or b based on the notes of the key
+// the MidiName object function returns the name along with the midi note's octave as well, 48 would return C3
 
 function MidiNote(id, nMidi, nOffset, nOctive, fFreq)
 {
@@ -519,7 +521,6 @@ function MidiNote(id, nMidi, nOffset, nOctive, fFreq)
  this.Offset = nOffset;    // C = 0
  this.Octave = nOctive;    // 4 is middle C
  this.Frequency = fFreq;   // in hertz
- this.MidiName = "";       // midi name contains octive D#6/Eb6
  this.Name = function(key) // name does not contain octive numbers
   {
    var note;
@@ -582,7 +583,7 @@ function Key(mode, startNote) // mode index, starting Note object
   {
    this.Notes[i] = this.Notes[i-1].NextNote(m_arrModes[mode].Sequences[i-1]); // populate the Notes array
    os += m_arrModes[mode].Sequences[i-1];   // move to the next offset based on the current mode's pitch sequence
-   if (os >= 12)        // if offset > 12 
+   if (os >= 12)        // if offset >= 12 
      os -= 12;          // wrap it back around to 0
    this.Offsets[i] = os; // populate the Offsets array
   }
@@ -1033,18 +1034,18 @@ function NoteText(iOffset) // this exists to provide note info if the note is ou
 
  switch(offset)
   {
-   case  0: return "c";
-   case  1: return "c" + symSharp + "/" + "d" + symFlat;
-   case  2: return "d";
-   case  3: return "d" + symSharp + "/" + "e" + symFlat;
-   case  4: return "e";
-   case  5: return "f";
-   case  6: return "f" + symSharp + "/" + "g" + symFlat;
-   case  7: return "g";
-   case  8: return "g" + symSharp + "/" + "a" + symFlat;
-   case  9: return "a";
-   case 10: return "a" + symSharp + "/" + "b" + symFlat;
-   case 11: return "b";
+   case  0: return "C";
+   case  1: return "C" + symSharp + "/" + "D" + symFlat;
+   case  2: return "D";
+   case  3: return "D" + symSharp + "/" + "E" + symFlat;
+   case  4: return "E";
+   case  5: return "F";
+   case  6: return "F" + symSharp + "/" + "G" + symFlat;
+   case  7: return "G";
+   case  8: return "G" + symSharp + "/" + "A" + symFlat;
+   case  9: return "A";
+   case 10: return "A" + symSharp + "/" + "B" + symFlat;
+   case 11: return "B";
   }
 }
 
@@ -1091,10 +1092,10 @@ function GetWhichNoteInChord(chord, offset, midi)  // chord is ndx to m_arrChord
  var off = m_mapMidiNotes.get(midi).Offset;  // get offset of midi note, c = 0
  var note;
 
- for(i=0; i<pat.Pitches.length; i++)
+ for(i=0; i<pat.Pitches.length; i++) // 1st pitch is always 0 for the root
   {
    note = offset + pat.Pitches[i]; // pitches are not steps between notes, they are the distance from the root
-   if (note > 12)
+   if (note >= 12)
      note -= 12;
    if (note == off)
      return i;
@@ -1136,6 +1137,46 @@ function PlayMidiNotes(milli)
    m_CurrentMidiNote++;
   }
 }
+
+
+function PlayRawScale(modeNdx, tonic)
+{
+ var key;
+ var start;
+ var i;
+ var note;
+
+ note = null;
+ 
+ for (i=0; i<m_arrModes[modeNdx].KeyList.length; i++)
+  {
+   if (m_arrModes[modeNdx].KeyList[i].Offset == tonic)
+     note = m_arrModes[modeNdx].KeyList[i]; // get the Note object for the key
+  }
+
+ if (note == null)
+  {
+   alert("unable to play scale");
+   return;
+  }
+
+ key = new Key(modeNdx, note);
+
+ start = 48 + key.Offset;  // c3
+ m_arrPlayMidi = new Array();
+
+ for (i=0; i<m_arrModes[modeNdx].Sequences.length; i++)
+  {
+   m_arrPlayMidi[i] = start;
+   start += m_arrModes[modeNdx].Sequences[i]; // have to increment after it's consumed
+  }
+
+ m_arrPlayMidi.push(start); // push the octave
+
+ m_CurrentMidiNote = 0;
+ PlayMidiNotes(169);
+}
+
 
 function PlayKeyScale()
 {
@@ -1199,16 +1240,16 @@ function GenStringCell(chord, key, offset, midiNote, width, open, barre, barreSh
  var midi;
 
  midi = m_mapMidiNotes.get(midiNote);                         // get Midi object
- whichNote = GetWhichNoteInChord(chord, offset, midiNote);    // get which note of the chord midi is, 0 = root
+ whichNote = GetWhichNoteInChord(chord, offset, midiNote);    // get which note of the chord midi is, 0 = root, 1 = major/minor 3rd etc
  if (whichNote < 0)
    inChord = false;
  else
    inChord = true;
  
- if (key.LookUp[midi.Offset] >= 0)
-   preNote = midi.MidiName(key);
+ if (key.LookUp[midi.Offset] >= 0) // determine if midi note is in the key
+   preNote = midi.MidiName(key);    // it is, figure out the display, either natural or flat/sharp based on the key
  else 
-   preNote = NoteText(midi.Offset) + "(" + midi.Octave.toString() + ")"; 
+   preNote = NoteText(midi.Offset) + "(" + midi.Octave.toString() + ")";  // it is not in the key, so can't determine sharp or flat so just include both names, example D#/Eb
 
  note = preNote;
  if (inChord == true)
@@ -1730,7 +1771,7 @@ function GenGuitarMarks()
  return html;
 }
 
-function GenGuitar(chord, offset, key, midiRoot) // chord pattern index, offset C=0, Key object
+function GenGuitar(chord, offset, key) // chord pattern index, offset C=0, Key object
 {
  var html;
 
@@ -1755,7 +1796,7 @@ function GenGuitarScale(key)
 
  html = "<table><tr><td><table><tr>" // holds scale name and table containing notes in scale then the fretboard table
 
- html += "<td class='scaleName' onclick='PlayKeyScale();'>";
+ html += "<td class='scaleName' onclick='PlayRawScale(" + m_CurrentMode.toString() + ", " + key.Offset.toString() + ");'>";
  html += key.OffsetNote(key.Offsets[0]).Text;
  html += " ";
  html += m_arrModes[m_CurrentMode].ModeName;
@@ -2935,6 +2976,8 @@ function GenPianoScale(key, mode)
 
 function dynaInstLoader(cboName)
 {
+ var i, oOption;
+
  document.getElementById(cboName).options.length=0;
  for (i=0;i<m_arrInstruments.length;i++)
   {
@@ -3113,27 +3156,48 @@ function dynaTuneLoader()
   }
 }
 
+function dynaChordsAllRootsButtons()
+{
+ var html, i;
+
+ html = "<table class='tableChordsRoot'><tr>"; 
+ 
+ html += "<td class='tdVersion'>All Notes</td>";
+
+ for (i=0;i<12;i++)
+  {
+   html += "<td class='tdChordsRoot' onclick='eventTDChordAllRootNote_Click(" + i + ");'>";
+   html += NoteText(i);
+   html += "</td>";
+  }
+
+ html += "</tr></table>";
+ 
+ document.getElementById("tdChordAllNoteRoots").innerHTML = html;
+
+}
+
 ////////////////////////////////////////////////
 //               E v e n t s 
 ////////////////////////////////////////////////
 
-function eventRadInstrument(inst)
+function eventRadInstrument(inst) // Instrument radio button click
 {
  m_CurrentInstrument = inst;
 }
 
-function eventcboKeysTH_Change()
+function eventcboKeysTH_Change() // Traditional Harmony Keys dropdown selection change 
 {
  m_CurrentKey = parseInt(document.getElementById("cboKeysTH").options[document.getElementById("cboKeysTH").selectedIndex].value);
 
  m_Key = new Key(m_CurrentMode, m_arrModes[m_CurrentMode].KeyList[m_CurrentKey]);
 
- showChords();
- showScale();
- showModeChords();
+ THShowChords();
+ THShowScale();
+ THShowModeChords();
 }
 
-function eventcboModesTH_Change()
+function eventcboModesTH_Change() // Traditional Harmony Modes dropdown selection change
 {
  var i;
 
@@ -3152,12 +3216,12 @@ function eventcboModesTH_Change()
 
  m_CurrentKey = 0;
  m_Key = new Key(m_CurrentMode, m_arrModes[m_CurrentMode].KeyList[m_CurrentKey]);
- showChords();
- showScale();
- showModeChords();
+ THShowChords();
+ THShowScale();
+ THShowModeChords();
 }
 
-function eventcboModesChord_Change()
+function eventcboModesChord_Change()   // Chords section Modes dropdown selection change
 {
  var i;
 
@@ -3174,10 +3238,10 @@ function eventcboModesChord_Change()
    document.getElementById("cboKeysChord").options.add(oOption);
   }
 
- eventcboKeysChord_Change();
+ eventcboKeysChord_Change();  // fire the keys dropdown change to with the default selection
 }
 
-function eventcboModesScale_Change()
+function eventcboModesScale_Change() // Scales section Modes dropdown selection change
 {
  var i;
 
@@ -3198,7 +3262,7 @@ function eventcboModesScale_Change()
 }
 
 
-function eventcboKeysChord_Change()
+function eventcboKeysChord_Change() // Chord section Keys dropdown selection change
 {
  var html, i;
 
@@ -3221,19 +3285,19 @@ function eventcboKeysChord_Change()
  
 }
 
-function eventcboKeysScale_Change()
+function eventcboKeysScale_Change()  // Scale section Key dropdown selection change
 {
  m_CurrentKey = parseInt(document.getElementById("cboKeysScale").options[document.getElementById("cboKeysScale").selectedIndex].value);
 
  m_Key = new Key(m_CurrentMode, m_arrModes[m_CurrentMode].KeyList[m_CurrentKey]);
 }
 
-function eventcboPatternsChord_Change()
+function eventcboPatternsChord_Change() // Chord section Pattern dropdown selection change
 {
  m_CurrentChordPattern =  parseInt(document.getElementById("cboPatternsChord").options[document.getElementById("cboPatternsChord").selectedIndex].value);
 }
 
-function eventTDChordRootNote_Click(keyNdx)
+function eventTDChordRootNote_Click(keyNdx) // Chord section root note TD "buttons" click
 {
  var html, i, k, r;
  var outofkey, off;
@@ -3289,7 +3353,47 @@ function eventTDChordRootNote_Click(keyNdx)
  document.getElementById("divDialogBase").style.display = "block";
 }
 
-function eventDialogChordPattern_Click(patternNdx)
+function eventTDChordAllRootNote_Click(offset) // Chord section root note TD "buttons" click
+{
+ var html, i, k, r;
+ var midi;
+
+ html = "<table class='tableDlgPattern'>";
+ html += "<tr>";
+ r = 0;
+ for (i=0; i<m_arrChordPatterns.length; i++)
+  {
+   if (r==4)
+    {
+     if (i>0)
+       html += "</tr>";
+     html += "<tr>";
+     r = 0;
+    }
+   html += "<td class='tdDlgPattern' ";
+   html += "onclick='eventDialogChordPatternAllRoots_Click(" + i + "," + offset + ");'>";
+   midi = 48 + offset;
+   html += "<span class='spanPatInKey' onclick='PlayChord(" + i.toString() + ", " + midi.toString() + "); event.stopPropagation();' ";
+   html += "style='color:green;'>" + symNote + "</span> &nbsp; ";
+   html += m_arrChordPatterns[i].Name;
+   html += "</td>";
+   r++;
+  }
+
+ if (r==4)
+  html += "<tr>";
+ html += "<td class='tdDlgPattern' onclick='eventDialogChordPatternAllRoots_Click(-1);'>";
+ html += "Cancel";
+ html += "</td>";
+ html += "</tr>";
+ html += "</table>";
+
+ document.getElementById("divDialog").innerHTML = html;
+ document.getElementById("divDialogBase").style.display = "block";
+}
+
+
+function eventDialogChordPattern_Click(patternNdx) // Dialog box TD Chord pattern "button" click generated above
 {
  var html, table, row, td, cn, midiRoot;
  
@@ -3326,14 +3430,52 @@ function eventDialogChordPattern_Click(patternNdx)
  td.innerHTML = html;
 }
 
-function eventBtnChordClear_Click()
+
+function eventDialogChordPatternAllRoots_Click(patternNdx, cn) // Dialog box TD Chord pattern "button" click generated above, cn is note offset C = 0
+{
+ var html, table, row, td, midiRoot;
+ 
+ document.getElementById("divDialogBase").style.display = "none";
+ document.getElementById("divDialog").innerHTML = "";
+
+ if (patternNdx < 0) // cancel?
+   return;
+
+ table = document.getElementById("tableChords");
+
+ row = table.insertRow(table.rows.length);
+ 
+ td = row.insertCell(0);
+
+ midiRoot = 48 + cn; // C3 + the offset
+
+ html = "<table><tr><td class='tdSideChord'>";
+ html += GenChordInfo(patternNdx, cn, m_Key, midiRoot);
+ html += "</td><td>";
+
+ switch(m_CurrentInstrument)
+  {
+   case m_Guitar:   html += GenGuitar(patternNdx, cn, m_Key);   break;
+   case m_Bass:     html += GenBass(patternNdx, cn, m_Key);     break;
+   case m_Mandolin: html += GenMandolin(patternNdx, cn, m_Key); break;
+   case m_Ukulele:  html += GenUkulele(patternNdx, cn, m_Key);  break;
+   case m_Keyboard: html += GenPianoChord(3, patternNdx, cn, m_Key); break; 
+  }
+
+ html += "</td></tr></table>";
+
+ td.innerHTML = html;
+}
+
+
+function eventBtnChordClear_Click() // Chords section Clear button click
 {
  var table = document.getElementById("tableChords");
 
  table.innerHTML = "";
 }
 
-function eventBtnScaleAdd_Click()
+function eventBtnScaleAdd_Click() // Scales section Add button click
 {
  var html, table;
 
@@ -3342,8 +3484,6 @@ function eventBtnScaleAdd_Click()
  row = table.insertRow(table.rows.length);
  
  td = row.insertCell(0);
-
- cn = m_CurrentChordRoot.Offset;
 
  html = "<table><tr><td class='tdScaleInst'>";
 
@@ -3362,59 +3502,58 @@ function eventBtnScaleAdd_Click()
 
 }
 
-
-function eventBtnScaleClear_Click()
+function eventBtnScaleClear_Click() // Scales section Clear button click
 {
  var table = document.getElementById("tableScales");
 
  table.innerHTML = "";
 }
 
-function eventcboGuitarCapo_Change()
+function eventcboGuitarCapo_Change() // Settings section guitar capo dropdown selection change
 {
  m_CurrentGuitarCapo =  parseInt(document.getElementById("cboGuitarCapo").options[document.getElementById("cboGuitarCapo").selectedIndex].value);
 }
 
-function eventcboBassCapo_Change()
+function eventcboBassCapo_Change()  // Settings section bass guitar capo dropdown selection change
 {
  m_CurrentBassCapo =  parseInt(document.getElementById("cboBassCapo").options[document.getElementById("cboBassCapo").selectedIndex].value);
 }
 
-function eventcboMandolinCapo_Change()
+function eventcboMandolinCapo_Change() // Settings section mandolin capo dropdown selection change
 {
  m_CurrentMandolinCapo =  parseInt(document.getElementById("cboMandolinCapo").options[document.getElementById("cboMandolinCapo").selectedIndex].value);
 }
 
-function eventcboUkuleleCapo_Change()
+function eventcboUkuleleCapo_Change() // Settings section ukulele capo dropdown selection change
 {
  m_CurrentUkuleleCapo =  parseInt(document.getElementById("cboUkuleleCapo").options[document.getElementById("cboUkuleleCapo").selectedIndex].value);
 }
 
-function eventcboGuitarTune_Change()
+function eventcboGuitarTune_Change() // Settings section guitar alternate tuning dropdown selection change
 {
  m_CurrentGuitarTuning =  parseInt(document.getElementById("cboGuitarTune").options[document.getElementById("cboGuitarTune").selectedIndex].value);
  makeGuitar();
 }
 
-function eventcboBassTune_Change()
+function eventcboBassTune_Change() // Settings section bass guitar alternate tuning dropdown selection change
 {
  m_CurrentBassTuning =  parseInt(document.getElementById("cboBassTune").options[document.getElementById("cboBassTune").selectedIndex].value);
  makeBass();
 }
 
-function eventcboMandolinTune_Change()
+function eventcboMandolinTune_Change() // Settings section mandolin alternate tuning dropdown selection change
 {
  m_CurrentMandolinTuning =  parseInt(document.getElementById("cboMandolinTune").options[document.getElementById("cboMandolinTune").selectedIndex].value);
  makeMandolin();
 }
 
-function eventcboUkuleleTune_Change()
+function eventcboUkuleleTune_Change()  // Settings section ukulele alternate tuning dropdown selection change
 {
  m_CurrentUkuleleTuning =  parseInt(document.getElementById("cboUkuleleTune").options[document.getElementById("cboUkuleleTune").selectedIndex].value);
  makeUkulele();
 }
 
-function eventRadFingering(opt)
+function eventRadFingering(opt) // Settings section Fingering display radio button click,  either numbers 1 2 3 4 or letters I M R P
 {
  m_CurrentFingeringOption = opt;
  if (opt == optFingeringNumbers)
@@ -3423,7 +3562,7 @@ function eventRadFingering(opt)
    m_arrFingering = ["I", "M", "R", "P"];
 }
 
-function eventcboAudioWave_Change()
+function eventcboAudioWave_Change() // Settings section audio waveform dropdown selection change
 {
  m_CurrentWave = document.getElementById("cboAudioWave").options[document.getElementById("cboAudioWave").selectedIndex].value;
 }
@@ -3433,7 +3572,7 @@ function eventcboAudioWave_Change()
 
 // high level show mode chords, instrument chords & instrument scales
 
-function showChords()
+function THShowChords()
 {
  var pattern;
  var i;
@@ -3473,7 +3612,7 @@ function showChords()
  document.getElementById("tdHarmonyInstrument").innerHTML = m_arrInstruments[m_CurrentInstrument].InstrumentName;
 }
 
-function showScale()
+function THShowScale() // Show the Traditional Harmony scale instrument
 {
  var s;
 
@@ -3494,7 +3633,7 @@ function showScale()
  document.getElementById('tdScaleInst').innerHTML = s;
 }
 
-function showModeChords()
+function THShowModeChords() // Traditional Harmony section show the table of chords based on the selected mode and key selections
 {
  var s;
 
@@ -3503,7 +3642,7 @@ function showModeChords()
  document.getElementById('tdModeChordsTH').innerHTML = s;
 }
 
-function hideChords()
+function THHideChords() // Clear the traditional harmony chord TDs
 {
  var i;
 
@@ -3553,17 +3692,18 @@ function openPage(pageNum, pageName, btn)
    case 1:
     {
      dynaModesLoaderTH("cboModesTH");
-     showChords();
+     THShowChords();
     } break;
    case 2:
     {
      dynaModesLoaderChord("cboModesChord");
-     hideChords();
+     dynaChordsAllRootsButtons();
+     THHideChords();
     } break;
    case 3:
     {
      dynaModesLoaderScale("cboModesScale");
-     hideChords();
+     THHideChords();
     } break;
   }
 }
@@ -3648,7 +3788,7 @@ function openPage(pageNum, pageName, btn)
    </select>
   </td>
   <td colspan=2>
-    <input type="range" id="audioVolumeControl" min="0" max="3" value="1" step="0.01" />
+    &nbsp; &nbsp; <input type="range" id="audioVolumeControl" min="0" max="2" value="0.4" step="0.01" /> &nbsp; &nbsp;
     <input type="button" class="btn" value="Test" onclick="PlayChord(0, 48);">
   </td>
  </tr>
@@ -3765,6 +3905,9 @@ function openPage(pageNum, pageName, btn)
   <td id='tdChordRoots'></td>
   <td><input class="btn" type="button" value="Clear" onclick="eventBtnChordClear_Click();">
  </tr>
+ <tr>
+  <td colspan=4 id="tdChordAllNoteRoots"></td>
+ </tr>
 </table>
 <table id="tableChords">
 </table>
@@ -3789,6 +3932,8 @@ function openPage(pageNum, pageName, btn)
  document.getElementById("btnDefault").click();  // open default tab
  document.getElementById("radGuitar").checked = true;
  document.getElementById("radFingeringNumbers").checked = true;
+
+ eventRadFingering(optFingeringNumbers);
  m_CurrentInstrument = m_Guitar;
 
  dynaCapoLoader();
