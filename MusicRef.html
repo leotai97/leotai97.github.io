@@ -97,7 +97,7 @@ var blueNote = "#6FA8DC"; // a light blue
 //    Global Variables
 /////////////////////////////
 
-var m_Version = "1.1.4";
+var m_Version = "1.1.5";
 var m_Audio = null;             // used in frequency generation
 var m_CurrentWave = "square";   // sine square triangle sawtooth
 
@@ -1642,7 +1642,7 @@ function GenOtherScaleInfo(key, notes) // Key object, array of Note objects
    s+="</TD>";
   }
 
- s += "<TD class='scaleNote' style='background-color:" + m_arrGradientBlueGreen[m_arrScales[m_CurrentScale].Sequences.length] + ";' onclick='PlaySingleNote(" + midi + ");'>";
+ s += "<TD class='scaleNote' style='background-color:" + m_arrGradientBlueGreen[m_arrScales[m_CurrentScale].Sequences.length] + ";' onclick='PlaySingleNote(" + midiNum + ");'>";
  s += notes[0].Text;  // add the octave to the html
  s += "</TD>";
 
