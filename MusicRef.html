@@ -91,11 +91,13 @@ var pianoBlackWidth = 2.8; // width of a black piano key
 var optFingeringNumbers = 1;
 var optFingeringLetters = 2;
 
+var blueNote = "#6FA8DC"; // a light blue
+
 /////////////////////////////
 //    Global Variables
 /////////////////////////////
 
-var m_Version = "1.1.3";
+var m_Version = "1.1.4";
 var m_Audio = null;             // used in frequency generation
 var m_CurrentWave = "square";   // sine square triangle sawtooth
 
@@ -171,9 +173,9 @@ var m_arrUkulele = [];
 var m_arrGradientBlueGreen = ["#189753", "#1ea55c", "#24b266", "#2ac06f", "#30cc79", "#36da82", "#42f696", "#50ffa0"];
 
 
-// array of pastel colors for chord notes
+// array of pastel colors for chord notes (now using the above color array instead)
 
-var m_arrPastels = ["#b2cefe", "#baed91", "#faf884", "#f2a2e8", "#e0ffff"]; //blue, green, yellow, pink, cyan  
+// var m_arrPastels = ["#b2cefe", "#baed91", "#faf884", "#f2a2e8", "#e0ffff"]; //blue, green, yellow, pink, cyan  
 
 var m_arrPlayMidi = []; // array of midi note numbers that are played when things are clicked
 
@@ -599,15 +601,6 @@ function Key(mode, startNote) // mode index, starting Note object
  this.Notes = [];        // list of note names with special characters for sharps and flats
  this.Offsets = [];      // offset notes of the key
  this.LookUp = [];       // a way to find the note name in the key only knowing what the offset is C = 0
- this.OffsetNote = function(offset) // return Note object
-  {
-   if (this.LookUp[offset] >=0)
-     return this.Notes[this.LookUp[offset]];
-   else
-    {
-     return null;
-    }
-  };
 
  os = startNote.Offset;       // get the key's starting note offset, c = 0
  this.Offsets[0] = os;
@@ -635,6 +628,38 @@ function Key(mode, startNote) // mode index, starting Note object
    if (found == false)
      this.LookUp.push(-1); // offset of note is not in this key
   }
+
+ this.OffsetNote = function(offset) // return Note object
+  {
+   if (this.LookUp[offset] >=0)
+     return this.Notes[this.LookUp[offset]];
+   else
+    {
+     return null;
+    }
+  };
+
+ this.NoteIndex = function(note) // note object, returns index into note array
+  {
+   var i;
+
+   for (i=0; i<this.Notes.length; i++)
+    {
+     if (note.Offset == this.Notes[i].Offset)
+       return i;
+    }
+   return -1;
+  };
+
+}
+
+function PlayThing(playThingType, modeNdx, key, arrNotes, chordPatNdx)
+{
+ this.PlayType = playThingType;
+ this.Mode = modeNdx;
+ this.Key = key;
+ this.Notes = arrNotes;
+ this.Pattern = chordPatNdx;
 }
 
 //////////////////////////////////
@@ -1186,6 +1211,33 @@ function PlayNote(midi, milli)
  setTimeout(function(){oscillator.stop(); PlayMidiNotes(milli); }, milli); 
 }
 
+function PlayChordArray(milli) 
+{
+ var oscillators = []; 
+ var midiNote;
+ var volumeCtrl = document.getElementById("audioVolumeControl");
+ var volumes = [];
+
+ if (m_Audio == null)
+   m_Audio = new(window.AudioContext || window.webkitAudioContext)();
+
+ for (i=0; i<m_arrPlayMidi.length; i++)
+  {
+   midiNote = m_mapMidiNotes.get(m_arrPlayMidi[i]);
+
+   oscillators[i] = m_Audio.createOscillator(); // create the player
+   oscillators[i].type = m_CurrentWave;
+
+   volumes[i] = m_Audio.createGain();
+   oscillators[i].connect(volumes[i]);
+   volumes[i].connect(m_Audio.destination);
+   volumes[i].gain.value = volumeCtrl.value;
+   oscillators[i].frequency.value = midiNote.Frequency;
+   oscillators[i].start();
+   setTimeout(function(){for (i=0; i<oscillators.length; i++) oscillators[i].stop(); }, milli); 
+  }
+}
+
 function PlayMidiNotes(milli)
 {
  if (m_CurrentMidiNote < m_arrPlayMidi.length) 
@@ -1287,8 +1339,7 @@ function PlayChord(chord, midiRoot) // index to m_arrChordPattern and the chord'
    m_arrPlayMidi[i] = midi;   
   }
 
- m_CurrentMidiNote = 0;
- PlayMidiNotes(128);
+ PlayChordArray(256);
 }
 
 function PlaySingleNote(midi)
@@ -1312,11 +1363,16 @@ function GenStringCell(chord, key, offset, midiNote, width, open, barre, barreSh
  var note, chordNote, whichNote;
  var inChord;
  var preNote;
- var bg, fg;
+ var bg, fg, colorNdx;
  var midi;
 
  midi = m_mapMidiNotes.get(midiNote);                         // get Midi object
- whichNote = GetWhichNoteInChord(chord, offset, midiNote);    // get which note of the chord midi is, 0 = root, 1 = major/minor 3rd etc
+ note = key.OffsetNote(midi.Offset);
+ if (note != null)
+   colorNdx = key.NoteIndex(key.OffsetNote(midi.Offset));          // get which note of the key the midi is, 0 = tonic
+ else
+   colorNdx = -1;
+ whichNote = GetWhichNoteInChord(chord, offset, midiNote);
  if (whichNote < 0)
    inChord = false;
  else
@@ -1365,7 +1421,10 @@ function GenStringCell(chord, key, offset, midiNote, width, open, barre, barreSh
 
  if (note != "")
   {
-   bg = m_arrPastels[whichNote]; 
+   if (colorNdx < 0)
+     bg = blueNote;
+   else
+     bg = m_arrGradientBlueGreen[colorNdx]; 
   }
  else
   {
@@ -1442,13 +1501,14 @@ function GenChordInfo(chord, offset, key, midiRoot) // chord pattern index, offs
  var note, noteText;
  var p, k;
  var midi;
+ var color;
 
  pattern = m_arrChordPatterns[chord]; // grab ChordPattern from modes array so it can step up through the notes
  
  note = key.OffsetNote(offset);
  if (note == null)
    noteText = NoteText(offset);
- else 
+ else
    noteText = note.Text;
 
  html = "<table>"; 
@@ -1478,13 +1538,20 @@ function GenChordInfo(chord, offset, key, midiRoot) // chord pattern index, offs
     html += "</TD></TR>";
    }
 
-   html += "<TR><TD class='chordNote' onclick='PlaySingleNote(" + midi.toString() + ");' style='color:#000044; background-color:" + m_arrPastels[p] + ";' colspan=2>";
-
    note = key.OffsetNote(k);
    if (note == null)
+    {
      noteText = NoteText(k);
-   else 
+     color = blueNote;
+    }
+   else
+    { 
      noteText = note.Text;
+     color = m_arrGradientBlueGreen[key.NoteIndex(note)];
+    }
+
+   html += "<TR><TD class='chordNote' onclick='PlaySingleNote(" + midi.toString() + ");' style='color:#000044; background-color:" + color + ";' colspan=2>";
+
 
    noteText += "<BR><div class='fretCellInfo'>";
    noteText += pattern.PitchNames[p];
@@ -1531,22 +1598,41 @@ function GenScaleInfo(key) // chord pattern index, offset C = 0, Key object
  return s;
 }
 
-function GenOtherScaleInfo(notes) // Key object, array of Note objects
+function GenOtherScaleInfo(key, notes) // Key object, array of Note objects
 {
  var s="";
  var i;
- var midi = 48 + notes[0].Offset; // 48 is C3
+ var midiNum;
+ var midi;
+ var color;
+ var noteText;
 
- for (i=0;i<m_arrScales[m_CurrentScale].Sequences.length;i++)
-  {
-   s += "<TD class='scaleNote' style='background-color:" + m_arrGradientBlueGreen[i] + ";' onclick='PlaySingleNote(" + midi + ");'>";
-   s += notes[i].Text;
+ midiNum = 48 + notes[0].Offset;     // 48 is C3
+
+
+ for (i=0;i<m_arrScales[m_CurrentScale].Sequences.length;i++) // walk up the scale
+  {   
+   midi = m_mapMidiNotes.get(midiNum); // get the midi object for the scale's current midi number
+   note = notes[i];                // get Note object from the notes array
+   noteText = note.Text;          // note text for html
+   keyNdx = key.NoteIndex(note);  // see if note is key 
+   if (keyNdx < 0) 
+    {
+     color = blueNote;       // note is out of key, color it blue
+    }
+   else
+    { 
+     color = m_arrGradientBlueGreen[keyNdx];  // the gradient 
+    }
+
+   s += "<TD class='scaleNote' style='background-color:" + color + ";' onclick='PlaySingleNote(" + midiNum + ");'>";
+   s += noteText;
    s += "</TD>";
 
-   midi += m_arrScales[m_CurrentScale].Sequences[i]; // have to increment midi after it's consumed above
+   midiNum += m_arrScales[m_CurrentScale].Sequences[i]; // have to increment midi after it's consumed above
 
    s+="<TD class='modeSequence'>"; 
-   switch(m_arrScales[m_CurrentScale].Sequences[i])
+   switch(m_arrScales[m_CurrentScale].Sequences[i])  // include the scale formula step letter
     {
      case 1: s+="h<BR />1"; break;
      case 2: s+="W<BR />2"; break;
@@ -1557,7 +1643,7 @@ function GenOtherScaleInfo(notes) // Key object, array of Note objects
   }
 
  s += "<TD class='scaleNote' style='background-color:" + m_arrGradientBlueGreen[m_arrScales[m_CurrentScale].Sequences.length] + ";' onclick='PlaySingleNote(" + midi + ");'>";
- s += notes[0].Text;
+ s += notes[0].Text;  // add the octave to the html
  s += "</TD>";
 
  return s;
@@ -1804,39 +1890,45 @@ function GenGuitarString(chord, offset, wstr, key) // index to ChordPattern, off
  return html;
 }
 
-function GenGuitarStringScale(wstr, notes) // which string, and an array of Note objects
+function GenGuitarStringScale(wstr, key, notes) // which string, and an array of Note objects
 {
- var midi;
+ var midi, midiNum;
  var bg, fg;
  var sn;
  var html = "<tr>";
  var fret;
  var sw = fretStartSize; //vw units about 40 pixels on a 1920 display, this is the size of area between the nut and fret 1
- var w;
+ var w, i, keyNdx;
+ var note, text;
 
  for (fret=0; fret<m_arrInstruments[m_Guitar].Frets; fret++)
   {
-   midi = m_arrGuitar[wstr][fret]; // get midi note of string and fret
-   
-   sn = 0;
+   midiNum = m_arrGuitar[wstr][fret];  // get midi # note of string and fret
+   midi = m_mapMidiNotes.get(midiNum); // get Midi object
+   note = null;
+   sn = -1;
    for(i=0; i<notes.length; i++)
     {
-     if (m_mapMidiNotes.get(midi).Offset == notes[i].Offset)
+     if (midi.Offset == notes[i].Offset)
       {
-       sn = i+1;
+       sn = i;
+       note = notes[i];
+       keyNdx = key.NoteIndex(note);
+       if (keyNdx >= 0)
+         bg = m_arrGradientBlueGreen[keyNdx];
+       else
+         bg = blueNote;
+       fg = "#000044";
+       text = note.Text;
       }
     }
-
-   if (sn > 0)
+   if (note == null)
     {
-     bg = m_arrGradientBlueGreen[sn-1];
-     fg = "#000044";
-    }
-   else
-    {
+     text = "";
      bg = "#CCCCCC";
      fg = "white";
     }
+
    if (fret == 0)        // before the nut
      w = fretBeforeNut;  // 25 pixels
    else  
@@ -1844,8 +1936,12 @@ function GenGuitarStringScale(wstr, notes) // which string, and an array of Note
 
    if (fret >= m_CurrentGuitarCapo)
     {
-     html += "<td class='fretString' style='color:" + fg + "; background-color:" + bg + ";' onclick='PlaySingleNote(" + midi.toString() + ");'>";
-     html += GenStringCellScale(w, midi, sn, notes);
+     html += "<td class='fretString' style='color:" + fg + "; background-color:" + bg + ";' onclick='PlaySingleNote(" + midiNum.toString() + ");'>";
+     html += "<div class='fretCell' style='width:" + w.toString() + "vw;'>";
+     html += text;
+     if (sn >= 0)
+       html += "<br><div class='fretCellInfo'>" + (sn + 1).toString() + "</div>";
+     html += "</div>";
     }
    else
     {
@@ -1928,12 +2024,12 @@ function GenGuitarScale(key)
 
  html += "</tr></table></tr></td><tr><td><table>";
 
- html += GenGuitarStringScale(5, key.Notes); // returns TRs
- html += GenGuitarStringScale(4, key.Notes);
- html += GenGuitarStringScale(3, key.Notes);
- html += GenGuitarStringScale(2, key.Notes);
- html += GenGuitarStringScale(1, key.Notes);
- html += GenGuitarStringScale(0, key.Notes);
+ html += GenGuitarStringScale(5, key, key.Notes); // returns TRs
+ html += GenGuitarStringScale(4, key, key.Notes);
+ html += GenGuitarStringScale(3, key, key.Notes);
+ html += GenGuitarStringScale(2, key, key.Notes);
+ html += GenGuitarStringScale(1, key, key.Notes);
+ html += GenGuitarStringScale(0, key, key.Notes);
  html += GenGuitarMarks();
 
  html += "</table></td></tr></table>";
@@ -1954,16 +2050,16 @@ function GenGuitarOtherScale(key, notes)
  html += " Scale";
  html += "</td>";
 
- html += GenOtherScaleInfo(notes);  // returns more TDs
+ html += GenOtherScaleInfo(key, notes);  // returns more TDs
 
  html += "</tr></table></tr></td><tr><td><table>";
 
- html += GenGuitarStringScale(5, notes); // returns TRs
- html += GenGuitarStringScale(4, notes);
- html += GenGuitarStringScale(3, notes);
- html += GenGuitarStringScale(2, notes);
- html += GenGuitarStringScale(1, notes);
- html += GenGuitarStringScale(0, notes);
+ html += GenGuitarStringScale(5, key, notes); // returns TRs
+ html += GenGuitarStringScale(4, key, notes);
+ html += GenGuitarStringScale(3, key, notes);
+ html += GenGuitarStringScale(2, key, notes);
+ html += GenGuitarStringScale(1, key, notes);
+ html += GenGuitarStringScale(0, key, notes);
  html += GenGuitarMarks();
 
  html += "</table></td></tr></table>";
@@ -2154,50 +2250,68 @@ function GenBassString(chord, offset, wstr, key) // index to ChordPattern, offse
  return html;
 }
 
-function GenBassStringScale(wstr, notes) // which string, array of Note objects
+function GenBassStringScale(wstr, key, notes) // which string, array of Note objects
 {
- var midi;
+ var midi, midiNum;
  var bg, fg;
  var sn;
  var html = "<tr>";
  var fret;
  var sw = fretStartSize; //vw units about 40 pixels on a 1920 display, this is the size of area between the nut and fret 1
- var w;
+ var w, i, keyNdx;
+ var note, text;
 
  for (fret=0; fret<m_arrInstruments[m_Bass].Frets; fret++)
   {
-   midi = m_arrBass[wstr][fret]; // get midi note of string and fret
-   
-   sn = 0;
+   midiNum = m_arrBass[wstr][fret];  // get midi # note of string and fret
+   midi = m_mapMidiNotes.get(midiNum); // get Midi object
+   note = null;
+   sn = -1;
    for(i=0; i<notes.length; i++)
     {
-     if (m_mapMidiNotes.get(midi).Offset == notes[i].Offset)
-       sn = i+1;
+     if (midi.Offset == notes[i].Offset)
+      {
+       sn = i;
+       note = notes[i];
+       keyNdx = key.NoteIndex(note);
+       if (keyNdx >= 0)
+         bg = m_arrGradientBlueGreen[keyNdx];
+       else
+         bg = blueNote;
+       fg = "#000044";
+       text = note.Text;
+      }
     }
-
-   if (sn > 0)
+   if (note == null)
     {
-     bg = m_arrGradientBlueGreen[sn-1];
-     fg = "#000044";
-    }
-   else
-    {
+     text = "";
      bg = "#CCCCCC";
      fg = "white";
     }
+
    if (fret == 0)        // before the nut
      w = fretBeforeNut;  // 25 pixels
    else  
      w = sw;
 
-   html += "<td class='fretString' style='color:" + fg + "; background-color:" + bg + ";'>";
-
-   html += GenStringCellScale(w, midi, sn, notes);
-  
+   if (fret >= m_CurrentBassCapo)
+    {
+     html += "<td class='fretString' style='color:" + fg + "; background-color:" + bg + ";' onclick='PlaySingleNote(" + midiNum.toString() + ");'>";
+     html += "<div class='fretCell' style='width:" + w.toString() + "vw;'>";
+     html += text;
+     if (sn >= 0)
+       html += "<br><div class='fretCellInfo'>" + (sn + 1).toString() + "</div>";
+     html += "</div>";
+    }
+   else
+    {
+     html += "<td class='fretString' style='width:" + w.toString() + "vw; color:" + fg + "; background-color:lightgray;'>";
+    }
    html += "</td>";
    sw -= fretDecrease; // subtract about a pixel on 1920 monitor
   }
  html += "</tr>";
+
  return html;
 }
 
@@ -2268,10 +2382,10 @@ function GenBassScale(key)
 
  html += "</tr></table></tr></td><tr><td><table>";
 
- html += GenBassStringScale(3, key.Notes); // return TRs
- html += GenBassStringScale(2, key.Notes);
- html += GenBassStringScale(1, key.Notes);
- html += GenBassStringScale(0, key.Notes);
+ html += GenBassStringScale(3, key, key.Notes); // return TRs
+ html += GenBassStringScale(2, key, key.Notes);
+ html += GenBassStringScale(1, key, key.Notes);
+ html += GenBassStringScale(0, key, key.Notes);
  html += GenBassMarks();
 
  html += "</table></td></tr></table>";
@@ -2292,14 +2406,14 @@ function GenBassOtherScale(key, notes)
  html += " Scale";
  html += "</td>";
 
- html += GenOtherScaleInfo(notes);  // returns more TDs
+ html += GenOtherScaleInfo(key, notes);  // returns more TDs
 
  html += "</tr></table></tr></td><tr><td><table>";
 
- html += GenBassStringScale(3, notes);
- html += GenBassStringScale(2, notes);
- html += GenBassStringScale(1, notes);
- html += GenBassStringScale(0, notes);
+ html += GenBassStringScale(3, key, notes);
+ html += GenBassStringScale(2, key, notes);
+ html += GenBassStringScale(1, key, notes);
+ html += GenBassStringScale(0, key, notes);
  html += GenBassMarks();
 
  html += "</table></td></tr></table>";
@@ -2492,52 +2606,68 @@ function GenMandolinString(chord, offset, wstr, key) // index to ChordPattern, o
  return html;
 }
 
-function GenMandolinStringScale(wstr, notes) // string # and array of Note objects
+function GenMandolinStringScale(wstr, key, notes) // string # and array of Note objects
 {
- var midi;
+var midi, midiNum;
  var bg, fg;
  var sn;
  var html = "<tr>";
  var fret;
  var sw = fretStartSize; //vw units about 40 pixels on a 1920 display, this is the size of area between the nut and fret 1
- var w;
+ var w, i, keyNdx;
+ var note, text;
 
  for (fret=0; fret<m_arrInstruments[m_Mandolin].Frets; fret++)
   {
-   midi = m_arrMandolin[wstr][fret]; // get midi note of string and fret
-   
-   sn = 0;
+   midiNum = m_arrMandolin[wstr][fret];  // get midi # note of string and fret
+   midi = m_mapMidiNotes.get(midiNum); // get Midi object
+   note = null;
+   sn = -1;
    for(i=0; i<notes.length; i++)
     {
-     if (m_mapMidiNotes.get(midi).Offset == notes[i].Offset)
-       sn = i+1;
+     if (midi.Offset == notes[i].Offset)
+      {
+       sn = i;
+       note = notes[i];
+       keyNdx = key.NoteIndex(note);
+       if (keyNdx >= 0)
+         bg = m_arrGradientBlueGreen[keyNdx];
+       else
+         bg = blueNote;
+       fg = "#000044";
+       text = note.Text;
+      }
     }
-
-   if (sn > 0)
+   if (note == null)
     {
-     bg = m_arrGradientBlueGreen[sn-1];
-     fg = "#000044";
-    }
-   else
-    {
+     text = "";
      bg = "#CCCCCC";
      fg = "white";
     }
+
    if (fret == 0)        // before the nut
      w = fretBeforeNut;  // 25 pixels
    else  
      w = sw;
 
-   html += "<td class='fretString' style='color:" + fg + "; background-color:" + bg + ";' onclick='PlaySingleNote(" + midi.toString() + ");'>";
-
-   html += GenStringCellScale(w, midi, sn, notes);
-  
+   if (fret >= m_CurrentMandolinCapo)
+    {
+     html += "<td class='fretString' style='color:" + fg + "; background-color:" + bg + ";' onclick='PlaySingleNote(" + midiNum.toString() + ");'>";
+     html += "<div class='fretCell' style='width:" + w.toString() + "vw;'>";
+     html += text;
+     if (sn >= 0)
+       html += "<br><div class='fretCellInfo'>" + (sn + 1).toString() + "</div>";
+     html += "</div>";
+    }
+   else
+    {
+     html += "<td class='fretString' style='width:" + w.toString() + "vw; color:" + fg + "; background-color:lightgray;'>";
+    }
    html += "</td>";
    sw -= fretDecrease; // subtract about a pixel on 1920 monitor
   }
  html += "</tr>";
- return html;
-}
+ return html;}
 
 function GenMandolinMarks()
 {
@@ -2605,10 +2735,10 @@ function GenMandolinScale(key)
 
  html += "</tr></table></tr></td><tr><td><table>";
 
- html += GenMandolinStringScale(3, key.Notes);
- html += GenMandolinStringScale(2, key.Notes);
- html += GenMandolinStringScale(1, key.Notes);
- html += GenMandolinStringScale(0, key.Notes);
+ html += GenMandolinStringScale(3, key, key.Notes);
+ html += GenMandolinStringScale(2, key, key.Notes);
+ html += GenMandolinStringScale(1, key, key.Notes);
+ html += GenMandolinStringScale(0, key, key.Notes);
  html += GenMandolinMarks();
 
  html += "</table></td></tr></table>";
@@ -2629,14 +2759,14 @@ function GenMandolinOtherScale(key, notes)
  html += " Scale";
  html += "</td>";
 
- html += GenOtherScaleInfo(notes);  // returns more TDs
+ html += GenOtherScaleInfo(key, notes);  // returns more TDs
 
  html += "</tr></table></tr></td><tr><td><table>";
 
- html += GenMandolinStringScale(3, notes);
- html += GenMandolinStringScale(2, notes);
- html += GenMandolinStringScale(1, notes);
- html += GenMandolinStringScale(0, notes);
+ html += GenMandolinStringScale(3, key, notes);
+ html += GenMandolinStringScale(2, key, notes);
+ html += GenMandolinStringScale(1, key, notes);
+ html += GenMandolinStringScale(0, key, notes);
  html += GenMandolinMarks();
 
  html += "</table></td></tr></table>";
@@ -2827,46 +2957,63 @@ function GenUkuleleString(chord, offset, wstr, key) // index to ChordPattern, of
  return html;
 }
 
-function GenUkuleleStringScale(wstr, notes) // string #, array of Note objects
+function GenUkuleleStringScale(wstr, key, notes) // string #, array of Note objects
 {
- var midi;
+var midi, midiNum;
  var bg, fg;
  var sn;
  var html = "<tr>";
  var fret;
  var sw = fretStartSize; //vw units about 40 pixels on a 1920 display, this is the size of area between the nut and fret 1
- var w;
+ var w, i, keyNdx;
+ var note, text;
 
  for (fret=0; fret<m_arrInstruments[m_Ukulele].Frets; fret++)
   {
-   midi = m_arrUkulele[wstr][fret]; // get midi note of string and fret
-   
-   sn = 0;
+   midiNum = m_arrUkulele[wstr][fret];  // get midi # note of string and fret
+   midi = m_mapMidiNotes.get(midiNum); // get Midi object
+   note = null;
+   sn = -1;
    for(i=0; i<notes.length; i++)
     {
-     if (m_mapMidiNotes.get(midi).Offset == notes[i].Offset)
-       sn = i+1;
+     if (midi.Offset == notes[i].Offset)
+      {
+       sn = i;
+       note = notes[i];
+       keyNdx = key.NoteIndex(note);
+       if (keyNdx >= 0)
+         bg = m_arrGradientBlueGreen[keyNdx];
+       else
+         bg = blueNote;
+       fg = "#000044";
+       text = note.Text;
+      }
     }
-
-   if (sn > 0)
+   if (note == null)
     {
-     bg = m_arrGradientBlueGreen[sn-1];
-     fg = "#000044";
-    }
-   else
-    {
+     text = "";
      bg = "#CCCCCC";
      fg = "white";
     }
+
    if (fret == 0)        // before the nut
      w = fretBeforeNut;  // 25 pixels
    else  
      w = sw;
 
-   html += "<td class='fretString' style='color:" + fg + "; background-color:" + bg + ";' onclick='PlaySingleNote(" + midi.toString() + ");'>";
-
-   html += GenStringCellScale(w, midi, sn, notes);
-  
+   if (fret >= m_CurrentUkuleleCapo)
+    {
+     html += "<td class='fretString' style='color:" + fg + "; background-color:" + bg + ";' onclick='PlaySingleNote(" + midiNum.toString() + ");'>";
+     html += "<div class='fretCell' style='width:" + w.toString() + "vw;'>";
+     html += text;
+     if (sn >= 0)
+       html += "<br><div class='fretCellInfo'>" + (sn + 1).toString() + "</div>";
+     html += "</div>";
+    }
+   else
+    {
+     html += "<td class='fretString' style='width:" + w.toString() + "vw; color:" + fg + "; background-color:lightgray;'>";
+    }
    html += "</td>";
    sw -= fretDecrease; // subtract about a pixel on 1920 monitor
   }
@@ -2940,10 +3087,10 @@ function GenUkuleleScale(key)
 
  html += "</tr></table></tr></td><tr><td><table>";
 
- html += GenUkuleleStringScale(3, key.Notes);
- html += GenUkuleleStringScale(2, key.Notes);
- html += GenUkuleleStringScale(1, key.Notes);
- html += GenUkuleleStringScale(0, key.Notes);
+ html += GenUkuleleStringScale(3, key, key.Notes);
+ html += GenUkuleleStringScale(2, key, key.Notes);
+ html += GenUkuleleStringScale(1, key, key.Notes);
+ html += GenUkuleleStringScale(0, key, key.Notes);
 
  html += GenUkuleleMarks();
 
@@ -2965,14 +3112,14 @@ function GenUkuleleOtherScale(key, notes)
  html += " Scale";
  html += "</td>";
 
- html += GenOtherScaleInfo(notes);  // returns more TDs
+ html += GenOtherScaleInfo(key, notes);  // returns more TDs
 
  html += "</tr></table></tr></td><tr><td><table>";
 
- html += GenUkuleleStringScale(3, notes);
- html += GenUkuleleStringScale(2, notes);
- html += GenUkuleleStringScale(1, notes);
- html += GenUkuleleStringScale(0, notes);
+ html += GenUkuleleStringScale(3, key, notes);
+ html += GenUkuleleStringScale(2, key, notes);
+ html += GenUkuleleStringScale(1, key, notes);
+ html += GenUkuleleStringScale(0, key, notes);
  html += GenUkuleleMarks();
 
  html += "</table></td></tr></table>";
@@ -2984,35 +3131,57 @@ function GenUkuleleOtherScale(key, notes)
 //            K e y b o a r d     
 ////////////////////////////////////////////////
 
-function GenPianoChordNote(cssName, key, midiNote, arrNotes, arrColor)
+function GenPianoChordNote(cssName, key, midiNote, arrMidiNotes, notes)
 {
  var html;
  var chordSeq;
  var fg
  var bg;
  var i;
+ var midi;
+ var text;
  var note;
 
+ midi = m_mapMidiNotes.get(midiNote);
+
  chordSeq = -1;
- for (i=0; i<arrNotes.length; i++)
+ for (i=0; i<arrMidiNotes.length; i++)
   {
-   if (midiNote == arrNotes[i])
+   if (midiNote == arrMidiNotes[i])
      chordSeq = i;
   }
 
  if (chordSeq >=0)
   {
-   bg = arrColor[chordSeq];
+   note = null;
+   for (i=0; i<notes.length; i++)
+    {
+     if (midi.Offset == notes[i].Offset)
+       note = notes[i];
+    }
+   if (note != null)
+    {
+     i = key.NoteIndex(note);
+     if (i >= 0)        
+      bg = m_arrGradientBlueGreen[i];
+     else
+      bg = blueNote;
+     text = note.Text;
+    }
+   else 
+    {
+     bg = blueNote;
+     text = NoteText(midi.Offset);
+    }
    fg = "black";
 
    html = "<div class='" + cssName + "' style='color:" + fg + "; background-color:" + bg + ";'>";
    
-   note = m_mapMidiNotes.get(midiNote).Name(key);
-   i = note.indexOf("/");
+   i = text.indexOf("/");
    if (i>0)
-     note = note.substring(0,i) + "<br>" + note.substring(i+1);
+     text = text.substring(0,i) + "<br>" + text.substring(i+1);
 
-   html += note;
+   html += text;
    html += "</div>";
   }
  else
@@ -3040,7 +3209,7 @@ function GenPianoChord(octaves, chord, offset, key) // return divs of piano keys
 
  wMidi = 48; //  c3 - starting note
 
- sMidi = wMidi + m_Key.Offset;  // step up to key's starting note, 
+ sMidi = wMidi + key.Offset;  // step up to key's starting note, 
 
  found = false;
  for(i=0; i<m_Key.Offsets.length; i++)
@@ -3070,7 +3239,7 @@ function GenPianoChord(octaves, chord, offset, key) // return divs of piano keys
    for (k=0; k<7; k++)  // 7 white keys from C to B
     {
      html += "<div class='pianoWhite' style='left:" + w.toString() + "vw;' onclick='PlaySingleNote(" + midi.toString() +");'>";
-     html += GenPianoChordNote("pianoWhiteText", key, midi, arrChordNotes, m_arrPastels);
+     html += GenPianoChordNote("pianoWhiteText", key, midi, arrChordNotes, key.Notes );
      html += "</div>";
      if (k==2 || k==6)  // E or B  key ??
       {
@@ -3087,7 +3256,7 @@ function GenPianoChord(octaves, chord, offset, key) // return divs of piano keys
    for (k=0; k<5; k++) // 5 black keys
     {
      html += "<div class='pianoBlack' style='left:" + w.toString() + "vw;' onclick='PlaySingleNote(" + midi.toString() +");'>";
-     html += GenPianoChordNote("pianoBlackText", key, midi, arrChordNotes, m_arrPastels);
+     html += GenPianoChordNote("pianoBlackText", key, midi, arrChordNotes, key.Notes);
      html += "</div>"; 
      if (k==1 || k==4) // is the next key an f# or c#
       {
@@ -3131,7 +3300,7 @@ function GenPianoScaleKeys(octaves, key, arrScaleNotes) // return divs of piano 
    for (k=0; k<7; k++)  // 7 white keys from C to B
     {
      html += "<div class='pianoWhite' style='left:" + w.toString() + "vw;' onclick='PlaySingleNote(" + midi.toString() +");'>";
-     html += GenPianoChordNote("pianoWhiteText", key, midi, arrScaleNotes, m_arrGradientBlueGreen);
+     html += GenPianoChordNote("pianoWhiteText", key, midi, arrScaleNotes, key.Notes);
      html += "</div>";
      if (k==2 || k==6)  // E or B  key ??
       {
@@ -3148,7 +3317,7 @@ function GenPianoScaleKeys(octaves, key, arrScaleNotes) // return divs of piano 
    for (k=0; k<5; k++) // 5 black keys
     {
      html += "<div class='pianoBlack' style='left:" + w.toString() + "vw;' onclick='PlaySingleNote(" + midi.toString() +");'>";
-     html += GenPianoChordNote("pianoBlackText", key, midi, arrScaleNotes, m_arrGradientBlueGreen);
+     html += GenPianoChordNote("pianoBlackText", key, midi, arrScaleNotes, key.Notes);
      html += "</div>"; 
      if (k==1 || k==4) // is the next key an f# or c#
       {
@@ -3170,6 +3339,68 @@ function GenPianoScaleKeys(octaves, key, arrScaleNotes) // return divs of piano 
  return html;
 }
 
+function GenPianoOtherScaleKeys(octaves, key, arrScaleNotes, notes) // return divs of piano keys. ocatives is number of octaves to draw
+{
+ var html;
+ var k;     
+ var x;     // x position of each octave set of keys
+ var o;
+ var wMidi, midi;
+
+ wMidi = 48; // c3 - starting note
+
+ html = "<div style='position:relative; width:" + octaves * pianoWhiteWidth * 7 + "vw; height:" + pianoWhiteHeight + "vw;'>";
+
+ x = 0;  // starting x position
+
+ for (o=0; o<octaves; o++)
+  {
+   off = 0;             // note offset, c = 0
+   w = x;               // div x position
+   midi = wMidi;
+   for (k=0; k<7; k++)  // 7 white keys from C to B
+    {
+     html += "<div class='pianoWhite' style='left:" + w.toString() + "vw;' onclick='PlaySingleNote(" + midi.toString() +");'>";
+     html += GenPianoChordNote("pianoWhiteText", key, midi, arrScaleNotes, notes);
+     html += "</div>";
+     if (k==2 || k==6)  // E or B  key ??
+      {
+       midi += 1; // next white key
+      }
+     else
+      { 
+       midi += 2; // rest of the white keys are up 2
+      }
+     w += pianoWhiteWidth;
+    }
+   w = x + pianoWhiteWidth - (pianoBlackWidth / 2);  // center black keys in middle of 1st white key
+   midi = wMidi + 1;  // starting midi note of black keys
+   for (k=0; k<5; k++) // 5 black keys
+    {
+     html += "<div class='pianoBlack' style='left:" + w.toString() + "vw;' onclick='PlaySingleNote(" + midi.toString() +");'>";
+     html += GenPianoChordNote("pianoBlackText", key, midi, arrScaleNotes, notes);
+     html += "</div>"; 
+     if (k==1 || k==4) // is the next key an f# or c#
+      {
+       w += pianoWhiteWidth * 2;  // move next f# or c# over 2 white key widths
+       midi += 3;                 // note offset is bumped 3
+      }
+     else
+      {
+       w += pianoWhiteWidth;   // these keys are next to each other  
+       midi += 2;               
+      }
+    }
+   x += pianoWhiteWidth * 7; // next octive set x location
+   wMidi += 12;
+  }
+ 
+ html += "</div>";
+
+ return html;
+}
+
+
 function GenPianoScale(key, mode)
 {
  var html;
@@ -3186,7 +3417,7 @@ function GenPianoScale(key, mode)
    midi += m_arrModes[mode].Sequences[i];
   }
 
- html = "<table><tr><td><table><tr>" // holds scale name and table containing notes in scale then the fretboard table
+ html = "<table><tr><td><table><tr>"; // holds scale name and table containing notes in scale then the fretboard table
 
  html += "<td class='scaleName' onclick='PlayKeyScale();'>";
  html += key.OffsetNote(key.Offsets[0]).Text;
@@ -3199,12 +3430,49 @@ function GenPianoScale(key, mode)
 
  html += "</tr></table></tr></td><tr><td>";
 
- html += GenPianoScaleKeys(2, key, arrScaleNotes, m_arrGradientBlueGreen);
+ html += GenPianoScaleKeys(2, key, arrScaleNotes);
 
  html += "</td></tr></table>";
 
  return html; 
 }
+
+function GenPianoOtherScale(key, notes) // Key object, array of Note objects
+{
+ var html;
+ var arrScaleNotes = [];
+ var wMidi, midi;
+ var i;
+
+ wMidi = 48;                 // keyboard's starting midi note c3
+ midi = wMidi + key.Offset;  // scale's starting midi note
+
+ for (i=0; i<m_arrScales[m_CurrentScale].Sequences.length; i++)
+  {
+   arrScaleNotes[i] = midi;
+   midi += m_arrScales[m_CurrentScale].Sequences[i];
+  }
+
+ html = "<table><tr><td><table><tr>"; // holds scale name and table containing notes in scale then the fretboard table
+
+ html += "<td class='scaleName' onclick='PlayOtherScale(" + m_CurrentScale.toString() + ", " + key.Offset.toString() + ");'>";
+ html += key.OffsetNote(key.Offsets[0]).Text;
+ html += " ";
+ html += m_arrScales[m_CurrentScale].ScaleName;
+ html += " Scale";
+ html += "</td>";
+
+ html += GenOtherScaleInfo(key, notes);
+
+ html += "</tr></table></tr></td><tr><td>";
+
+ html += GenPianoOtherScaleKeys(2, key, arrScaleNotes, notes);
+
+ html += "</td></tr></table>";
+
+ return html; 
+}
+
 
 //////////////////////////////////////////////
 //            Load Combo Boxes
