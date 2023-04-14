@@ -91,22 +91,26 @@ var pianoBlackWidth = 2.8; // width of a black piano key
 var optFingeringNumbers = 1;
 var optFingeringLetters = 2;
 
+var optPlayThingTypeRest = 1;
+var optPlayThingTypeChord = 2;
+var optPlayThingTypeNote = 3;
+
 var blueNote = "#6FA8DC"; // a light blue
 
 /////////////////////////////
 //    Global Variables
 /////////////////////////////
 
-var m_Version = "1.1.5";
+var m_Version = "1.1.6";
 var m_Audio = null;             // used in frequency generation
 var m_CurrentWave = "square";   // sine square triangle sawtooth
+var m_CurrentVolume = 0;        // obtained from volume control
 
 var m_CurrentChordPattern = -1; // index to m_arrChordPatterns, set when cbo dropdown is changed
 var m_CurrentKey = -1;          // index to m_arrModes.KeyList array, used to generate m_Key Key object
 var m_CurrentMode = -1;         // index to m_arrModes, set when a cboMode dropdown is changed  
 var m_CurrentInstrument = -1;   // index to m_arrInstruments, set when radio button is clicked
 var m_CurrentChordRoot = null;  // set when generated chord root note TD is clicked in Chord section, chord type dialog is popped and chord is generated, Note object
-var m_CurrentMidiNote = -1;     // index to m_arrPlayMidi, it is used to cycle thru notes that are played when things are clicked
 var m_CurrentScale = -1;        // index to m_arrScales array, scales such as the blues and pentatonic
 
 var m_CurrentGuitarCapo = 0;    // all set when capo drop downs are changed
@@ -120,6 +124,8 @@ var m_CurrentMandolinTuning = 0;
 var m_CurrentUkuleleTuning = 0;
 var m_CurrentKeyboardTuning = 0;
 var m_CurrentFingeringOption = optFingeringNumbers;  // whether to show numbers 1234 or letters IMRP for chord fingerings
+
+var m_CurrentPlaySet = -1;  // index into m_arrPlaySets
 
 var m_Key = null;    // set to a Key object when a key is selected, contains list of notes in the key
 var m_Scale = null;  // set to SimpleScale object when a scale is selected, contains list of notes in the scale, the name etc
@@ -177,7 +183,7 @@ var m_arrGradientBlueGreen = ["#189753", "#1ea55c", "#24b266", "#2ac06f", "#30cc
 
 // var m_arrPastels = ["#b2cefe", "#baed91", "#faf884", "#f2a2e8", "#e0ffff"]; //blue, green, yellow, pink, cyan  
 
-var m_arrPlayMidi = []; // array of midi note numbers that are played when things are clicked
+var m_arrPlaySets = []; // sound engine array, contains PlaySet objects, indexed by m_CurrentPlaySet
 
 var m_arrFingering = []; // array of fingering, either numbers 1 2 3 4 or letter I M R P. Loaded when option changes.
 
@@ -653,13 +659,21 @@ function Key(mode, startNote) // mode index, starting Note object
 
 }
 
-function PlayThing(playThingType, modeNdx, key, arrNotes, chordPatNdx)
+function PlayThing(playThingType, modeNdx, key, chordPatNdx, arrNotes, wave, vol, milli)
 {
- this.PlayType = playThingType;
- this.Mode = modeNdx;
- this.Key = key;
- this.Notes = arrNotes;
- this.Pattern = chordPatNdx;
+ this.PlayType = playThingType;  // see optPlayThingType x 
+ this.Mode = modeNdx;            // index into m_arrModes
+ this.Key = key;                 // Key object
+ this.Notes = arrNotes;          // list of midi notes
+ this.Pattern = chordPatNdx;     // index into m_arrChordPatterns
+ this.WaveType = wave;           // text, either 'square', 'triangle', 'sine' etc
+ this.Volume = vol;              // value obtained from volume control
+ this.Time = milli;              // time to play in milliseconds
+}
+
+function PlaySet(arrPlayThings)
+{
+ this.PlayThings = arrPlayThings; // each thing played on separate channels
 }
 
 //////////////////////////////////
@@ -1186,6 +1200,8 @@ function GetWhichNoteInChord(chord, offset, midi)  // chord is ndx to m_arrChord
  return -1;
 }
 
+/*
+
 function PlayNote(midi, milli) 
 {
  var oscillator; 
@@ -1247,13 +1263,24 @@ function PlayMidiNotes(milli)
   }
 }
 
+*/
 
 function PlayRawScale(modeNdx, tonic)
 {
+ var playThing;
+ var volumeCtrl;
+ var vol;
+ var start;
  var key;
  var start;
  var i;
  var note;
+
+ if (m_CurrentPlaySet >= 0)
+   return; // something already playing
+
+ volumeCtrl = document.getElementById("audioVolumeControl");
+ vol = volumeCtrl.value;
 
  note = null;
  
@@ -1272,83 +1299,192 @@ function PlayRawScale(modeNdx, tonic)
  key = new Key(modeNdx, note);
 
  start = 48 + key.Offset;  // c3
- m_arrPlayMidi = [];
+ m_arrPlaySets = [];
 
  for (i=0; i<m_arrModes[modeNdx].Sequences.length; i++)
   {
-   m_arrPlayMidi[i] = start;
+   playThing = new PlayThing(optPlayThingTypeNote, 0, m_Key, 0, [start], m_CurrentWave, vol, 169); // delay between single note and chord
+   m_arrPlaySets[i] = new PlaySet([playThing]);
    start += m_arrModes[modeNdx].Sequences[i]; // have to increment after it's consumed
   }
 
- m_arrPlayMidi.push(start); // push the octave
+ playThing = new PlayThing(optPlayThingTypeNote, 0, m_Key, 0, [start], m_CurrentWave, vol, 169); // delay between single note and chord
+ m_arrPlaySets.push(new PlaySet([playThing]));
 
- m_CurrentMidiNote = 0;
- PlayMidiNotes(169);
+ m_CurrentPlaySet = 0;
+ SoundPlaySet();
 }
 
 
 function PlayKeyScale()
 {
+ var playThing;
+ var volumeCtrl;
+ var vol;
  var start;
  var i;
+
+ if (m_CurrentPlaySet >= 0)
+   return; // something already playing
+
+ volumeCtrl = document.getElementById("audioVolumeControl");
+ vol = volumeCtrl.value;
  
  start = 48 + m_Key.Offset;  // c3
- m_arrPlayMidi = [];
+
+ m_arrPlaySets=[];
 
  for (i=0; i<m_arrModes[m_CurrentMode].Sequences.length; i++)
   {
-   m_arrPlayMidi[i] = start;
+   playThing = new PlayThing(optPlayThingTypeNote, 0, m_Key, 0, [start], m_CurrentWave, vol, 169); // delay between single note and chord
+   m_arrPlaySets[i] = new PlaySet([playThing]);
    start += m_arrModes[m_CurrentMode].Sequences[i]; // have to increment after it's consumed
   }
 
- m_arrPlayMidi.push(start); // push the octave
+ playThing = new PlayThing(optPlayThingTypeNote, 0, m_Key, 0, [start], m_CurrentWave, vol, 169); // delay between single note and chord
+ m_arrPlaySets.push(new PlaySet([playThing]));
 
- m_CurrentMidiNote = 0;
- PlayMidiNotes(169);
+ m_CurrentPlaySet = 0;
+ SoundPlaySet();
 }
 
 function PlayOtherScale(currentScale, offset)
 {
- var midi = 48 + offset;
+ var midi;
+ var playThing;
+ var volumeCtrl;
+ var vol;
 
- m_arrPlayMidi = [];
- 
+ if (m_CurrentPlaySet >= 0)
+   return; // something already playing
+
+ volumeCtrl = document.getElementById("audioVolumeControl");
+ vol = volumeCtrl.value;
+ midi = 48 + offset;
+ notes = [];
+
+ m_arrPlaySets=[];
 
  for(i=0; i<m_arrScales[currentScale].Sequences.length; i++)
   {
-   m_arrPlayMidi[i] = midi;
+   playThing = new PlayThing(optPlayThingTypeNote, 0, m_Key, 0, [midi], m_CurrentWave, vol, 169); // delay between single note and chord
+   m_arrPlaySets[i] = new PlaySet([playThing]);
    midi += m_arrScales[currentScale].Sequences[i];
   }
+ playThing = new PlayThing(optPlayThingTypeNote, 0, m_Key, 0, [midi], m_CurrentWave, vol, 169); // delay between single note and chord
+ m_arrPlaySets.push(new PlaySet([playThing]));
 
- m_arrPlayMidi.push(midi); // push the octave
-
- m_CurrentMidiNote = 0;
- PlayMidiNotes(169);
+ m_CurrentPlaySet = 0;
+ SoundPlaySet();
 }
 
 function PlayChord(chord, midiRoot) // index to m_arrChordPattern and the chord's midi root
 {
- var i;
- var midi;
+ var volumeCtrl;
+ var vol;
+ var notes;
+ var playThing;
 
- m_arrPlayMidi = [];
+ if (m_CurrentPlaySet >= 0)
+   return; // something already playing
+
+ volumeCtrl = document.getElementById("audioVolumeControl");
+ vol = volumeCtrl.value;
+
+ notes = [];
+ m_arrPlaySets = [];
 
  for (i=0; i<m_arrChordPatterns[chord].Pitches.length; i++)
   {
    midi = midiRoot + m_arrChordPatterns[chord].Pitches[i];
-   m_arrPlayMidi[i] = midi;   
+   playThing = new PlayThing(optPlayThingTypeNote, m_CurrentMode, m_Key, m_CurrentChordPattern, [midi], m_CurrentWave, vol, 169); // single note
+   m_arrPlaySets.push(new PlaySet([playThing]));
+   notes[i] = midi; // array for playing the chord
   }
+ 
+ playThing = new PlayThing(optPlayThingTypeRest, m_CurrentMode, m_Key, m_CurrentChordPattern, [], m_CurrentWave, vol, 300); // delay between single note and chord
+ m_arrPlaySets.push(new PlaySet([playThing]));
 
- PlayChordArray(256);
+ playThing = new PlayThing(optPlayThingTypeChord, m_CurrentMode, m_Key, m_CurrentChordPattern, notes, m_CurrentWave, vol, 256); // delay between single note and chord
+ m_arrPlaySets.push(new PlaySet([playThing]));
+ 
+ m_CurrentPlaySet = 0;
+ SoundPlaySet(); 
 }
 
 function PlaySingleNote(midi)
 {
- m_arrPlayMidi = [];
- m_arrPlayMidi[0] = midi;
- m_CurrentMidiNote = 0;
- PlayMidiNotes(250);
+ var volumeCtrl;
+ var vol;
+ var playThing;
+ 
+ if (m_CurrentPlaySet >= 0)
+   return; // something already playing
+
+ volumeCtrl = document.getElementById("audioVolumeControl");
+ vol = volumeCtrl.value;
+  
+ playThing = new PlayThing(optPlayThingTypeNote, m_CurrentMode, m_Key, m_CurrentChordPattern, [midi], m_CurrentWave, vol, 250);
+
+ m_arrPlaySets = [];
+ m_arrPlaySets[0] = new PlaySet([playThing]);
+ m_CurrentPlaySet = 0;
+ SoundPlaySet(); 
 }
+
+function SoundPlayThing(playThing)
+{
+ var oscillators = []; 
+ var midiNote;
+ 
+ var volumes = [];
+
+ if (m_Audio == null)
+   m_Audio = new(window.AudioContext || window.webkitAudioContext)();
+
+ for (i=0; i<playThing.Notes.length; i++)
+  {
+   if (playThing.PlayType != optPlayThingTypeRest)
+    {
+     midiNote = m_mapMidiNotes.get(playThing.Notes[i]);
+
+     oscillators[i] = m_Audio.createOscillator(); // create the player
+     oscillators[i].type = playThing.WaveType;
+
+     volumes[i] = m_Audio.createGain();
+     oscillators[i].connect(volumes[i]);
+     volumes[i].connect(m_Audio.destination);
+     volumes[i].gain.value = playThing.Volume;
+     oscillators[i].frequency.value = midiNote.Frequency;
+     oscillators[i].start();
+     setTimeout(function() { for (i=0; i<oscillators.length; i++) oscillators[i].stop(); }, playThing.Time); 
+    }
+  }
+}
+
+function SoundPlaySet()
+{
+ var delay;  // find the longest delay and wait that length
+ var k;
+
+ if (m_CurrentPlaySet < m_arrPlaySets.length && m_CurrentPlaySet >= 0)
+  {
+   delay = 0;
+   for (k=0; k<m_arrPlaySets[m_CurrentPlaySet].PlayThings.length; k++)
+    {
+     if (m_arrPlaySets[m_CurrentPlaySet].PlayThings[k].Time > delay)
+       delay = m_arrPlaySets[m_CurrentPlaySet].PlayThings[k].Time;
+     SoundPlayThing(m_arrPlaySets[m_CurrentPlaySet].PlayThings[k]);
+    }
+   m_CurrentPlaySet++;
+   if (m_CurrentPlaySet < m_arrPlaySets.length)
+     setTimeout(function() { SoundPlaySet(); }, delay); // advance to next PlaySet
+   else
+     m_CurrentPlaySet = -1;
+  }
+}
+
+
 ////////////////////////////////////////////////
 //       G e n e r a t e    H T M L
 ////////////////////////////////////////////////
