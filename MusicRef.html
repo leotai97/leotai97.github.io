@@ -111,7 +111,7 @@ var blueNote = "#6FA8DC"; // a light blue
 //    Global Variables
 /////////////////////////////
 
-var m_Version = "1.1.8";     
+var m_Version = "1.1.9";     
 var m_Audio = null;             // used in frequency generation for gui items clicked on
 var m_CurrentWave = "square";   // sine square triangle sawtooth
 var m_CurrentVolume = 0;        // obtained from volume control
@@ -1747,6 +1747,7 @@ function SoundPlayAllBuffers()
 function SoundClearSpecificBuffer(buffNdx)
 {
  m_arrPlayBuffers[buffNdx] = [];
+ m_arrPlayBufferIndexes[buffNdx]=-1; // should shutdown engine if it's running
  ShowPlayBuffer();
 }
 
@@ -2814,10 +2815,11 @@ function GenBass(chord, offset, key) // chord pattern index, offset C=0, Key obj
 function GenBassScale(key)
 {
  var html;
+ var midiBase = GetBaseMidiNote(key.Offset);
 
  html = "<table><tr><td><table><tr>"; // holds scale name and table containing notes in scale then the fretboard table
 
- html += "<td class='btnScale' onclick='PlayRawScale(" + m_CurrentMode.toString() + ", " + key.Offset.toString() + ", \"b\");'>" + symBack + "</td>";
+ html += "<td class='btnScale' onclick='PlayScaleSound(new PlayScale(" + m_CurrentMode + ", " + m_CurrentKey + ", " + midiBase + ", -1), \"b\");'>" + symBack + "</td>";
 
  html += "<td class='scaleName'>";
  html += key.OffsetNote(key.Offsets[0]).Text;
@@ -2826,7 +2828,7 @@ function GenBassScale(key)
  html += " Scale";
  html += "</td>";
 
- html += "<td class='btnScale' onclick='PlayRawScale(" + m_CurrentMode.toString() + ", " + key.Offset.toString() + ", \"f\");'>" + symFwd + "</td>";
+ html += "<td class='btnScale' onclick='PlayScaleSound(new PlayScale(" + m_CurrentMode + ", " + m_CurrentKey + ", " + midiBase + ", -1), \"f\");'>" + symFwd + "</td>";
 
  html += GenScaleInfo(key);  // returns more TDs
 
@@ -2846,10 +2848,11 @@ function GenBassScale(key)
 function GenBassOtherScale(key, notes)
 {
  var html;
+ var midiBase = GetBaseMidiNote(key.Offset);
 
  html = "<table><tr><td><table><tr>"; // holds scale name and table containing notes in scale then the fretboard table
 
- html += "<td class='btnScale' onclick='PlayOtherScale(" + m_CurrentMode.toString() + ", " + key.Offset.toString() + ", \"b\");'>" + symBack + "</td>";
+ html += "<td class='btnScale' onclick='PlayScaleSound(new PlayScale(" + m_CurrentMode + ", " + m_CurrentKey + ", " + midiBase + ", " + m_CurrentScale + "), \"b\");'>" + symBack + "</td>";
 
  html += "<td class='scaleName'>";
  html += key.OffsetNote(key.Offsets[0]).Text;
@@ -2858,7 +2861,7 @@ function GenBassOtherScale(key, notes)
  html += " Scale";
  html += "</td>";
 
- html += "<td class='btnScale' onclick='PlayOtherScale(" + m_CurrentMode.toString() + ", " + key.Offset.toString() + ", \"f\");'>" + symFwd + "</td>";
+ html += "<td class='btnScale' onclick='PlayScaleSound(new PlayScale(" + m_CurrentMode + ", " + m_CurrentKey + ", " + midiBase + ", " + m_CurrentScale + "), \"f\");'>" + symFwd + "</td>";
 
  html += GenOtherScaleInfo(key, notes);  // returns more TDs
 
@@ -3183,10 +3186,11 @@ function GenMandolin(chord, offset, key) // chord pattern index, offset C=0, Key
 function GenMandolinScale(key)
 {
  var html;
+ var midiBase = GetBaseMidiNote(key.Offset);
 
  html = "<table><tr><td><table><tr>"; // holds scale name and table containing notes in scale then the fretboard table
 
- html += "<td class='btnScale' onclick='PlayRawScale(" + m_CurrentMode.toString() + ", " + key.Offset.toString() + ", \"b\");'>" + symBack + "</td>";
+ html += "<td class='btnScale' onclick='PlayScaleSound(new PlayScale(" + m_CurrentMode + ", " + m_CurrentKey + ", " + midiBase + ", -1), \"b\");'>" + symBack + "</td>";
 
  html += "<td class='scaleName'>";
  html += key.OffsetNote(key.Offsets[0]).Text;
@@ -3195,7 +3199,7 @@ function GenMandolinScale(key)
  html += " Scale";
  html += "</td>";
 
- html += "<td class='btnScale' onclick='PlayRawScale(" + m_CurrentMode.toString() + ", " + key.Offset.toString() + ", \"f\");'>" + symFwd + "</td>";
+ html += "<td class='btnScale' onclick='PlayScaleSound(new PlayScale(" + m_CurrentMode + ", " + m_CurrentKey + ", " + midiBase + ", -1), \"f\");'>" + symFwd + "</td>";
 
  html += GenScaleInfo(key);  // returns more TDs
 
@@ -3215,10 +3219,11 @@ function GenMandolinScale(key)
 function GenMandolinOtherScale(key, notes)
 {
  var html;
+ var midiBase = GetBaseMidiNote(key.Offset);
 
  html = "<table><tr><td><table><tr>"; // holds scale name and table containing notes in scale then the fretboard table
 
- html += "<td class='btnScale' onclick='PlayOtherScale(" + m_CurrentMode.toString() + ", " + key.Offset.toString() + ", \"b\");'>" + symBack + "</td>";
+ html += "<td class='btnScale' onclick='PlayScaleSound(new PlayScale(" + m_CurrentMode + ", " + m_CurrentKey + ", " + midiBase + ", " + m_CurrentScale + "), \"b\");'>" + symBack + "</td>";
 
  html += "<td class='scaleName'>";
  html += key.OffsetNote(key.Offsets[0]).Text;
@@ -3227,7 +3232,7 @@ function GenMandolinOtherScale(key, notes)
  html += " Scale";
  html += "</td>";
 
- html += "<td class='btnScale' onclick='PlayOtherScale(" + m_CurrentMode.toString() + ", " + key.Offset.toString() + ", \"f\");'>" + symFwd + "</td>";
+ html += "<td class='btnScale' onclick='PlayScaleSound(new PlayScale(" + m_CurrentMode + ", " + m_CurrentKey + ", " + midiBase + ", " + m_CurrentScale + "), \"f\");'>" + symFwd + "</td>";
 
  html += GenOtherScaleInfo(key, notes);  // returns more TDs
 
@@ -3551,10 +3556,11 @@ function GenUkulele(chord, offset, key) // chord pattern index, offset C=0, Key 
 function GenUkuleleScale(key)
 {
  var html;
+ var midiBase = GetBaseMidiNote(key.Offset);
 
  html = "<table><tr><td><table><tr>"; // holds scale name and table containing notes in scale then the fretboard table
 
- html += "<td class='btnScale' onclick='PlayRawScale(" + m_CurrentMode.toString() + ", " + key.Offset.toString() + ", \"b\");'>" + symBack + "</td>";
+ html += "<td class='btnScale' onclick='PlayScaleSound(new PlayScale(" + m_CurrentMode + ", " + m_CurrentKey + ", " + midiBase + ", -1), \"b\");'>" + symBack + "</td>";
 
  html += "<td class='scaleName'>";
  html += key.OffsetNote(key.Offsets[0]).Text;
@@ -3563,7 +3569,7 @@ function GenUkuleleScale(key)
  html += " Scale";
  html += "</td>";
 
- html += "<td class='btnScale' onclick='PlayRawScale(" + m_CurrentMode.toString() + ", " + key.Offset.toString() + ", \"f\");'>" + symFwd + "</td>";
+ html += "<td class='btnScale' onclick='PlayScaleSound(new PlayScale(" + m_CurrentMode + ", " + m_CurrentKey + ", " + midiBase + ", -1), \"f\");'>" + symFwd + "</td>";
 
  html += GenScaleInfo(key);  // returns more TDs
 
@@ -3584,10 +3590,11 @@ function GenUkuleleScale(key)
 function GenUkuleleOtherScale(key, notes)
 {
  var html;
+ var midiBase = GetBaseMidiNote(key.Offset);
 
  html = "<table><tr><td><table><tr>"; // holds scale name and table containing notes in scale then the fretboard table
 
- html += "<td class='btnScale' onclick='PlayOtherScale(" + m_CurrentMode.toString() + ", " + key.Offset.toString() + ", \"b\");'>" + symBack + "</td>";
+ html += "<td class='btnScale' onclick='PlayScaleSound(new PlayScale(" + m_CurrentMode + ", " + m_CurrentKey + ", " + midiBase + ", " + m_CurrentScale + "), \"b\");'>" + symBack + "</td>";
 
  html += "<td class='scaleName'>";
  html += key.OffsetNote(key.Offsets[0]).Text;
@@ -3596,7 +3603,7 @@ function GenUkuleleOtherScale(key, notes)
  html += " Scale";
  html += "</td>";
 
- html += "<td class='btnScale' onclick='PlayOtherScale(" + m_CurrentMode.toString() + ", " + key.Offset.toString() + ", \"f\");'>" + symFwd + "</td>";
+ html += "<td class='btnScale' onclick='PlayScaleSound(new PlayScale(" + m_CurrentMode + ", " + m_CurrentKey + ", " + midiBase + ", " + m_CurrentScale + "), \"f\");'>" + symFwd + "</td>";
 
  html += GenOtherScaleInfo(key, notes);  // returns more TDs
 
@@ -3897,11 +3904,12 @@ function GenPianoScale(key, mode)
 {
  var html;
  var arrScaleNotes = [];
- var wMidi, midi;
+ var wMidi, midi, midiBase;
  var i;
 
- wMidi = 48;                 // keyboard's starting midi note c3
- midi = wMidi + key.Offset;  // scale's starting midi note
+ wMidi = 48;                    // keyboard's starting midi note c3
+ midiBase = wMidi + key.Offset; // for playing scale
+ midi = wMidi + key.Offset;     // scale's starting midi note
 
  for (i=0; i<m_arrModes[mode].Sequences.length; i++)
   {
@@ -3911,7 +3919,7 @@ function GenPianoScale(key, mode)
 
  html = "<table><tr><td><table><tr>"; // holds scale name and table containing notes in scale then the fretboard table
 
- html += "<td class='btnScale' onclick='PlayRawScale(" + m_CurrentMode.toString() + ", " + key.Offset.toString() + ", \"b\");'>" + symBack + "</td>";
+ html += "<td class='btnScale' onclick='PlayScaleSound(new PlayScale(" + m_CurrentMode + ", " + m_CurrentKey + ", " + midiBase + ", -1), \"b\");'>" + symBack + "</td>";
 
  html += "<td class='scaleName'>";
  html += key.OffsetNote(key.Offsets[0]).Text;
@@ -3920,7 +3928,7 @@ function GenPianoScale(key, mode)
  html += " Scale";
  html += "</td>";
 
- html += "<td class='btnScale' onclick='PlayRawScale(" + m_CurrentMode.toString() + ", " + key.Offset.toString() + ", \"f\");'>" + symFwd + "</td>";
+ html += "<td class='btnScale' onclick='PlayScaleSound(new PlayScale(" + m_CurrentMode + ", " + m_CurrentKey + ", " + midiBase + ", -1), \"f\");'>" + symFwd + "</td>";
 
  html += GenScaleInfo(key);
 
@@ -3937,11 +3945,12 @@ function GenPianoOtherScale(key, notes) // Key object, array of Note objects
 {
  var html;
  var arrScaleNotes = [];
- var wMidi, midi;
+ var wMidi, midi, midiBase;
  var i;
 
- wMidi = 48;                 // keyboard's starting midi note c3
- midi = wMidi + key.Offset;  // scale's starting midi note
+ wMidi = 48;                     // keyboard's starting midi note c3
+ midiBase = wMidi + key.Offset;  // for playing scale
+ midi = wMidi + key.Offset;      // scale's starting midi note
 
  for (i=0; i<m_arrScales[m_CurrentScale].Sequences.length; i++)
   {
@@ -3951,7 +3960,7 @@ function GenPianoOtherScale(key, notes) // Key object, array of Note objects
 
  html = "<table><tr><td><table><tr>"; // holds scale name and table containing notes in scale then the fretboard table
 
- html += "<td class='btnScale' onclick='PlayOtherScale(" + m_CurrentMode.toString() + ", " + key.Offset.toString() + ", \"b\");'>" + symBack + "</td>";
+ html += "<td class='btnScale' onclick='PlayScaleSound(new PlayScale(" + m_CurrentMode + ", " + m_CurrentKey + ", " + midiBase + ", " + m_CurrentScale + "), \"b\");'>" + symBack + "</td>";
 
  html += "<td class='scaleName'>";
  html += key.OffsetNote(key.Offsets[0]).Text;
@@ -3960,7 +3969,7 @@ function GenPianoOtherScale(key, notes) // Key object, array of Note objects
  html += " Scale";
  html += "</td>";
 
- html += "<td class='btnScale' onclick='PlayOtherScale(" + m_CurrentMode.toString() + ", " + key.Offset.toString() + ", \"f\");'>" + symFwd + "</td>";
+ html += "<td class='btnScale' onclick='PlayScaleSound(new PlayScale(" + m_CurrentMode + ", " + m_CurrentKey + ", " + midiBase + ", " + m_CurrentScale + "), \"f\");'>" + symFwd + "</td>";
 
  html += GenOtherScaleInfo(key, notes);
 
@@ -4774,7 +4783,7 @@ function ShowRecordBuffer()
        html += "<table><tr>";
        for (k=0; k<rt.Chord.Notes.length; k++)
         {
-         html += "<td>" + rt.Chord.Notes[k].Text + "</td>";
+         html += "<td>" + rt.Chord.Notes[k].Text + rt.Chord.Notes[k].Midi.Octave + "</td>";
         }
        html += "</tr></table></td>";
       } break;
@@ -4787,7 +4796,7 @@ function ShowRecordBuffer()
        html += "<table><tr>";
        for (k=0; k<rt.Scale.Notes.length; k++)
         {
-         html += "<td class='tdRecordBufferN' onclick='AddScaleNoteToStave(" + i + ", " + k + ");'>" + rt.Scale.Notes[k].Text + "</td>";
+         html += "<td class='tdRecordBufferN' onclick='AddScaleNoteToStave(" + i + ", " + k + ");'>" + rt.Scale.Notes[k].Text + rt.Scale.Notes[k].Midi.Octave + "</td>";
         }
        html += "</tr></table></td>";
       } break;
@@ -4822,8 +4831,8 @@ function ShowPlayBuffer()
      html += "<td class='tdPlay' style='width:" + w + "vw;'><div class='divPlay'>";
      switch(pt.PlayType)
       {
-       case "N": html += pt.Note.Text; break;
-       case "C": html += pt.Chord.Text; break;
+       case "N": html += pt.Note.Text + pt.Note.Midi.Octave; break;
+       case "C": html += pt.Chord.Text + pt.Chord.Notes[0].Midi.Octave; break;
        case "R": html += "R"; break;
       }
      html += "</div></td>";
