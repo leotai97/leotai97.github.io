@@ -14,7 +14,7 @@
 
            .thInst { font-size:2.4vw; padding:2.4vw; }
            .tdInst { font-size:2.4vw; vertical-align:middle; padding:2.4vw; }
-            .tdRec { font-size:2.4vw; }
+            .tdRec { font-size:2.4vw; white-space:nowrap; }
 
           .tabLink { background-color:#555; color:white; float:left; border:none; outline:none; cursor:pointer; padding:0.729vw 0.833vw; font-size:2.4vw; height:4.6vw; }
         
@@ -56,12 +56,20 @@
          .btnScale { font-size:2.55vw; font-weight:400; color:lime; cursor:pointer; }
 
          .tdBuffer { border:0.052vw solid black; width:80%; }
+   .tdRecBuffScale { font-size:0.8vw; }
+   .tdRecChordNote { font-size:0.6vw; }
+  .tdRecBuffOctave { cursor:pointer; color:blue; }
+  .tdRecordBuffTop { cursor:pointer; background-color:lime; }
+  .tdRecordBuffBot { cursor:pointer; background-color:red; }
   .tdRecordBufferN { font-size:1.042vw; padding:0.521vw; color:#000044; cursor:pointer; border:0.2vw solid cyan; }
   .tdRecordBufferC { font-size:1.042vw; padding:0.521vw; color:#000044; cursor:pointer; border:0.2vw solid blue; }
   .tdRecordBufferS { font-size:1.042vw; padding:0.521vw; color:#000044; border:0.2vw solid red; text-align:center; }
           .divPlay { font-size:0.84vw; border:0.001vw solid navy; text-align:center; color:black; }
            .tdPlay { overflow:hidden; display:inline-block; white-space:nowrap; }
        .tdPlayArea { overflow:scroll; }
+        .tdMeasure { border: 0.1vw solid blue; }
+        .tdQuarter { border: 0.1vw solid red; width:0.4vw; border-style:none solid none none; }
+      .tdSixteenth { background-color:skyblue; border:0.2vw solid lightgray; cursor:pointer; }
 
 
   .tableDlgPattern { border-spacing:2vw; }
@@ -89,6 +97,7 @@ var symNot =  '\u2205'; // circle with line thru it
 var symFwd =  '\u25BA'; // arrow pointing >
 var symBack = '\u25C4'; // arrowing pointing <
 var sym8th =  '\u266A'; // 8th note
+var symBlock= '\u2588'; // full block;
 
 // measurements in vw & vh viewport units
 
@@ -111,7 +120,7 @@ var blueNote = "#6FA8DC"; // a light blue
 //    Global Variables
 /////////////////////////////
 
-var m_Version = "1.1.9";     
+var m_Version = "1.2.0";     
 var m_Audio = null;             // used in frequency generation for gui items clicked on
 var m_CurrentWave = "square";   // sine square triangle sawtooth
 var m_CurrentVolume = 0;        // obtained from volume control
@@ -137,8 +146,15 @@ var m_CurrentFingeringOption = optFingeringNumbers;  // whether to show numbers 
 
 var m_CurrentGUIThing = -1;   // index into m_arrGUIPlay
 var m_CurrentPlayBuffer = 0;  // index into the m_arrPlayBuffer array
-var m_CurrentPlayTime = 1200; // milliseconds per measure
+var m_CurrentPlayTime = 1000; // milliseconds per quarter note
 var m_GUITime = 1200;         // 1600 milliseconds for each "whole" note
+
+var m_CurrentTimeSignature;    // 1 thru 4   1 = 4/4  2 = 3/4  3 = 2/4  4 = 6/8
+var m_CurrentPlaySixteenth=0;  // which 16th note of a play buffer is selected
+
+var m_PlaySixteenthIndex = -1;    // sound engine 16th note counter
+var m_PlaySixteenthCount = 120;   // number of 16th notes in each m_arrPlayBuffer array
+var m_PlaySixteenthEnd = 0;       // find the last thing added to in any of the m_arrPlayBuffer arrays
 
 var m_RecordMode = false;
 
@@ -200,7 +216,7 @@ var m_arrGradientBlueGreen = ["#189753", "#1ea55c", "#24b266", "#2ac06f", "#30cc
 
 var m_arrGUIThings = [];    // gui sound engine array, contains PlayThing objects, indexed by m_CurrentPlaySet
 var m_arrRecordBuffer = []; // array of PlayThings that user can add to a play buffer staff array
-var m_arrPlayBuffers = [];  // array of PlayThing arrays maintained by the record section
+var m_arrPlayBuffers = [];  // array of PlayThing objects maintained by the record section
 var m_arrPlayBufferIndexes = []; // array of integers used to count up through the above arrays
 
 var m_arrFingering = []; // array of fingering, either numbers 1 2 3 4 or letter I M R P. Loaded when option changes.
@@ -692,6 +708,8 @@ function PlayChord(mode, keyNdx, patNdx, midiBase) // mode ndx, key index into a
  var key, text, note, midi;
  var k, m;
 
+ this.Mode = mode;
+ this.KeyIndex = keyNdx;
  this.Pattern = patNdx;
  this.Notes = [];
 
@@ -1413,6 +1431,58 @@ function GetBaseMidiNote(keyTonic)
 
 // Sound Engine
 
+function Bump16th(time)
+{
+ var signature 
+ switch(m_CurrentTimeSignature)
+  {
+   case 1: // 4/4 time
+    { 
+     switch(time)
+      {
+       case 1:  return 16; // whole note 
+       case 2:  return 8;  // half note
+       case 4:  return 4;  // quarter note
+       case 8:  return 2;  // eighth note
+       case 16: return 1;  // 1/16th note
+      }
+    } break;
+   case 2: // 3/4 time
+    { 
+     switch(time)
+      {
+       case 1:  return 12; // whole note 
+       case 2:  return 8;  // half note, still 2 quarter notes
+       case 4:  return 4;  // quarter note
+       case 8:  return 2;  // eighth note
+       case 16: return 1;  // 1/16th note
+      }
+    } break;
+   case 3: // 2/4 time
+    { 
+     switch(time)
+      {
+       case 1:  return 8;  // whole note 
+       case 2:  return 8;  // half note
+       case 4:  return 4;  // quarter note
+       case 8:  return 2;  // eighth note
+       case 16: return 1;  // 1/16th note
+      }
+    } break;
+   case 1: // 6/8 time
+    { 
+     switch(time)
+      {
+       case 1:  return 24; // whole note 
+       case 2:  return 8;  // half note
+       case 4:  return 4;  // quarter note
+       case 8:  return 2;  // eighth note
+       case 16: return 1;  // 1/16th note
+      }
+    } break;
+  }
+}
+
 function AddRestToStave()
 {
  var time;
@@ -1433,13 +1503,22 @@ function AddNoteToStave(buffNdx)
  var time;
  var pt;
  var vol;
+ var note;
 
  vol = document.getElementById("audioVolumeControl").value;
  time = parseInt(document.getElementById("cboTime").options[document.getElementById("cboTime").selectedIndex].value);
 
- pt = new PlayThing("N", m_arrRecordBuffer[buffNdx].Note, null, m_CurrentWave, vol, time); // time is passed as 1, 2, 4, 8, 16 then converted to fraction in constructor, 1/4, 1/16
- 
- m_arrPlayBuffers[m_CurrentPlayBuffer].push(pt);
+ note = new PlayNote(m_arrRecordBuffer[buffNdx].Note.Midi.Number, m_arrRecordBuffer[buffNdx].Note.Text);
+
+ pt = new PlayThing("N", note, null, m_CurrentWave, vol, time); // time is passed as 1, 2, 4, 8, 16 then converted to fraction in constructor, 1/4, 1/16
+
+ if (m_CurrentPlaySixteenth >= m_arrPlayBuffers[m_CurrentPlayBuffer].length)
+   return;
+
+ ComposePlayNoteSound(note);
+
+ m_arrPlayBuffers[m_CurrentPlayBuffer][m_CurrentPlaySixteenth] = pt;
+ m_CurrentPlaySixteenth += Bump16th(time);
  ShowPlayBuffer();
 }
 
@@ -1454,49 +1533,13 @@ function AddChordToStave(buffNdx)
 
  pt = new PlayThing("C", null, m_arrRecordBuffer[buffNdx].Chord, m_CurrentWave, vol, time); // notes of chords to be played simutaneously
 
- m_arrPlayBuffers[m_CurrentPlayBuffer].push(pt);
- ShowPlayBuffer();
-}
+ if (m_CurrentPlaySixteenth >= m_arrPlayBuffers[m_CurrentPlayBuffer].length)
+   return;
 
-function AddScaleToStaveB(buffNdx)
-{
- var time;
- var sets;
- var vol;
- var i;
+ m_arrPlayBuffers[m_CurrentPlayBuffer][m_CurrentPlaySixteenth] = pt;
+ m_CurrentPlaySixteenth += Bump16th(time);
 
- vol = document.getElementById("audioVolumeControl").value;
- time = parseInt(document.getElementById("cboTime").options[document.getElementById("cboTime").selectedIndex].value);
-
- sets = [];
- for(i=0; i<m_arrRecordBuffer[buffNdx].Scale.Notes.length; i++)
-  {
-   sets[i] = new PlayThing("N", m_arrRecordBuffer[buffNdx].Scale.Notes[i], null, m_CurrentWave, vol, time); // notes of chords to be played simutaneously
-  }
-
- sets.reverse();
-
- for(i=0; i<sets.length; i++)
-  {
-   m_arrPlayBuffers[m_CurrentPlayBuffer].push(sets[i]);
-  }
-
- ShowPlayBuffer();
-}
-
-function AddScaleToStaveF(buffNdx)
-{
- var time;
- var vol;
- var i;
-
- vol = document.getElementById("audioVolumeControl").value;
- time = parseInt(document.getElementById("cboTime").options[document.getElementById("cboTime").selectedIndex].value);
-
- for(i=0; i<m_arrRecordBuffer[buffNdx].Scale.Notes.length; i++)
-  {
-   m_arrPlayBuffers[m_CurrentPlayBuffer].push(new PlayThing("N", m_arrRecordBuffer[buffNdx].Scale.Notes[i], null, m_CurrentWave, vol, time)); // notes of chords to be played simutaneously
-  }
+ ComposePlayChordSound(m_arrRecordBuffer[buffNdx].Chord);
 
  ShowPlayBuffer();
 }
@@ -1506,15 +1549,74 @@ function AddScaleNoteToStave(buffNdx, noteNdx)
  var time;
  var pt;
  var vol;
+ var note;
 
  vol = document.getElementById("audioVolumeControl").value;
  time = parseInt(document.getElementById("cboTime").options[document.getElementById("cboTime").selectedIndex].value);
 
- pt = new PlayThing("N", m_arrRecordBuffer[buffNdx].Scale.Notes[noteNdx], null, m_CurrentWave, vol, time); // time is passed as 1, 2, 4, 8, 16 then converted to fraction in constructor, 1/4, 1/16
+ note = new PlayNote(m_arrRecordBuffer[buffNdx].Scale.Notes[noteNdx].Midi.Number, m_arrRecordBuffer[buffNdx].Scale.Notes[noteNdx].Text); 
+
+ pt = new PlayThing("N", note, null, m_CurrentWave, vol, time); // time is passed as 1, 2, 4, 8, 16 then converted to fraction in constructor, 1/4, 1/16
  
- m_arrPlayBuffers[m_CurrentPlayBuffer].push(pt);
- ShowPlayBuffer();
+ if (m_CurrentPlaySixteenth >= m_arrPlayBuffers[m_CurrentPlayBuffer].length)
+   return;
+
+ ComposePlayNoteSound(note);
+
+ m_arrPlayBuffers[m_CurrentPlayBuffer][m_CurrentPlaySixteenth] = pt;
+ m_CurrentPlaySixteenth += Bump16th(time);
+ ShowPlayBuffer();}
+
+function ScaleOctaveFwd(buffNdx)
+{
+ var thing;
+ var maxed;
+ var midi;
+ 
+ thing = m_arrRecordBuffer[buffNdx];
+ for (i=0; i<thing.Scale.Notes.length; i++)
+  {
+   midi = thing.Scale.Notes[i].Midi.Number + 12;
+   if (m_mapMidiNotes.get(midi) == undefined)
+     maxed = true; 
+  }
+
+ if (maxed == true)
+   return;
+ 
+ for (i=0; i<thing.Scale.Notes.length; i++)
+  {
+   midi = thing.Scale.Notes[i].Midi.Number + 12;
+   thing.Scale.Notes[i].Midi = m_mapMidiNotes.get(midi); 
+  }
+ ShowRecordBuffer();
 }
+
+function ScaleOctaveBack(buffNdx) // transpose a scale's notes down an octave
+{
+ var thing;
+ var maxed;
+ var midi;
+
+ thing = m_arrRecordBuffer[buffNdx];
+ for (i=0; i<thing.Scale.Notes.length; i++)
+  {
+   midi = thing.Scale.Notes[i].Midi.Number - 12;
+   if (m_mapMidiNotes.get(midi) == undefined)
+     maxed = true; 
+  }
+
+ if (maxed == true)
+   return;
+ 
+ for (i=0; i<thing.Scale.Notes.length; i++)
+  {
+   midi = thing.Scale.Notes[i].Midi.Number - 12;
+   thing.Scale.Notes[i].Midi = m_mapMidiNotes.get(midi); 
+  }
+ ShowRecordBuffer();
+}
+
 
 function PlayScaleSound(playScale, direction) // PlayScale object
 {
@@ -1583,6 +1685,28 @@ function PlayChordSound(playChord) // index to m_arrChordPattern and the chord's
  SoundPlayGUI(); 
 }
 
+function ComposePlayChordSound(playChord) // index to m_arrChordPattern and the chord's midi root
+{
+ var vol;
+ var playThing;
+ var chordNote;
+ var i;
+
+ vol = document.getElementById("audioVolumeControl").value;
+
+ if (m_CurrentGUIThing >= 0)
+   return; // something already playing
+
+ m_arrGUIThings = [];
+
+ playThing = new PlayThing("C", null, playChord, m_CurrentWave, vol, 4); // 1/4 time chord 
+ m_arrGUIThings.push(playThing);
+
+ m_CurrentGUIThing = 0;
+ SoundPlayGUI(); 
+}
+
+
 function PlayNoteSound(playNote)
 {
  var vol;
@@ -1606,6 +1730,25 @@ function PlayNoteSound(playNote)
  m_CurrentGUIThing = 0;
  SoundPlayGUI(); 
 }
+
+function ComposePlayNoteSound(playNote)
+{
+ var vol;
+ var playThing;
+
+ vol = document.getElementById("audioVolumeControl").value;
+
+ playThing = new PlayThing("N", playNote, null, m_CurrentWave, vol, 8);
+ 
+ if (m_CurrentGUIThing >= 0)
+   return; // something already playing
+
+ m_arrGUIThings = [];
+ m_arrGUIThings[0] = playThing;
+ m_CurrentGUIThing = 0;
+ SoundPlayGUI(); 
+}
+
 
 function SoundPlayThingGUI(playThing, milliPerMeasure)
 {
@@ -1646,7 +1789,7 @@ function SoundPlayThingGUI(playThing, milliPerMeasure)
   }
 }
 
-function SoundPlayThingBuffers(playThing, milliPerMeasure)
+function SoundPlayThingBuffers(playThing, milliseconds)
 {
  var oscillators = []; 
  var midiNote;
@@ -1662,31 +1805,96 @@ function SoundPlayThingBuffers(playThing, milliPerMeasure)
   {
    case "C": notes = playThing.Chord.Notes; break;
    case "N": notes = [playThing.Note]; break;
-   case "R": notes = []; break;
    default: throw new Error("SoundPlayThing(playThing) bad plaything type");
   }
 
  for (i=0; i<notes.length; i++)
   {
-   if (playThing.PlayType != "R")
-    {
-     midiNote = m_mapMidiNotes.get(notes[i].Midi.Number);  // so only Note objects should make it to this point
-     duration = (playThing.Time * milliPerMeasure) * 0.70; // try cutting actual play time down to 30% of the allocated time
+   midiNote = m_mapMidiNotes.get(notes[i].Midi.Number);  // so only Note objects should make it to this point
 
-     oscillators[i] =m_Audio.createOscillator(); // create the player
-     oscillators[i].type = playThing.WaveType;
+   oscillators[i] =m_Audio.createOscillator(); // create the player
+   oscillators[i].type = playThing.WaveType;
 
-     volumes[i] =m_Audio.createGain();
-     oscillators[i].connect(volumes[i]);
-     volumes[i].connect(m_Audio.destination);
-     volumes[i].gain.value = playThing.Volume;
-     oscillators[i].frequency.value = midiNote.Frequency;
-     oscillators[i].start();
-     setTimeout(function() { for (i=0; i<oscillators.length; i++) oscillators[i].stop(); }, duration); 
-    }
+   volumes[i] =m_Audio.createGain();
+   oscillators[i].connect(volumes[i]);
+   volumes[i].connect(m_Audio.destination);
+   volumes[i].gain.value = playThing.Volume;
+   oscillators[i].frequency.value = midiNote.Frequency;
+   oscillators[i].start();
+   setTimeout(function() { var k; for (k=0; k<oscillators.length; k++) oscillators[k].stop(); }, milliseconds); 
   }
 }
 
+function SoundPlayThings(playThings)
+{
+ var oscillators;
+ var volumes; 
+ var midiNote;
+ var notes;
+ var playDurations;
+ var playVolumes;
+ var playWaves;
+ var i, k;
+ var milliseconds;
+
+ if (m_Audio == null)
+  m_Audio = new(window.AudioContext || window.webkitAudioContext)();
+
+ oscillators = []; // these contain the individual sound engine objects to play each note note in the current 1/16th time slice
+ volumes = [];     // individual volume sound engine objects
+ notes = [];       // these are PlayNote objects
+
+ playDurations = []; // durations for each note to play
+ playVolumes = [];   // volumes of each note
+ playWaves = [];     // wave type for each note
+ 
+ for (i=0; i<playThings.length; i++)
+  {
+   switch(playThings[i].PlayType) // chord or note?
+    {
+     case "C": 
+      {
+       for (k=0; k<playThings[i].Chord.Notes.length; k++) // add individual chord notes to play
+        { 
+         notes.push(playThings[i].Chord.Notes[k]);
+         playDurations.push(playThings[i].Time);
+         playVolumes.push(playThings[i].Volume);
+         playWaves.push(playThings[i].WaveType);
+        }
+      } break;
+     case "N": 
+      {
+       notes.push(playThings[i].Note);             // add the single note to play
+       playDurations.push(playThings[i].Time);
+       playVolumes.push(playThings[i].Volume);
+       playWaves.push(playThings[i].WaveType);
+      } break;
+     default: throw new Error("SoundPlayThings(playThings) bad plaything type");
+    }
+  }
+
+ for (i=0; i<notes.length; i++)  // go thru the list of notes
+  {
+   midiNote = m_mapMidiNotes.get(notes[i].Midi.Number);  // so only Note objects should make it to this point
+
+   milliseconds = playDurations[i] * m_CurrentPlayTime;  // playDurations contain fractions 1/4, 1/8, 1/16th, in decimal format. m_CurrentPlayTime is length of a "measure" 
+
+   oscillators[i] = m_Audio.createOscillator(); // create the player
+   oscillators[i].type = playWaves[i];          // playWaves are either "square", "sine", "triangle" or "sawtooth"
+   volumes[i] =m_Audio.createGain();            // create a Gain object
+   oscillators[i].connect(volumes[i]);          // connect it
+   volumes[i].connect(m_Audio.destination);     // connect the audio engine to it
+   volumes[i].gain.value = playVolumes[i];      // set the actual volume 
+   oscillators[i].frequency.value = midiNote.Frequency;       // frequency of the oscillator
+   oscillators[i].start();                                    // play the note
+   setTimeout(StopOscillator, milliseconds, oscillators[i]);  // tell the browser to stop playing the note after the given duration is finished
+  }
+}
+
+function StopOscillator(osc)
+{
+ osc.stop(); // stop playing the given note
+}
 
 function SoundPlayGUI()
 {
@@ -1706,66 +1914,127 @@ function SoundPlayGUI()
   }
 }
 
+function FindLastThing(buffer)
+{
+ var i;
+
+ for (i=m_arrPlayBuffers[buffer].length - 1; i>=0; i--)
+  {
+   if (m_arrPlayBuffers[buffer][i] != null)
+     return i + 1;
+  }
+ return 0; // none found
+}
+
 function SoundPlaySpecificBuffer(buffNdx)
 {
- if (m_CurrentGUIThing >= 0)
-   return;
+ var final;
+
+ if (m_CurrentGUIThing >= 0 || m_PlaySixteenthIndex >=0)
+   return; // currently playing
  
- for (i=0; i<m_arrPlayBufferIndexes.length; i++)
+ final = FindLastThing(buffNdx); 
+
+ if (final == 0)
   {
-   if (m_arrPlayBufferIndexes[i] >= 0)
-   return; // already playing
+   alert("No notes or chords were added to the selected staff");
+   return;
   }
 
- m_arrPlayBufferIndexes[buffNdx] = 0;
- SoundPlayBuffer(buffNdx); // start engine
+ m_PlaySixteenthEnd = final;
+
+ document.getElementById("btnPlaySpecific").disabled = true; 
+
+ m_PlaySixteenthIndex = 0;
+ SoundPlaySpecificBufferEngine(buffNdx);     // start engine
 }
 
 function SoundPlayAllBuffers()
 {
+ var last, final;
  var i;
 
- if (m_CurrentGUIThing >= 0)
+ if (m_CurrentGUIThing >= 0 || m_PlaySixteenthIndex >=0)
    return;
- 
- for (i=0; i<m_arrPlayBufferIndexes.length; i++)
-  {
-   if (m_arrPlayBufferIndexes[i] >= 0)
-   return; // already playing
-  }
 
+ final = 0;
  for (i=0; i<m_arrPlayBuffers.length; i++)
   {
-   if (m_arrPlayBuffers[i].length > 0)
+   last = FindLastThing(i);
+   if (last > final)
+     final = last;
+  }
+
+ if (final == 0)
+  {
+   alert("No notes or chords were added to a staff");
+   return;
+  }
+
+ document.getElementById("btnPlayAll").disabled = true; 
+
+ m_PlaySixteenthEnd = final;
+
+ m_PlaySixteenthIndex = 0;
+ SoundPlayBuffers();
+}
+
+function SoundPlaySpecificBufferEngine(buffer)
+{
+ var delay;
+ var t16;
+ var pt;
+
+ t16 = m_CurrentPlayTime / 4; // delay between 16th notes
+
+ if (m_PlaySixteenthIndex < m_PlaySixteenthEnd && m_PlaySixteenthIndex >= 0) // indexes still in range?
+  {
+   pt = m_arrPlayBuffers[buffer][m_PlaySixteenthIndex]; // see if a play object is present
+   if (pt != null)                                      // null's are basically a rest
     {
-     m_arrPlayBufferIndexes[i] = 0;
-     SoundPlayBuffer(i); // start engine
+     delay = pt.Time * m_CurrentPlayTime * 0.70;          // figure out milliseconds to play the object
+     SoundPlayThingBuffers(pt, delay); // play it
+    }
+   m_PlaySixteenthIndex++;  // move index to next 16th note instance  
+   if (m_PlaySixteenthIndex < m_PlaySixteenthEnd) // still in range?
+     setTimeout(function() { SoundPlaySpecificBufferEngine(buffer); }, t16); // yes, advance to next PlaySet
+   else
+    {
+     document.getElementById("btnPlaySpecific").disabled = false; 
+     m_PlaySixteenthIndex = -1; // not in range, turn off sound engine 
     }
   }
 }
 
-function SoundClearSpecificBuffer(buffNdx)
+function SoundPlayBuffers()
 {
- m_arrPlayBuffers[buffNdx] = [];
- m_arrPlayBufferIndexes[buffNdx]=-1; // should shutdown engine if it's running
- ShowPlayBuffer();
-}
-
-function SoundPlayBuffer(buffNdx)
-{
- var delay;
+ var t16;
  var pt;
+ var things;
 
- if (m_arrPlayBufferIndexes[buffNdx] < m_arrPlayBuffers[buffNdx].length && m_arrPlayBufferIndexes[buffNdx] >= 0)
+ t16 = m_CurrentPlayTime/4; // a quarter note delay divided by 4 is a 16th note duration
+ things = []; 
+
+ if (m_PlaySixteenthIndex < m_PlaySixteenthEnd && m_PlaySixteenthIndex >= 0) // indexes still in range?
   {
-   pt = m_arrPlayBuffers[buffNdx][m_arrPlayBufferIndexes[buffNdx]];
-   delay = pt.Time * m_CurrentPlayTime;
-   SoundPlayThingBuffers(pt, m_CurrentPlayTime, buffNdx);
-   m_arrPlayBufferIndexes[buffNdx]++;
-   if (m_arrPlayBufferIndexes[buffNdx] < m_arrPlayBuffers[buffNdx].length)
-     setTimeout(function() { SoundPlayBuffer(buffNdx); }, delay); // advance to next PlaySet
+   for (i=0; i<m_arrPlayBuffers.length; i++)  // check each buffer at current 16th note step index
+    {
+     pt = m_arrPlayBuffers[i][m_PlaySixteenthIndex]; // see if a play object is present
+     if (pt != null)                                 // null's are basically a rest
+      {
+       things.push(pt);  // add to the list of things to play for this 1/16 note time slice
+      }
+    }
+   if (things.length > 0)      // find anything?
+     SoundPlayThings(things);  // yup, play 'em all
+   m_PlaySixteenthIndex++;     // move index to next 16th note instance
+   if (m_PlaySixteenthIndex < m_PlaySixteenthEnd) // still in range?
+     setTimeout(function() { SoundPlayBuffers(); }, t16); // yes, advance to next 1/16th note slice
    else
-     m_arrPlayBufferIndexes[buffNdx] = -1;
+    {
+     m_PlaySixteenthIndex = -1; // not in range, turn off sound engine 
+     document.getElementById("btnPlayAll").disabled = false;
+    }
   }
 }
 
@@ -4671,6 +4940,50 @@ function eventBtnRecordClear_Click()
  m_arrRecordBuffer = [];
  ShowRecordBuffer();
 }
+
+function eventCboTimeSignature_Change()
+{
+ m_CurrentTimeSignature = parseInt(document.getElementById("cboStaveTime").options[document.getElementById("cboStaveTime").selectedIndex].value);
+ ShowPlayBuffer();
+}
+
+function eventTDPlaySixteenth_Click(buffer, sixteenth)
+{
+ m_CurrentPlayBuffer = buffer; // set which of the play buffers is selected
+ for (i=0; i<5; i++)
+  {
+   document.getElementById("radPlayBuffer" + i).checked = false;  // uncheck all of the buffer radio buttons
+  }
+ document.getElementById("radPlayBuffer" + buffer).checked = true; // check the new one
+ m_CurrentPlaySixteenth = sixteenth;                               // set the current 1/16 time slice 
+ m_arrPlayBuffers[buffer][sixteenth] = null;                       // clear the entry at the click point so indivdual notes and chords can be cleared 
+ ShowPlayBuffer();
+}
+
+function eventBtnPlaySelectedBuffer()
+{
+ SoundPlaySpecificBuffer(m_CurrentPlayBuffer);
+}
+
+function eventBtnClearSelectedBuffer()
+{
+ for(i=0; i<m_arrPlayBuffers[m_CurrentPlayBuffer].length; i++)
+   m_arrPlayBuffers[m_CurrentPlayBuffer][i] = null;
+ ShowPlayBuffer();
+}
+
+function eventBtnPlayAllBuffers()
+{
+ SoundPlayAllBuffers();
+}
+
+function eventRadPlayBufferSelect(buffer)
+{
+ m_CurrentPlayBuffer = buffer;
+ ShowPlayBuffer();
+}
+
+
 ////////////////////////////////////////////////
 //               S h o w   
 ////////////////////////////////////////////////
@@ -4774,31 +5087,35 @@ function ShowRecordBuffer()
     {
      case "N":
       {
-       html += "<td class='tdRecordBufferN' onclick='AddNoteToStave(" + i + ");'>" +  rt.Note.Text + rt.Note.Midi.Octave + "</td>";
+       html += "<td class='tdRecordBufferN'><table>";
+       html += "<tr><td class='tdRecordBuffTop' onclick='ComposePlayNoteSound(new PlayNote(" + rt.Note.Midi.Number + ", " + Quotes(rt.Note.Text) + "));'>&nbsp;</td></tr>";
+       html += "<tr><td>" +  rt.Note.Text + rt.Note.Midi.Octave + "</td></tr>";
+       html += "<tr><td class='tdRecordBuffBot' onclick='AddNoteToStave(" + i + ");'>&nbsp;</td></tr></table>";
       } break;
     case "C":
       {
-       html += "<td class='tdRecordBufferC' onclick='AddChordToStave(" + i + ");'><table><tr>";
-       html += "<td>" + rt.Chord.Text + "</td></tr></table>";
-       html += "<table><tr>";
+       html += "<td class='tdRecordBufferC'><table>";
+       html += "<tr><td class='tdRecordBuffTop' onclick='ComposePlayChordSound(new PlayChord(" + rt.Chord.Mode + ", " + rt.Chord.KeyIndex + ", " + rt.Chord.Pattern + ", " + rt.Chord.Notes[0].Midi.Number + "));'>&nbsp;</td></tr>";
+       html += "<tr><td><table><tr><td colspan='" + rt.Chord.Notes.length + "'>" + rt.Chord.Text + "</td></tr><tr>";
        for (k=0; k<rt.Chord.Notes.length; k++)
-        {
-         html += "<td>" + rt.Chord.Notes[k].Text + rt.Chord.Notes[k].Midi.Octave + "</td>";
-        }
-       html += "</tr></table></td>";
+         html += "<td class='tdRecChordNote'>" + rt.Chord.Notes[k].Text + "</td>";
+       html += "</tr></table></tr></td>";
+       html += "<tr><td class='tdRecordBuffBot' onclick='AddChordToStave(" + i + ");'>&nbsp;</td></tr></table>";
       } break;
     case "S":
       {
-       html += "<td class='tdRecordBufferS'><table><tr>";
-       html += "<td class='btnScale' onclick='AddScaleToStaveB(" + i + ");'>" + symBack + "</td>";
-       html += "<td class='scaleName'>" + rt.Scale.Text + "</td>";
-       html += "<td class='btnScale' onclick='AddScaleToStaveF(" + i + ");'>" + symFwd + "</td></tr></table>";
-       html += "<table><tr>";
+       html += "<td class='tdRecordBufferS'><table>";
+       html += "<tr><td class='tdRecBuffScale'>" + rt.Scale.Text + "</td></tr>";
+       html += "<tr><td><table><tr>";
+       html += "<td class='tdRecBuffOctave' onclick='ScaleOctaveBack(" + i + ");'>" + symBack + "</td>";
        for (k=0; k<rt.Scale.Notes.length; k++)
         {
-         html += "<td class='tdRecordBufferN' onclick='AddScaleNoteToStave(" + i + ", " + k + ");'>" + rt.Scale.Notes[k].Text + rt.Scale.Notes[k].Midi.Octave + "</td>";
+         html += "<td><table><tr><td class='tdRecordBuffTop' onclick='ComposePlayNoteSound(new PlayNote(" + rt.Scale.Notes[k].Midi.Number + ", " + Quotes(rt.Scale.Notes[k].Text) + "));'>&nbsp;</td></tr>";
+         html += "<tr><td>" +  rt.Scale.Notes[k].Text + rt.Scale.Notes[k].Midi.Octave + "</td></tr>";
+         html += "<tr><td class='tdRecordBuffBot' onclick='AddScaleNoteToStave(" + i + ", " + k + ");'>&nbsp;</td></tr></table></td>";
         }
-       html += "</tr></table></td>";
+       html += "<td class='tdRecBuffOctave' onclick='ScaleOctaveFwd(" + i + ");'>" + symFwd + "</td>";
+       html += "</tr></table></tr></table></td>";
       } break;
     }
   }
@@ -4809,40 +5126,89 @@ function ShowRecordBuffer()
 
 function ShowPlayBuffer()
 {
- var measureWidth = 10;
  var html;
  var i, k;
-
- html = "<table>";
-
- for (i=0; i<m_arrPlayBuffers.length; i++)
+ var measures, n16Ndx;
+ var n16, n8, n4;
+ var text, fg, bg; 
+ var quarter;
+ 
+ switch(m_CurrentTimeSignature)
   {
-   html += "<tr><td><table style='border-spacing:0;'><tr>";
-   html += "<td><input type='button' class='btn' value='Play' onclick='SoundPlaySpecificBuffer(" + i + ");'></td>";
-   html += "<td><input type='button' class='btn' value='Clear' onclick='SoundClearSpecificBuffer(" + i + ");'></td>";
-   html += "<td><input type='radio' class='radBtn' name='PlayBuffer' value='Clear' ";
-   if (m_CurrentPlayBuffer == i)
-     html += "checked='checked' ";
-   html += "onclick='m_CurrentPlayBuffer=" + i + ";'></td>";
-   for (k=0; k<m_arrPlayBuffers[i].length; k++)
+   case 1: // 4/4 time
     {
-     pt = m_arrPlayBuffers[i][k];
-     w = pt.Time * measureWidth;
-     html += "<td class='tdPlay' style='width:" + w + "vw;'><div class='divPlay'>";
-     switch(pt.PlayType)
-      {
-       case "N": html += pt.Note.Text + pt.Note.Midi.Octave; break;
-       case "C": html += pt.Chord.Text + pt.Chord.Notes[0].Midi.Octave; break;
-       case "R": html += "R"; break;
-      }
-     html += "</div></td>";
-    }
-   html += "</tr></table></td></tr>";
+     n16 = 16;  // 16 16th notes in a measure
+     n8 = 8;
+     n4 = 4;
+    } break;
+   case 2: // 3/4 time
+    {
+     n16 = 12;
+     n8 = 6;
+     n4 = 3;
+    } break;
+   case 3: // 2/4 time
+    {
+     n16 = 8;
+     n8 = 4;
+     n4 = 2;
+    } break;
+   case 4: // 6/8 time
+    {
+     n16 = 24; // xxxx xxxx xxxx xxxx xxxx xxxx |
+     n8 = 12;  // zz zz zz zz zz zz | zz zz zz zz zz zz 
+     n4 = 6;   // xxxxxx | xxxxxx
+    } break;
   }
- html += "<tr><td colspan=><input type='button' class='btn' value='Play All' onclick='SoundPlayAllBuffers();'></td></tr>";
- html += "</table>";
+ 
+ n16Count = 0;
 
- document.getElementById("tdPlayBuffers").innerHTML = html;
+ for (i=0;i<m_arrPlayBuffers.length; i++)
+  {
+   measures = m_arrPlayBuffers[i].length / n16;
+   n16Ndx = 0;
+   html = "<table><tr>";
+   for (k=0; k<measures; k++)
+    {
+     html += "<td class='tdMeasure'><table><tr>";
+     quarter = 0;
+     for (j=0; j<n16; j++) // go through the 16th notes
+      {
+       if (quarter == 4)
+        {
+         html += "<td class='tdQuarter'></td>";
+         quarter = 0;
+        }
+       quarter++;       
+       if (m_arrPlayBuffers[i][n16Ndx] != null)
+        {
+         switch(m_arrPlayBuffers[i][n16Ndx].PlayType)
+          {
+           case "N": text = m_arrPlayBuffers[i][n16Ndx].Note.Text; break;
+           case "C": text = m_arrPlayBuffers[i][n16Ndx].Chord.Text; break;
+          }
+         fg = "white";
+         bg = "black";
+        }
+       else
+        {
+         text = symBlock;
+         fg = "#dddddd";
+         bg = "#999999";
+        }
+       if (m_CurrentPlayBuffer == i && m_CurrentPlaySixteenth == n16Ndx)
+        {
+         bg = "lime";
+        }
+       html += "<td class'tdSixteenth' style='padding:0.2vw; color:" + fg + "; background-color:" + bg + ";' ";
+       html += "onclick='eventTDPlaySixteenth_Click(" + i + ", " + n16Ndx + ");'>" + text + "</td>";
+       n16Ndx++;
+      }
+     html += "</tr></table></td>";
+    }
+   html += "</tr></table>";
+   document.getElementById("tdPlayBuffer" + i).innerHTML = html;
+  }
 }
 
 // tab content button click handler
@@ -5131,35 +5497,66 @@ function openPage(pageNum, pageName, btn)
 
 <div id="divTabRecord" class="tabContent">
 <table>
+
  <tr>
-  <td style='width:100vw'>
+  <td style="width:100vw;">
    <table>
     <tr>
      <td align=center>
       <table>
-       <tr><td class="tdRec"><input type="checkbox" name="choose" class="radBtn" id="chkRecord" onclick="eventChkRecord_Click();">Choose</td></tr>
+       <tr><td class="tdRec"><input type="checkbox" name="choose" class="radBtn" id="chkRecord" onclick="eventChkRecord_Click();"><label for="chkRecord">Choose</label></td></tr>
        <tr><td class="tdRec"><input class="btn" type="button" value="Clear" onclick="eventBtnRecordClear_Click();"></td></tr>
+       <tr><td>
+        <select id="cboTime">
+         <option value=1>Whole</option>
+         <option value=2>Half</option>
+         <option value=4 selected="selected">1/4</option>
+         <option value=8>1/8</option>
+         <option value=16>1/16</option>
+        </select>
+      </td></tr>
       </table>
      </td>
      <td class="tdBuffer" id="tdRecordBuffer"></td>
-     <td>
-      <select id="cboTime">
-       <option value=1>Whole</option>
-       <option value=2>Half</option>
-       <option value=4 selected="selected">1/4</option>
-       <option value=8>1/8</option>
-       <option value=16>1/16</option>
-       <option value=32>1/32</option>
-      </select>
-      <br>
-      <input type="button" class="btn" value="Rest" onclick='AddRestToStave();'>
-     </td>
+
     </tr>
    </table>
   </td>
  </tr>
+
  <tr>
-  <td class="tdPlayArea" id="tdPlayBuffers"></td>
+  <td style="width:100%;">
+   <table>
+    <tr>
+     <td>
+      <table>
+       <tr>
+        <td>
+         <select id="cboStaveTime" onchange="eventCboTimeSignature_Change();">
+          <option value="1" selected="selected">4/4 Time</option>
+          <option value="2">3/4 Time</option>
+          <option value="3">2/4 Time</option>
+          <option value="4">6/8 Time</option>
+         </select>
+        </td>
+       </tr>
+       <tr><td><input type="button" class="btn" id="btnPlaySpecific" value="Play" onclick='eventBtnPlaySelectedBuffer();'></td></tr>
+       <tr><td><input type="button" class="btn" value="Clear" onclick='eventBtnClearSelectedBuffer();'></td></tr>
+       <tr><td><input type="button" class="btn" id="btnPlayAll" value="Play All" onclick='eventBtnPlayAllBuffers();'></td></tr>
+      </table>
+     </td>
+    <td>
+     <table>
+      <tr><td><input type="radio" class="radBtn" name="radPlayBuffer" id="radPlayBuffer0" value="0" onclick="eventRadPlayBufferSelect(0);"></td><td id="tdPlayBuffer0"></td></tr>
+      <tr><td><input type="radio" class="radBtn" name="radPlayBuffer" id="radPlayBuffer1" value="1" onclick="eventRadPlayBufferSelect(1);"></td><td id="tdPlayBuffer1"></td></tr>
+      <tr><td><input type="radio" class="radBtn" name="radPlayBuffer" id="radPlayBuffer2" value="2" onclick="eventRadPlayBufferSelect(2);"></td><td id="tdPlayBuffer2"></td></tr>
+      <tr><td><input type="radio" class="radBtn" name="radPlayBuffer" id="radPlayBuffer3" value="3" onclick="eventRadPlayBufferSelect(3);"></td><td id="tdPlayBuffer3"></td></tr>
+      <tr><td><input type="radio" class="radBtn" name="radPlayBuffer" id="radPlayBuffer4" value="4" onclick="eventRadPlayBufferSelect(4);"></td><td id="tdPlayBuffer4"></td></tr>
+     </table>
+    </td>
+   </tr>
+  </table>
+ </td>
 </table>
 </div>
 
@@ -5179,11 +5576,19 @@ function openPage(pageNum, pageName, btn)
 
  document.getElementById("tdVersion").innerHTML = "Music Reference Copyright © 2023 Brian L Hughes Version " + m_Version;
 
+ document.getElementById("radPlayBuffer0").checked = true; // 1st compose buffer selector
+
+ eventCboTimeSignature_Change();
+
  for(i=0; i<5; i++)
   {
    m_arrPlayBuffers[i] = [];  
-   m_arrPlayBufferIndexes[i] = -1;
+   for (k=0; k<m_PlaySixteenthCount; k++)
+    {
+     m_arrPlayBuffers[i][k] = null; // each entry is a 1/16th time 
+    }
   }
+ m_PlaySixteenthIndex = -1;
  ShowPlayBuffer();
 
 </script>
