@@ -54,10 +54,12 @@
     .tdHarmonyInst { font-size:2.2vw; }    
               .btn { font-size:2.55vw; font-weight:400; }
          .btnScale { font-size:2.55vw; font-weight:400; color:lime; cursor:pointer; }
+          .btnBuff { font-size:2.55vw; font-weight:400; width:11.8vw; }
 
+     .tdPlayBuffer {  }
          .tdBuffer { border:0.052vw solid black; width:80%; }
    .tdRecBuffScale { font-size:0.8vw; }
-   .tdRecChordNote { font-size:0.6vw; }
+   .tdRecChordNote { font-size:0.9vw; background-color:red; color:white; cursor:pointer; }
   .tdRecBuffOctave { cursor:pointer; color:blue; }
   .tdRecordBuffTop { cursor:pointer; background-color:lime; }
   .tdRecordBuffBot { cursor:pointer; background-color:red; }
@@ -67,9 +69,13 @@
           .divPlay { font-size:0.84vw; border:0.001vw solid navy; text-align:center; color:black; }
            .tdPlay { overflow:hidden; display:inline-block; white-space:nowrap; }
        .tdPlayArea { overflow:scroll; }
-        .tdMeasure { border: 0.1vw solid blue; }
-        .tdQuarter { border: 0.1vw solid red; width:0.4vw; border-style:none solid none none; }
-      .tdSixteenth { background-color:skyblue; border:0.2vw solid lightgray; cursor:pointer; }
+        .tdMeasure { border: 0.2vw solid blue; }
+        .tdQuarter { border: 0.2vw solid red; width:0.4vw; border-style:none solid none none; }
+      .tdSixteenth { background-color:skyblue; border:0.2vw solid lightgray; cursor:pointer;  }
+     .divSixtennth { display:inline-block; position:relative; height:3vw; width:3vw; }
+   .tdPlayBuffMain { font-size:1.042vw; background-color:gray; background-color:black; color:white; width:2.4vw; margin:auto; height:1.2vw; text-align:center; }
+   .tdPlayBuffTime { font-size:0.7vw;  top:1.7vw; background-color:black; color:lime; width:2.4vw; margin:auto; text-align:center; }
+    .tdPlayBuffVol { font-size:0.7vw;  top:2.3vw; background-color:black; color:lime; width:2.4vw; margin:auto; text-align:center; }
 
 
   .tableDlgPattern { border-spacing:2vw; }
@@ -120,7 +126,7 @@ var blueNote = "#6FA8DC"; // a light blue
 //    Global Variables
 /////////////////////////////
 
-var m_Version = "1.2.1";     
+var m_Version = "1.2.2";     
 var m_Audio = null;             // used in frequency generation for gui items clicked on
 var m_CurrentWave = "square";   // sine square triangle sawtooth
 var m_CurrentVolume = 0;        // obtained from volume control
@@ -812,6 +818,7 @@ function PlayThing(playThingType, note, chord, wave, vol, time) // N C R, mode n
  this.WaveType = wave;           // text, either 'square', 'triangle', 'sine' etc
  this.Volume = vol;              // value obtained from volume control
  this.Time = 1/time;             // 1/1 = whole note, 1/2=half, 1/4=quarter, 1/8=eighth note, 1/16=sixteenth note
+ this.DisplayTime = time;        // unaltered version of time
 }
 
 function PlaySet(arrPlayThings)
@@ -1524,14 +1531,19 @@ function AddNoteToStave(buffNdx)
 
 function AddChordToStave(buffNdx)
 {
+ var chord;
  var time;
  var pt;
  var vol;
 
  vol = document.getElementById("audioVolumeControl").value;
- time = parseInt(document.getElementById("cboTime").options[document.getElementById("cboTime").selectedIndex].value);
+ time = parseInt(document.getElementById("cboTime").options[document.getElementById("cboTime").selectedIndex].value); 
 
- pt = new PlayThing("C", null, m_arrRecordBuffer[buffNdx].Chord, m_CurrentWave, vol, time); // notes of chords to be played simutaneously
+ // have to construct a new PlayChord object to retain current octave
+
+ chord = new PlayChord(m_arrRecordBuffer[buffNdx].Chord.Mode, m_arrRecordBuffer[buffNdx].Chord.KeyIndex, m_arrRecordBuffer[buffNdx].Chord.Pattern, m_arrRecordBuffer[buffNdx].Chord.Notes[0].Midi.Number);
+ 
+ pt = new PlayThing("C", null, chord, m_CurrentWave, vol, time); // notes of chords to be played simutaneously
 
  if (m_CurrentPlaySixteenth >= m_arrPlayBuffers[m_CurrentPlayBuffer].length)
    return;
@@ -1543,6 +1555,31 @@ function AddChordToStave(buffNdx)
 
  ShowPlayBuffer();
 }
+
+function AddChordNoteToStave(buffNdx, noteNdx)
+{
+ var time;
+ var pt;
+ var vol;
+ var note;
+
+ vol = document.getElementById("audioVolumeControl").value;
+ time = parseInt(document.getElementById("cboTime").options[document.getElementById("cboTime").selectedIndex].value);
+
+ note = new PlayNote(m_arrRecordBuffer[buffNdx].Chord.Notes[noteNdx].Midi.Number, m_arrRecordBuffer[buffNdx].Chord.Notes[noteNdx].Text); 
+
+ pt = new PlayThing("N", note, null, m_CurrentWave, vol, time); // time is passed as 1, 2, 4, 8, 16 then converted to fraction in constructor, 1/4, 1/16
+ 
+ if (m_CurrentPlaySixteenth >= m_arrPlayBuffers[m_CurrentPlayBuffer].length)
+   return;
+
+ ComposePlayNoteSound(note);
+
+ m_arrPlayBuffers[m_CurrentPlayBuffer][m_CurrentPlaySixteenth] = pt;
+ m_CurrentPlaySixteenth += Bump16th(time);
+ ShowPlayBuffer();
+}
+
 
 function AddScaleNoteToStave(buffNdx, noteNdx)
 {
@@ -1565,7 +1602,8 @@ function AddScaleNoteToStave(buffNdx, noteNdx)
 
  m_arrPlayBuffers[m_CurrentPlayBuffer][m_CurrentPlaySixteenth] = pt;
  m_CurrentPlaySixteenth += Bump16th(time);
- ShowPlayBuffer();}
+ ShowPlayBuffer();
+}
 
 function ScaleOctaveFwd(buffNdx)
 {
@@ -1613,6 +1651,56 @@ function ScaleOctaveBack(buffNdx) // transpose a scale's notes down an octave
   {
    midi = thing.Scale.Notes[i].Midi.Number - 12;
    thing.Scale.Notes[i].Midi = m_mapMidiNotes.get(midi); 
+  }
+ ShowRecordBuffer();
+}
+
+function ChordOctaveFwd(buffNdx)
+{
+ var thing;
+ var maxed;
+ var midi;
+ 
+ thing = m_arrRecordBuffer[buffNdx];
+ for (i=0; i<thing.Chord.Notes.length; i++)
+  {
+   midi = thing.Chord.Notes[i].Midi.Number + 12;
+   if (m_mapMidiNotes.get(midi) == undefined)
+     maxed = true; 
+  }
+
+ if (maxed == true)
+   return;
+ 
+ for (i=0; i<thing.Chord.Notes.length; i++)
+  {
+   midi = thing.Chord.Notes[i].Midi.Number + 12;
+   thing.Chord.Notes[i].Midi = m_mapMidiNotes.get(midi); 
+  }
+ ShowRecordBuffer();
+}
+
+function ChordOctaveBack(buffNdx) // transpose a scale's notes down an octave
+{
+ var thing;
+ var maxed;
+ var midi;
+
+ thing = m_arrRecordBuffer[buffNdx];
+ for (i=0; i<thing.Chord.Notes.length; i++)
+  {
+   midi = thing.Chord.Notes[i].Midi.Number - 12;
+   if (m_mapMidiNotes.get(midi) == undefined)
+     maxed = true; 
+  }
+
+ if (maxed == true)
+   return;
+ 
+ for (i=0; i<thing.Chord.Notes.length; i++)
+  {
+   midi = thing.Chord.Notes[i].Midi.Number - 12;
+   thing.Chord.Notes[i].Midi = m_mapMidiNotes.get(midi); 
   }
  ShowRecordBuffer();
 }
@@ -4967,8 +5055,21 @@ function eventBtnPlaySelectedBuffer()
 
 function eventBtnClearSelectedBuffer()
 {
+ var i;
+
  for(i=0; i<m_arrPlayBuffers[m_CurrentPlayBuffer].length; i++)
    m_arrPlayBuffers[m_CurrentPlayBuffer][i] = null;
+ ShowPlayBuffer();
+}
+
+function eventBtnClearAllBuffers()
+{
+ var i, k;
+ for (k=0; i<m_arrPlayBuffers.length; k++)
+  {
+   for(i=0; i<m_arrPlayBuffers[k].length; i++)
+     m_arrPlayBuffers[k][i] = null;
+  }
  ShowPlayBuffer();
 }
 
@@ -5092,7 +5193,7 @@ function ShowRecordBuffer()
        html += "<tr><td>" +  rt.Note.Text + rt.Note.Midi.Octave + "</td></tr>";
        html += "<tr><td class='tdRecordBuffBot' onclick='AddNoteToStave(" + i + ");'>&nbsp;</td></tr></table>";
       } break;
-    case "C":
+     case "x":
       {
        html += "<td class='tdRecordBufferC'><table>";
        html += "<tr><td class='tdRecordBuffTop' onclick='ComposePlayChordSound(new PlayChord(" + rt.Chord.Mode + ", " + rt.Chord.KeyIndex + ", " + rt.Chord.Pattern + ", " + rt.Chord.Notes[0].Midi.Number + "));'>&nbsp;</td></tr>";
@@ -5102,7 +5203,24 @@ function ShowRecordBuffer()
        html += "</tr></table></tr></td>";
        html += "<tr><td class='tdRecordBuffBot' onclick='AddChordToStave(" + i + ");'>&nbsp;</td></tr></table>";
       } break;
-    case "S":
+     case "C":
+      {
+       html += "<td class='tdRecordBufferC'><table>";
+       html += "<tr><td class='tdRecordBuffTop' onclick='ComposePlayChordSound(new PlayChord(" + rt.Chord.Mode + ", " + rt.Chord.KeyIndex + ", " + rt.Chord.Pattern + ", " + rt.Chord.Notes[0].Midi.Number + "));'>&nbsp;</td></tr>";
+       html += "<tr>";
+       html += "<td><table><tr>";
+       html += "<td class='tdRecBuffOctave' onclick='ChordOctaveBack(" + i + ");'>" + symBack + "</td>";
+       html += "<td>" + rt.Chord.Text + "</td>";                  // so no 2 note power chords
+       html += "<td class='tdRecBuffOctave' onclick='ChordOctaveFwd(" + i + ");'>" + symFwd + "</td>";
+       html += "</tr></table>";
+       html += "<tr><td style='text-align:center;'><table>";
+       for (k=0; k<rt.Chord.Notes.length; k++)
+         html += "<td class='tdRecChordNote' onclick='AddChordNoteToStave(" + i + ", " + k + ");'>" + rt.Chord.Notes[k].Text + rt.Chord.Notes[k].Midi.Octave + "</td>";
+       html += "</tr></table></td>";
+       html += "</tr></td>";
+       html += "<tr><td class='tdRecordBuffBot' onclick='AddChordToStave(" + i + ");'>&nbsp;</td></tr></table>";
+      } break;
+     case "S":
       {
        html += "<td class='tdRecordBufferS'><table>";
        html += "<tr><td class='tdRecBuffScale'>" + rt.Scale.Text + "</td></tr>";
@@ -5124,13 +5242,54 @@ function ShowRecordBuffer()
  document.getElementById("tdRecordBuffer").innerHTML = html;
 }
 
+function ShowPlayBufferCell(playThing)
+{
+ var html;
+ var time;
+ var text = symBlock;
+ var vol, oct;
+
+ html = "<div class='divSixteenth'>";
+
+ if (playThing != null)
+  {
+   switch(playThing.PlayType)
+    {
+     case "N": text = playThing.Note.Text; oct = playThing.Note.Midi.Octave;  break;
+     case "C": text = playThing.Chord.Text; oct = playThing.Chord.Notes[0].Midi.Octave; break;
+    }
+   vol = playThing.Volume;
+   switch(playThing.DisplayTime)
+    {
+     case 1: time="whole"; break;
+     case 2: time="half";  break;
+     case 4: time="1/4";   break;
+     case 8: time="1/8"; break;
+     case 16: time="1/16"; break;
+    }
+   html += "<div class='tdPlayBuffMain'>" + text + "</div>";
+   html += "<div class='tdPlayBuffVol'>" + oct + "&nbsp;" + vol + "</div>";
+   html += "<div class='tdPlayBuffTime'>" + time + "</div>";
+  }
+ else
+  {
+   html += "<div class='tdPlayBuffMain' style='color:white; background-color:white;'>" + text + "</div>";
+   html += "<div class='tdPlayBuffVol' style='color:white; background-color:white;'>&nbsp;</div>";
+   html += "<div class='tdPlayBuffTime' style='color:white; background-color:white;'>&nbsp;</div>";
+  }
+ 
+ html += "</div>";
+ 
+return html;
+}
+
 function ShowPlayBuffer()
 {
  var html;
  var i, k;
  var measures, n16Ndx;
  var n16, n8, n4;
- var text, fg, bg; 
+ var fg, bg; 
  var quarter;
  
  switch(m_CurrentTimeSignature)
@@ -5182,17 +5341,11 @@ function ShowPlayBuffer()
        quarter++;       
        if (m_arrPlayBuffers[i][n16Ndx] != null)
         {
-         switch(m_arrPlayBuffers[i][n16Ndx].PlayType)
-          {
-           case "N": text = m_arrPlayBuffers[i][n16Ndx].Note.Text; break;
-           case "C": text = m_arrPlayBuffers[i][n16Ndx].Chord.Text; break;
-          }
          fg = "white";
          bg = "black";
         }
        else
         {
-         text = symBlock;
          fg = "#dddddd";
          bg = "#999999";
         }
@@ -5200,8 +5353,10 @@ function ShowPlayBuffer()
         {
          bg = "lime";
         }
-       html += "<td class'tdSixteenth' style='padding:0.2vw; color:" + fg + "; background-color:" + bg + ";' ";
-       html += "onclick='eventTDPlaySixteenth_Click(" + i + ", " + n16Ndx + ");'>" + text + "</td>";
+       html += "<td class='tdSixteenth' style='padding:0.2vw; color:" + fg + "; background-color:" + bg + ";' ";
+       html += "onclick='eventTDPlaySixteenth_Click(" + i + ", " + n16Ndx + ");'>";
+       html += ShowPlayBufferCell(m_arrPlayBuffers[i][n16Ndx]);
+       html += "</td>";
        n16Ndx++;
       }
      html += "</tr></table></td>";
@@ -5495,9 +5650,8 @@ function openPage(pageNum, pageName, btn)
 </table>
 </div>
 
-<div id="divTabRecord" class="tabContent">
+<div id="divTabRecord" class="tabContent" style="overflow-x:hidden;">
 <table>
-
  <tr>
   <td style="width:100vw;">
    <table>
@@ -5523,41 +5677,40 @@ function openPage(pageNum, pageName, btn)
    </table>
   </td>
  </tr>
-
- <tr>
-  <td style="width:100%;">
-   <table>
-    <tr>
-     <td>
-      <table>
-       <tr>
-        <td>
-         <select id="cboStaveTime" onchange="eventCboTimeSignature_Change();">
-          <option value="1" selected="selected">4/4 Time</option>
-          <option value="2">3/4 Time</option>
-          <option value="3">2/4 Time</option>
-          <option value="4">6/8 Time</option>
-         </select>
-        </td>
-       </tr>
-       <tr><td><input type="button" class="btn" id="btnPlaySpecific" value="Play" onclick='eventBtnPlaySelectedBuffer();'></td></tr>
-       <tr><td><input type="button" class="btn" value="Clear" onclick='eventBtnClearSelectedBuffer();'></td></tr>
-       <tr><td><input type="button" class="btn" id="btnPlayAll" value="Play All" onclick='eventBtnPlayAllBuffers();'></td></tr>
-      </table>
-     </td>
-    <td>
-     <table>
-      <tr><td><input type="radio" class="radBtn" name="radPlayBuffer" id="radPlayBuffer0" value="0" onclick="eventRadPlayBufferSelect(0);"></td><td id="tdPlayBuffer0"></td></tr>
-      <tr><td><input type="radio" class="radBtn" name="radPlayBuffer" id="radPlayBuffer1" value="1" onclick="eventRadPlayBufferSelect(1);"></td><td id="tdPlayBuffer1"></td></tr>
-      <tr><td><input type="radio" class="radBtn" name="radPlayBuffer" id="radPlayBuffer2" value="2" onclick="eventRadPlayBufferSelect(2);"></td><td id="tdPlayBuffer2"></td></tr>
-      <tr><td><input type="radio" class="radBtn" name="radPlayBuffer" id="radPlayBuffer3" value="3" onclick="eventRadPlayBufferSelect(3);"></td><td id="tdPlayBuffer3"></td></tr>
-      <tr><td><input type="radio" class="radBtn" name="radPlayBuffer" id="radPlayBuffer4" value="4" onclick="eventRadPlayBufferSelect(4);"></td><td id="tdPlayBuffer4"></td></tr>
-     </table>
-    </td>
-   </tr>
-  </table>
- </td>
 </table>
+<div style="overflow-x:scroll; border:0.1vw solid blue;">
+ <table>
+  <tr>
+   <td>
+    <table>
+     <tr>
+      <td>
+       <select id="cboStaveTime" onchange="eventCboTimeSignature_Change();">
+        <option value="1" selected="selected">4/4 Time</option>
+        <option value="2">3/4 Time</option>
+        <option value="3">2/4 Time</option>
+        <option value="4">6/8 Time</option>
+       </select>
+      </td>
+     </tr>
+     <tr><td><input type="button" class="btnBuff" id="btnPlaySpecific" value="Play" onclick='eventBtnPlaySelectedBuffer();'></td></tr>
+     <tr><td><input type="button" class="btnBuff" value="Clear" onclick='eventBtnClearSelectedBuffer();'></td></tr>
+     <tr><td><input type="button" class="btnBuff" value="Clear All" onclick='eventBtnClearAllBuffers();'></td></tr>
+     <tr><td><input type="button" class="btnBuff" id="btnPlayAll" value="Play All" onclick='eventBtnPlayAllBuffers();'></td></tr>
+    </table>
+   </td>
+   <td>
+    <table>
+     <tr><td><input type="radio" class="radBtn" name="radPlayBuffer" id="radPlayBuffer0" value="0" onclick="eventRadPlayBufferSelect(0);"></td><td class="tdPlayBuffer" id="tdPlayBuffer0"></td></tr>
+     <tr><td><input type="radio" class="radBtn" name="radPlayBuffer" id="radPlayBuffer1" value="1" onclick="eventRadPlayBufferSelect(1);"></td><td class="tdPlayBuffer" id="tdPlayBuffer1"></td></tr>
+     <tr><td><input type="radio" class="radBtn" name="radPlayBuffer" id="radPlayBuffer2" value="2" onclick="eventRadPlayBufferSelect(2);"></td><td class="tdPlayBuffer" id="tdPlayBuffer2"></td></tr>
+     <tr><td><input type="radio" class="radBtn" name="radPlayBuffer" id="radPlayBuffer3" value="3" onclick="eventRadPlayBufferSelect(3);"></td><td class="tdPlayBuffer" id="tdPlayBuffer3"></td></tr>
+     <tr><td><input type="radio" class="radBtn" name="radPlayBuffer" id="radPlayBuffer4" value="4" onclick="eventRadPlayBufferSelect(4);"></td><td class="tdPlayBuffer" id="tdPlayBuffer4"></td></tr>
+    </table>
+   </td>
+  </tr>
+ </table>
+</div>
 </div>
 
 <script type="text/javascript">
