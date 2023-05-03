@@ -57,7 +57,7 @@
           .btnBuff { font-size:2.55vw; font-weight:400; width:11.8vw; }
 
      .tdPlayBuffer {  }
-         .tdBuffer { border:0.052vw solid black; width:80%; }
+       .divRecBuff { overflow-x:scroll; }
    .tdRecBuffScale { font-size:0.8vw; }
    .tdRecChordNote { font-size:0.9vw; background-color:red; color:white; cursor:pointer; }
   .tdRecBuffOctave { cursor:pointer; color:blue; }
@@ -126,7 +126,7 @@ var blueNote = "#6FA8DC"; // a light blue
 //    Global Variables
 /////////////////////////////
 
-var m_Version = "1.2.2";     
+var m_Version = "1.2.3";     
 var m_Audio = null;             // used in frequency generation for gui items clicked on
 var m_CurrentWave = "square";   // sine square triangle sawtooth
 var m_CurrentVolume = 0;        // obtained from volume control
@@ -5239,7 +5239,7 @@ function ShowRecordBuffer()
   }
  html += "</tr></table>";
 
- document.getElementById("tdRecordBuffer").innerHTML = html;
+ document.getElementById("divRecordBuffer").innerHTML = html;
 }
 
 function ShowPlayBufferCell(playThing)
@@ -5671,14 +5671,13 @@ function openPage(pageNum, pageName, btn)
       </td></tr>
       </table>
      </td>
-     <td class="tdBuffer" id="tdRecordBuffer"></td>
-
+     <td style="max-width:87vw; width:87vw; border:0.052vw solid black; overflow:hidden;"><div style="overflow-x:auto;" id="divRecordBuffer"></div></td>
     </tr>
    </table>
   </td>
  </tr>
 </table>
-<div style="overflow-x:scroll; border:0.1vw solid blue;">
+<div style="border:0.1vw solid blue;">
  <table>
   <tr>
    <td>
@@ -5699,7 +5698,8 @@ function openPage(pageNum, pageName, btn)
      <tr><td><input type="button" class="btnBuff" id="btnPlayAll" value="Play All" onclick='eventBtnPlayAllBuffers();'></td></tr>
     </table>
    </td>
-   <td>
+   <td style="width:86vw; max-width:86vw; overflow-x:hidden;">
+    <div style="overflow-x:scroll;">
     <table>
      <tr><td><input type="radio" class="radBtn" name="radPlayBuffer" id="radPlayBuffer0" value="0" onclick="eventRadPlayBufferSelect(0);"></td><td class="tdPlayBuffer" id="tdPlayBuffer0"></td></tr>
      <tr><td><input type="radio" class="radBtn" name="radPlayBuffer" id="radPlayBuffer1" value="1" onclick="eventRadPlayBufferSelect(1);"></td><td class="tdPlayBuffer" id="tdPlayBuffer1"></td></tr>
@@ -5707,6 +5707,7 @@ function openPage(pageNum, pageName, btn)
      <tr><td><input type="radio" class="radBtn" name="radPlayBuffer" id="radPlayBuffer3" value="3" onclick="eventRadPlayBufferSelect(3);"></td><td class="tdPlayBuffer" id="tdPlayBuffer3"></td></tr>
      <tr><td><input type="radio" class="radBtn" name="radPlayBuffer" id="radPlayBuffer4" value="4" onclick="eventRadPlayBufferSelect(4);"></td><td class="tdPlayBuffer" id="tdPlayBuffer4"></td></tr>
     </table>
+   </div>
    </td>
   </tr>
  </table>
