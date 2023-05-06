@@ -123,7 +123,7 @@ var blueNote = "#6FA8DC"; // a light blue
 //    Global Variables
 /////////////////////////////
 
-var m_Version = "1.2.4";     
+var m_Version = "1.2.5";     
 var m_Audio = null;             // used in frequency generation for gui items clicked on
 var m_CurrentWave = "square";   // sine square triangle sawtooth
 var m_CurrentVolume = 0;        // obtained from volume control
@@ -1493,21 +1493,6 @@ function Bump16th(time)
   }
 }
 
-function AddRestToStave()
-{
- var time;
- var pt;
- var vol;
-
- vol = document.getElementById("audioVolumeControl").value;
- time = parseInt(document.getElementById("cboTime").options[document.getElementById("cboTime").selectedIndex].value);
-
- pt = new PlayThing("R", null, null, m_CurrentWave, vol, time); // time is passed as 1, 2, 4, 8, 16 then converted to fraction in constructor, 1/4, 1/16
- 
- m_arrPlayBuffers[m_CurrentPlayBuffer].push(pt);
- ShowPlayBuffer();
-}
-
 function AddNoteToStave(buffNdx)
 {
  var time;
@@ -1515,7 +1500,7 @@ function AddNoteToStave(buffNdx)
  var vol;
  var note;
 
- vol = document.getElementById("audioVolumeControl").value;
+ vol = document.getElementById("audioVolumeRecord").value;
  time = parseInt(document.getElementById("cboTime").options[document.getElementById("cboTime").selectedIndex].value);
 
  note = new PlayNote(m_arrRecordBuffer[buffNdx].Note.Midi.Number, m_arrRecordBuffer[buffNdx].Note.Text);
@@ -1539,7 +1524,7 @@ function AddChordToStave(buffNdx)
  var pt;
  var vol;
 
- vol = document.getElementById("audioVolumeControl").value;
+ vol = document.getElementById("audioVolumeRecord").value;
  time = parseInt(document.getElementById("cboTime").options[document.getElementById("cboTime").selectedIndex].value); 
 
  // have to construct a new PlayChord object to retain current octave
@@ -1566,7 +1551,7 @@ function AddChordNoteToStave(buffNdx, noteNdx)
  var vol;
  var note;
 
- vol = document.getElementById("audioVolumeControl").value;
+ vol = document.getElementById("audioVolumeRecord").value;
  time = parseInt(document.getElementById("cboTime").options[document.getElementById("cboTime").selectedIndex].value);
 
  note = new PlayNote(m_arrRecordBuffer[buffNdx].Chord.Notes[noteNdx].Midi.Number, m_arrRecordBuffer[buffNdx].Chord.Notes[noteNdx].Text); 
@@ -1591,7 +1576,7 @@ function AddScaleNoteToStave(buffNdx, noteNdx)
  var vol;
  var note;
 
- vol = document.getElementById("audioVolumeControl").value;
+ vol = document.getElementById("audioVolumeRecord").value;
  time = parseInt(document.getElementById("cboTime").options[document.getElementById("cboTime").selectedIndex].value);
 
  note = new PlayNote(m_arrRecordBuffer[buffNdx].Scale.Notes[noteNdx].Midi.Number, m_arrRecordBuffer[buffNdx].Scale.Notes[noteNdx].Text); 
@@ -1783,7 +1768,7 @@ function ComposePlayChordSound(playChord) // index to m_arrChordPattern and the 
  var chordNote;
  var i;
 
- vol = document.getElementById("audioVolumeControl").value;
+ vol = document.getElementById("audioVolumeRecord").value;
 
  if (m_CurrentGUIThing >= 0)
    return; // something already playing
@@ -1827,7 +1812,7 @@ function ComposePlayNoteSound(playNote)
  var vol;
  var playThing;
 
- vol = document.getElementById("audioVolumeControl").value;
+ vol = document.getElementById("audioVolumeRecord").value;
 
  playThing = new PlayThing("N", playNote, null, m_CurrentWave, vol, 8);
  
@@ -1846,8 +1831,7 @@ function SoundPlayThingGUI(playThing, milliPerMeasure)
  var oscillators = []; 
  var midiNote;
  var notes;
- 
- var volumes = [];
+ var volume;
 
  if (m_Audio == null)
    m_Audio = new(window.AudioContext || window.webkitAudioContext)();
@@ -1860,6 +1844,10 @@ function SoundPlayThingGUI(playThing, milliPerMeasure)
    default: throw new Error("SoundPlayThing(playThing) bad plaything type");
   }
 
+ volume = m_Audio.createGain();
+ volume.connect(m_Audio.destination);
+ volume.gain.value = playThing.Volume;
+
  for (i=0; i<notes.length; i++)
   {
    if (playThing.PlayType != "R")
@@ -1868,11 +1856,7 @@ function SoundPlayThingGUI(playThing, milliPerMeasure)
 
      oscillators[i] = m_Audio.createOscillator(); // create the player
      oscillators[i].type = playThing.WaveType;
-
-     volumes[i] = m_Audio.createGain();
-     oscillators[i].connect(volumes[i]);
-     volumes[i].connect(m_Audio.destination);
-     volumes[i].gain.value = playThing.Volume;
+     oscillators[i].connect(volume);
      oscillators[i].frequency.value = midiNote.Frequency;
      oscillators[i].start();
      setTimeout(function() { for (i=0; i<oscillators.length; i++) oscillators[i].stop(); }, playThing.Time * milliPerMeasure); 
@@ -1885,8 +1869,6 @@ function SoundPlayThingBuffers(playThing, milliseconds)
  var oscillators = []; 
  var midiNote;
  var notes;
- var duration;
- 
  var volumes = [];
 
  if (m_Audio == null)
@@ -5449,34 +5431,32 @@ function AppendText(form, vari, val)
 
 function AppendRecordThing(form, recNdx)
 {
- var txt;
  var rt;
 
  rt = m_arrRecordBuffer[recNdx]; // RecordThing objects
 
- AppendText(form, "rbt" + recNdx, rt.RecordType);
+ AppendText(form, "rT" + recNdx, rt.RecordType);
  
  switch(rt.RecordType)
   {
    case "N":
     {
-     AppendText(form, "rbnm" + recNdx, rt.Note.Midi.Number);
-     AppendText(form, "rbnt" + recNdx, rt.Note.Text);
+     AppendText(form, "rNM" + recNdx, rt.Note.Midi.Number);
+     AppendText(form, "rNT" + recNdx, rt.Note.Text);
     } break;
    case "C":
     {
-     AppendText(form, "rbcm" + recNdx, rt.Chord.Mode);
-     AppendText(form, "rbck" + recNdx, rt.Chord.KeyIndex);
-     AppendText(form, "rbcp" + recNdx, rt.Chord.Pattern);
-     AppendText(form, "rbcn" + recNdx, rt.Chord.Notes.length);
-     AppendText(form, "rbcb" + recNdx, rt.Chord.Notes[0].Midi.Number);
+     AppendText(form, "rCM" + recNdx, rt.Chord.Mode);
+     AppendText(form, "rCK" + recNdx, rt.Chord.KeyIndex);
+     AppendText(form, "rCP" + recNdx, rt.Chord.Pattern);
+     AppendText(form, "rCN" + recNdx, rt.Chord.Notes[0].Midi.Number);
     } break;
    case "S":
     {
-     AppendText(form, "rbsm" + recNdx, rt.Scale.Mode);
-     AppendText(form, "rbsk" + recNdx, rt.Scale.KeyIndex);
-     AppendText(form, "rbsb" + recNdx, rt.Scale.MidiBase);
-     AppendText(form, "rbso" + recNdx, rt.Scale.OtherScale);
+     AppendText(form, "rSM" + recNdx, rt.Scale.Mode);
+     AppendText(form, "rSK" + recNdx, rt.Scale.KeyIndex);
+     AppendText(form, "rSN" + recNdx, rt.Scale.MidiBase);
+     AppendText(form, "rsO" + recNdx, rt.Scale.OtherScale);
     } break;
   } 
 }
@@ -5486,53 +5466,53 @@ function ReadRecordThing(params, ndx)
  var pt;
  var v1, v2, v3, v4;
 
- if (params.has("rbt" + ndx) == false)  // plaything type?
+ if (params.has("rT" + ndx) == false)  // plaything type?
    return;
 
- pt = params.get("rbt" + ndx);
+ pt = params.get("rT" + ndx);
 
  switch(pt)
   {
    case "N":
     {
-     if (params.has("rbnm" + ndx) == false) // note's midi #
+     if (params.has("rNM" + ndx) == false) // note's midi #
        return;                              // nope, bail
-     v1 = parseInt(params.get("rbnm" + ndx));
-     if (params.has("rbnt" + ndx) == false) // note's text
+     v1 = parseInt(params.get("rNM" + ndx));
+     if (params.has("rNT" + ndx) == false) // note's text
        return;                              // nope, bail
-     v2 = params.get("rbnt" + ndx);
-     m_arrRecordBuffer.push(new RecordThing("N", new Note(v1, v2), null, null));
+     v2 = params.get("rNT" + ndx);
+     m_arrRecordBuffer.push(new RecordThing("N", new PlayNote(v1, v2), null, null));
     } break;
    case "C":
     {
-     if (params.has("rbcm" + ndx) == false) // chords's mode
+     if (params.has("rCM" + ndx) == false) // chords's mode
        return;                              // nope, bail
-     v1 = parseInt(params.get("rbcm" + ndx));
-     if (params.has("rbck" + ndx) == false) // chords's KeyIndex
+     v1 = parseInt(params.get("rCM" + ndx));
+     if (params.has("rCK" + ndx) == false) // chords's KeyIndex
        return;                              // nope, bail
-     v2 = parseInt(params.get("rbck" + ndx));
-     if (params.has("rbcp" + ndx) == false) // chords's pattern
+     v2 = parseInt(params.get("rCK" + ndx));
+     if (params.has("rCP" + ndx) == false) // chords's pattern
        return;                              // nope, bail
-     v3 = parseInt(params.get("rbcp" + ndx));
-     if (params.has("rbcb" + ndx) == false) // chords midi base
+     v3 = parseInt(params.get("rCP" + ndx));
+     if (params.has("rCN" + ndx) == false) // chords midi base
        return;
-     v4 = parseInt(params.get("rbcb" + ndx));
+     v4 = parseInt(params.get("rCN" + ndx));
      m_arrRecordBuffer.push(new RecordThing("C", null, new PlayChord(v1, v2, v3, v4), null)); 
     } break;
    case "S":
     {
-     if (params.has("rbsm" + ndx) == false) // scale's mode
+     if (params.has("rSM" + ndx) == false) // scale's mode
        return;                              // nope, bail
-     v1 = parseInt(params.get("rbsm" + ndx));
-     if (params.has("rbsk" + ndx) == false) // scales's KeyIndex
+     v1 = parseInt(params.get("rSM" + ndx));
+     if (params.has("rSK" + ndx) == false) // scales's KeyIndex
        return;                              // nope, bail
-     v2 = parseInt(params.get("rbsk" + ndx));
-     if (params.has("rbsb" + ndx) == false) // scales's base midi note
+     v2 = parseInt(params.get("rSK" + ndx));
+     if (params.has("rSN" + ndx) == false) // scales's base midi note
        return;                              // nope, bail
-     v3 = parseInt(params.get("rbsb" + ndx));
-     if (params.has("rbso" + ndx) == false) // scale's "other" scale index
+     v3 = parseInt(params.get("rSN" + ndx));
+     if (params.has("rSO" + ndx) == false) // scale's "other" scale index
        return;                              // nope, bail
-     v4 = parseInt(params.get("rbso" + ndx));
+     v4 = parseInt(params.get("rSO" + ndx));
      m_arrRecordBuffer.push(new RecordThing("S", null, null, new PlayScale(v1, v2, v3, v4)));
     } break;
    default: return;
@@ -5546,32 +5526,31 @@ function AppendPlayThing(form, ndx, sndx)
 
  pt = m_arrPlayBuffers[ndx][sndx];
 
- AppendText(form, "pbt" + ndx + "_" + sndx, pt.PlayType); // N or C
+ AppendText(form, "pT" + ndx + "_" + sndx, pt.PlayType); // N or C
  switch(pt.WaveType)
   {
-   case "square": wt = "s1"; break;
-   case "sine": wt = "s2"; break;
+   case "square":   wt = "s1"; break;
+   case "sine":     wt = "s2"; break;
    case "sawtooth": wt = "s3"; break;
-   case "triangle": tw = "t";
+   case "triangle": tw = "t";  break;
    default: throw new Error("invalid wavetype");
   }
- AppendText(form, "pbw" + ndx + "_" + sndx, wt);             // abbreviate this to save on URL arg length
- AppendText(form, "pbv" + ndx + "_" + sndx, pt.Volume);     
- AppendText(form, "pbtm" + ndx + "_" + sndx, pt.DisplayTime);
+ AppendText(form, "pW" + ndx + "_" + sndx, wt);             // abbreviate this to save on URL arg length
+ AppendText(form, "pV" + ndx + "_" + sndx, pt.Volume);     
+ AppendText(form, "pM" + ndx + "_" + sndx, pt.DisplayTime);  // pm = Play Milliseconds
  switch(pt.PlayType)
   {
    case "N": 
     {
-     AppendText(form, "pbnm" + ndx + "_" + sndx, pt.Note.Midi.Number);
-     AppendText(form, "pbnt" + ndx + "_" + sndx, pt.Note.Text);
+     AppendText(form, "pNM" + ndx + "_" + sndx, pt.Note.Midi.Number);
+     AppendText(form, "pNT" + ndx + "_" + sndx, pt.Note.Text);
     } break;
    case "C":
     {
-     AppendText(form, "pbcm" + ndx + "_" + sndx, pt.Chord.Mode);
-     AppendText(form, "pbck" + ndx + "_" + sndx, pt.Chord.KeyIndex);
-     AppendText(form, "pbcp" + ndx + "_" + sndx, pt.Chord.Pattern);
-     AppendText(form, "pbcn" + ndx + "_" + sndx, pt.Chord.Notes.length);
-     AppendText(form, "pbcb" + ndx + "_" + sndx, pt.Chord.Notes[0].Midi.Number);    
+     AppendText(form, "pCM" + ndx + "_" + sndx, pt.Chord.Mode);
+     AppendText(form, "pCK" + ndx + "_" + sndx, pt.Chord.KeyIndex);
+     AppendText(form, "pCP" + ndx + "_" + sndx, pt.Chord.Pattern);
+     AppendText(form, "pCN" + ndx + "_" + sndx, pt.Chord.Notes[0].Midi.Number);    
     } break;
   }
 }
@@ -5582,15 +5561,15 @@ function ReadPlayThing(params, ndx, sndx)
  var note, chord;
  var v1, v2, v3, v4;
 
- if (params.has("pbt" + ndx + "_" + sndx) == false)  // plaything type?
+ if (params.has("pT" + ndx + "_" + sndx) == false)  // plaything type?
    return;                                           // nope, bail
 
- pt = params.get("pbt" + ndx + "_" + sndx);
+ pt = params.get("pT" + ndx + "_" + sndx);
 
- if (params.has("pbw" + ndx + "_" + sndx) == false)
+ if (params.has("pW" + ndx + "_" + sndx) == false)
    return;
 
- wt = params.get("pbw" + ndx + "_" + sndx);
+ wt = params.get("pW" + ndx + "_" + sndx);
  switch(wt)
   {
    case "s1": wave = "square";   break;
@@ -5598,42 +5577,42 @@ function ReadPlayThing(params, ndx, sndx)
    case "s3": wave = "sawtooth"; break;
    case "t":  wave = "triangle"; break;
   }
- if (params.has("pbv" + ndx + "_" + sndx) == false)
+ if (params.has("pV" + ndx + "_" + sndx) == false)
    return;
- vol = parseFloat(params.get("pbv" + ndx + "_" + sndx));
+ vol = parseFloat(params.get("pV" + ndx + "_" + sndx));
 
- if (params.has( "pbt" + ndx + "_" + sndx) == false)
+ if (params.has( "pM" + ndx + "_" + sndx) == false)
    return;
 
- time = parseInt(params.get("pbtm" + ndx + "_" + sndx));
+ time = parseInt(params.get("pM" + ndx + "_" + sndx));
 
  switch(pt)
   {
    case "N":
     {
-     if (params.has("pbnm" + ndx + "_" + sndx) == false) // note's midi #
+     if (params.has("pNM" + ndx + "_" + sndx) == false) // note's midi #
        return;                              // nope, bail
-     v1 = parseInt(params.get("pbnm" + ndx + "_" + sndx));
-     if (params.has("pbnt" + ndx + "_" + sndx) == false) // note's text
+     v1 = parseInt(params.get("pNM" + ndx + "_" + sndx));
+     if (params.has("pNT" + ndx + "_" + sndx) == false) // note's text
        return;                              // nope, bail
-     v2 = params.get("pbnt" + ndx + "_" + sndx);
+     v2 = params.get("pNT" + ndx + "_" + sndx);
      note = new PlayNote(v1, v2);
      chord = null;
     } break;
    case "C":
     {
-     if (params.has("pbcm" + ndx + "_" + sndx) == false) // chords's mode
+     if (params.has("pCM" + ndx + "_" + sndx) == false) // chords's mode
        return;                              // nope, bail
-     v1 = parseInt(params.get("rbcm" + ndx));
-     if (params.has("pbck" + ndx + "_" + sndx) == false) // chords's KeyIndex
+     v1 = parseInt(params.get("pCM" + ndx + "_" + sndx));
+     if (params.has("pCK" + ndx + "_" + sndx) == false) // chords's KeyIndex
        return;                              // nope, bail
-     v2 = parseInt(params.get("rbck" + ndx));
-     if (params.has("pbcp" + ndx + "_" + sndx) == false) // chords's pattern
+     v2 = parseInt(params.get("pCK" + ndx + "_" + sndx));
+     if (params.has("pCP" + ndx + "_" + sndx) == false) // chords's pattern
        return;                              // nope, bail
-     v3 = parseInt(params.get("rbcp" + ndx));
-     if (params.has("pbcb" + ndx + "_" + sndx) == false) // chords midi base
+     v3 = parseInt(params.get("pCP" + ndx + "_" + sndx));
+     if (params.has("pCN" + ndx + "_" + sndx) == false) // chords midi base, N = Note
        return;
-     v4 = parseInt(params.get("pbcb" + ndx + "_" + sndx));
+     v4 = parseInt(params.get("pCN" + ndx + "_" + sndx));
      chord = new PlayChord(v1, v2, v3, v4);
      note = null; 
     } break;
@@ -5661,8 +5640,8 @@ function SubmitForm()
   }
  AppendText(form, "radIn", v);
 
- cbos = ["cboGuitarCapo", "cboGuitarTune", "cboBassCapo", "cboBassTune", "cboMandolinCapo", "cboMandolinTune", "cboUkuleleCapo", "cboUkuleleTune"];
- vars = ["cboGC", "cboGT", "cboBC", "cboBT", "cboMC", "cboMT", "cboUC", "cboUT"];
+ cbos = ["cboGuitarCapo", "cboGuitarTune", "cboBassCapo", "cboBassTune", "cboMandolinCapo", "cboMandolinTune", "cboUkuleleCapo", "cboUkuleleTune", "cboStaveTime"];
+ vars = ["cGC", "cGT", "cBC", "cBT", "cMC", "cMT", "cUC", "cUT", "cST"];
 
  for(i=0; i<cbos.length; i++)
   {
@@ -5671,14 +5650,14 @@ function SubmitForm()
    AppendText(form, vars[i], v);
   }
 
- AppendText(form, "lenRec", m_arrRecordBuffer.length.toString());
+ AppendText(form, "lR", m_arrRecordBuffer.length.toString());
  for (i=0; i<m_arrRecordBuffer.length; i++)
   {
    AppendRecordThing(form, i);
   }
 
- AppendText(form, "lenPlay", m_arrPlayBuffers.length); 
- AppendText(form, "lenPlayBuff", m_arrPlayBuffers[0].length);  // so if these change it won't break when loading them
+ AppendText(form, "lP", m_arrPlayBuffers.length); 
+ AppendText(form, "lPB", m_arrPlayBuffers[0].length);  // so if these change it won't break when loading them
 
  for (i=0; i<m_arrPlayBuffers.length; i++)
   {
@@ -5718,8 +5697,8 @@ function ProcessForm()
     }
   }
 
- cbos = ["cboGuitarCapo", "cboGuitarTune", "cboBassCapo", "cboBassTune", "cboMandolinCapo", "cboMandolinTune", "cboUkuleleCapo", "cboUkuleleTune"];
- vars = ["cboGC", "cboGT", "cboBC", "cboBT", "cboMC", "cboMT", "cboUC", "cboUT"];
+ cbos = ["cboGuitarCapo", "cboGuitarTune", "cboBassCapo", "cboBassTune", "cboMandolinCapo", "cboMandolinTune", "cboUkuleleCapo", "cboUkuleleTune", "cboStaveTime"];
+ vars = ["cGC", "cGT", "cBC", "cBT", "cMC", "cMT", "cUC", "cUT", "cST"];
 
  for (i=0; i<cbos.length; i++)
   {
@@ -5735,10 +5714,10 @@ function ProcessForm()
     }
   } 
 
- if (params.has("lenRec") == true)
+ if (params.has("lR") == true)
   {
    m_arrRecordBuffer = [];
-   v = parseInt(params.get("lenRec"));
+   v = parseInt(params.get("lR"));
    for (k=0; k<v; k++)
     {
      ReadRecordThing(params, k);
@@ -5746,10 +5725,10 @@ function ProcessForm()
    ShowRecordBuffer();
   }
 
- if (params.has("lenPlay") == true && params.has("lenPlayBuff") == true)
+ if (params.has("lP") == true && params.has("lPB") == true)
   {
-   v = parseInt(params.get("lenPlay"));
-   v2 = parseInt(params.get("lenPlayBuff"));
+   v = parseInt(params.get("lP"));
+   v2 = parseInt(params.get("lPB"));
    m_arrPlayBuffers = [];
    for(i=0; i<v; i++)
     {
@@ -6000,8 +5979,6 @@ function ProcessForm()
     <tr>
      <td align=center>
       <table>
-       <tr><td class="tdRec"><input type="checkbox" name="choose" class="radBtn" id="chkRecord" onclick="eventChkRecord_Click();"><label for="chkRecord">Choose</label></td></tr>
-       <tr><td class="tdRec"><input class="btn" type="button" value="Clear" onclick="eventBtnRecordClear_Click();"></td></tr>
        <tr><td>
         <select id="cboTime">
          <option value=1>Whole</option>
@@ -6011,9 +5988,17 @@ function ProcessForm()
          <option value=16>1/16</option>
         </select>
       </td></tr>
+      <tr><td>
+       <input type="range" id="audioVolumeRecord" style="width:8.7vw;" min="0" max="2" value="0.3" step="0.01" />
+      </td></tr>
       </table>
      </td>
-     <td style="max-width:87vw; width:87vw; border:0.052vw solid black; overflow:hidden;"><div style="overflow-x:auto;" id="divRecordBuffer"></div></td>
+     <td style="max-width:87vw; width:76vw; border:0.052vw solid black; overflow:hidden;"><div style="overflow-x:auto;" id="divRecordBuffer"></div></td>
+     <td>
+      <table>
+       <tr><td class="tdRec"><input type="checkbox" name="choose" class="radBtn" id="chkRecord" onclick="eventChkRecord_Click();"><label for="chkRecord">Choose</label></td></tr>
+       <tr><td class="tdRec"><input class="btn" type="button" style="width:8.7vw;" value="Clear" onclick="eventBtnRecordClear_Click();"></td></tr>
+      </table>
     </tr>
    </table>
   </td>
@@ -6041,7 +6026,7 @@ function ProcessForm()
      <tr><td><input type="button" class="btnBuff" id="btnSubmit" value="Bookmark" onclick='eventBtnSubmit();'></td></tr> 
     </table>
    </td>
-   <td style="width:86vw; max-width:86vw; overflow-x:hidden;">
+   <td style="width:86vw; max-width:85vw; overflow-x:hidden;">
     <div style="overflow-x:scroll;">
     <table>
      <tr><td><input type="radio" class="radBtn" name="radPlayBuffer" id="radPlayBuffer0" value="0" onclick="eventRadPlayBufferSelect(0);"></td><td class="tdPlayBuffer" id="tdPlayBuffer0"></td></tr>
