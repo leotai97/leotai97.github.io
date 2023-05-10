@@ -29,6 +29,7 @@
      .fretCellLeft { font-size:0.938vw; position:absolute; top:1.344vw; left:0.1vw; color:#000044;}
     .fretCellRight { font-size:0.938vw; position:absolute; top:1.344vw; right:0.1vw; color:#000044; } 
        .fretString { outline:thin solid lightsteelblue; cursor:pointer; }
+         .fretPlay { outline:thin solid lightsteelblue; cursor:pointer; font-size:1.042vw; text-align:center; height:2.3vw; }
          .fretMark { font-size:0.938vw; text-align:center; }
 
        .pianoWhite { position:absolute; top:0; width:4vw; height:20vw; background-color:white; border:0.052vw solid black; }
@@ -36,6 +37,12 @@
 
        .pianoBlack { position:absolute; top:0; width:2.4vw; height:13vw; background-color:black; }
    .pianoBlackText { position:absolute; top:9vw; left:0.2vw; width:2.0vw; font-size:1.4vw; text-align:center; color:white; background-color:black; border:none; }
+
+      .pianoPWhite { position:absolute; top:0; width:2vw; height:10vw; background-color:white; border:0.052vw solid black; }
+  .pianoPWhiteText { position:absolute; top:8vw; left:0.1vw; width:1.8vw; font-size:0.7vw; text-align:center; color:black; background-color:white; border:none; }
+
+      .pianoPBlack { position:absolute; top:0; width:1.2vw; height:6.5vw; background-color:black; }
+  .pianoPBlackText { position:absolute; top:4.5vw; left:0.1vw; width:1.0vw; font-size:0.7vw; text-align:center; color:white; background-color:black; border:none; }
 
         .chordInfo { font-size:1.042vw; padding:0.521vw; color:#000044; cursor:pointer; border:0.2vw solid lime; }
         .scaleInfo { font-size:1.022vw; padding:0.501vw; color:#000044; }
@@ -123,7 +130,7 @@ var blueNote = "#6FA8DC"; // a light blue
 //    Global Variables
 /////////////////////////////
 
-var m_Version = "1.2.5";     
+var m_Version = "1.2.6";     
 var m_Audio = null;             // used in frequency generation for gui items clicked on
 var m_CurrentWave = "square";   // sine square triangle sawtooth
 var m_CurrentVolume = 0;        // obtained from volume control
@@ -149,7 +156,10 @@ var m_CurrentFingeringOption = optFingeringNumbers;  // whether to show numbers 
 
 var m_CurrentGUIThing = -1;   // index into m_arrGUIPlay
 var m_CurrentPlayBuffer = 0;  // index into the m_arrPlayBuffer array
-var m_CurrentPlayTime = 1000; // milliseconds per quarter note
+var m_CurrentPlayTime = 1000; // milliseconds per measure
+var m_CurrentPlayPercLenth = 0.50; // percentage of time to hold a note playing,
+
+var m_MasterVol;              // master volume from 1st tab 
 var m_GUITime = 1200;         // 1600 milliseconds for each "whole" note
 
 var m_CurrentTimeSignature;    // 1 thru 4   1 = 4/4  2 = 3/4  3 = 2/4  4 = 6/8
@@ -199,6 +209,7 @@ var m_arrInstruments = [];      // ID, Name, # of strings, # of frets
 
 var m_arrChordPatterns = [];    // ID, Name, ShortName, Pitches, PitchCount, Root, Third, Fifth, Seventh, Ninth, Formula
 var m_mapMidiNotes = new Map();
+var m_mapPlayInst = new Map();  // used to show instrument board notes during play
 var m_arrMidiNotesHL = [];      // ID, Number, Offset, Octave, Frequency, MidiName, Name
 var m_arrMidiNotesLH = [];      // Same as above
 var m_arrModes = [];            // ID, ModeName, Sequences (steps), ChordType (the pattern), Background (color), KeyList (list of Note objects for key choice dropdown)
@@ -221,7 +232,7 @@ var m_arrGradientBlueGreen = ["#189753", "#1ea55c", "#24b266", "#2ac06f", "#30cc
 var m_arrGUIThings = [];    // gui sound engine array, contains PlayThing objects, indexed by m_CurrentPlaySet
 var m_arrRecordBuffer = []; // array of PlayThings that user can add to a play buffer staff array
 var m_arrPlayBuffers = [];  // array of PlayThing objects maintained by the record section
-var m_arrPlayBufferIndexes = []; // array of integers used to count up through the above arrays
+var m_arrPlayInstTDs = [];  // a list of tds that need to set to "", they were the last play slice notes that were shown
 
 var m_arrFingering = []; // array of fingering, either numbers 1 2 3 4 or letter I M R P. Loaded when option changes.
 
@@ -1568,7 +1579,6 @@ function AddChordNoteToStave(buffNdx, noteNdx)
  ShowPlayBuffer();
 }
 
-
 function AddScaleNoteToStave(buffNdx, noteNdx)
 {
  var time;
@@ -1700,7 +1710,7 @@ function PlayScaleSound(playScale, direction) // PlayScale object
  var recordThing;
  var vol;
 
- vol = document.getElementById("audioVolumeControl").value;
+ vol = m_MasterVol;
 
  if (m_RecordMode == true)
   {
@@ -1734,7 +1744,7 @@ function PlayChordSound(playChord) // index to m_arrChordPattern and the chord's
  var chordNote;
  var i;
 
- vol = document.getElementById("audioVolumeControl").value;
+ vol = m_MasterVol;
 
  if (m_RecordMode == true)
   {
@@ -1765,10 +1775,8 @@ function ComposePlayChordSound(playChord) // index to m_arrChordPattern and the 
 {
  var vol;
  var playThing;
- var chordNote;
- var i;
 
- vol = document.getElementById("audioVolumeRecord").value;
+ vol = parseFloat(document.getElementById("audioVolumeRecord").value);
 
  if (m_CurrentGUIThing >= 0)
    return; // something already playing
@@ -1788,7 +1796,7 @@ function PlayNoteSound(playNote)
  var vol;
  var playThing;
 
- vol = document.getElementById("audioVolumeControl").value;
+ vol = m_MasterVol;
 
  playThing = new PlayThing("N", playNote, null, m_CurrentWave, vol, 8);
 
@@ -1846,7 +1854,7 @@ function SoundPlayThingGUI(playThing, milliPerMeasure)
 
  volume = m_Audio.createGain();
  volume.connect(m_Audio.destination);
- volume.gain.value = playThing.Volume;
+ volume.gain.value = parseFloat(playThing.Volume);
 
  for (i=0; i<notes.length; i++)
   {
@@ -1870,6 +1878,8 @@ function SoundPlayThingBuffers(playThing, milliseconds)
  var midiNote;
  var notes;
  var volumes = [];
+ var i, k, c;
+ var ctrl;
 
  if (m_Audio == null)
   m_Audio = new(window.AudioContext || window.webkitAudioContext)();
@@ -1881,9 +1891,37 @@ function SoundPlayThingBuffers(playThing, milliseconds)
    default: throw new Error("SoundPlayThing(playThing) bad plaything type");
   }
 
+ for (i=0; i<m_arrPlayInstTDs.length; i++)
+  {
+   ctrl = document.getElementById(m_arrPlayInstTDs[i]);
+   if (ctrl != null)
+     ctrl.style.backgroundColor = "white";
+  }
+
+ m_arrPlayInstTDs = [];
+ c = 0;
+
  for (i=0; i<notes.length; i++)
   {
    midiNote = m_mapMidiNotes.get(notes[i].Midi.Number);  // so only Note objects should make it to this point
+
+   if (m_mapPlayInst.has(midiNote.Number) == true)
+    {
+     map = m_mapPlayInst.get(midiNote.Number);
+     for (k=0; k<map.length; k++)
+      {
+       ctrl = document.getElementById(map[k]);
+       if (ctrl != null)
+        {
+         ctrl.style.backgroundColor = m_arrGradientBlueGreen[c++];
+         m_arrPlayInstTDs.push(map[k]);
+        }
+       else
+        {
+         throw new Error("Unable to find id " + map[k]);
+        }
+      }
+    }
 
    oscillators[i] =m_Audio.createOscillator(); // create the player
    oscillators[i].type = playThing.WaveType;
@@ -1898,7 +1936,7 @@ function SoundPlayThingBuffers(playThing, milliseconds)
   }
 }
 
-function SoundPlayThings(playThings)
+function SoundPlayThingsEngine(playThings)
 {
  var oscillators;
  var volumes; 
@@ -1907,7 +1945,7 @@ function SoundPlayThings(playThings)
  var playDurations;
  var playVolumes;
  var playWaves;
- var i, k;
+ var i, k, c;
  var milliseconds;
 
  if (m_Audio == null)
@@ -1920,6 +1958,13 @@ function SoundPlayThings(playThings)
  playDurations = []; // durations for each note to play
  playVolumes = [];   // volumes of each note
  playWaves = [];     // wave type for each note
+
+ for (i=0; i<m_arrPlayInstTDs.length; i++)
+  {
+   ctrl = document.getElementById(m_arrPlayInstTDs[i]);  // clear play instrument
+   if (ctrl != null)
+     ctrl.style.backgroundColor = "white";
+  }
  
  for (i=0; i<playThings.length; i++)
   {
@@ -1942,15 +1987,36 @@ function SoundPlayThings(playThings)
        playVolumes.push(playThings[i].Volume);
        playWaves.push(playThings[i].WaveType);
       } break;
-     default: throw new Error("SoundPlayThings(playThings) bad plaything type");
+     default: throw new Error("SoundPlayThingsEngine(playThings) bad plaything type");
     }
   }
+
+ m_arrPlayInstTDs = [];
+ c = 0;
 
  for (i=0; i<notes.length; i++)  // go thru the list of notes
   {
    midiNote = m_mapMidiNotes.get(notes[i].Midi.Number);  // so only Note objects should make it to this point
 
-   milliseconds = playDurations[i] * m_CurrentPlayTime;  // playDurations contain fractions 1/4, 1/8, 1/16th, in decimal format. m_CurrentPlayTime is length of a "measure" 
+   if (m_mapPlayInst.has(midiNote.Number) == true)
+    {
+     map = m_mapPlayInst.get(midiNote.Number);
+     for (k=0; k<map.length; k++)
+      {
+       ctrl = document.getElementById(map[k]);
+       if (ctrl != null)
+        {
+         ctrl.style.backgroundColor = m_arrGradientBlueGreen[c++];
+         m_arrPlayInstTDs.push(map[k]);
+        }
+       else
+        {
+         throw new Error("Unable to find id " + map[k]);
+        }
+      }
+    }
+
+   milliseconds = playDurations[i] * m_CurrentPlayTime * m_CurrentPlayPercLenth;  // playDurations contain fractions 1/4, 1/8, 1/16th, in decimal format. m_CurrentPlayTime is length of a "measure" 
 
    oscillators[i] = m_Audio.createOscillator(); // create the player
    oscillators[i].type = playWaves[i];          // playWaves are either "square", "sine", "triangle" or "sawtooth"
@@ -2058,14 +2124,14 @@ function SoundPlaySpecificBufferEngine(buffer)
  var t16;
  var pt;
 
- t16 = m_CurrentPlayTime / 4; // delay between 16th notes
+ t16 = m_CurrentPlayTime / 16; // delay between 16th notes
 
  if (m_PlaySixteenthIndex < m_PlaySixteenthEnd && m_PlaySixteenthIndex >= 0) // indexes still in range?
   {
    pt = m_arrPlayBuffers[buffer][m_PlaySixteenthIndex]; // see if a play object is present
    if (pt != null)                                      // null's are basically a rest
     {
-     delay = pt.Time * m_CurrentPlayTime * 0.70;          // figure out milliseconds to play the object
+     delay = pt.Time * m_CurrentPlayTime * m_CurrentPlayPercLenth;   // figure out milliseconds to play the object
      SoundPlayThingBuffers(pt, delay); // play it
     }
    m_PlaySixteenthIndex++;  // move index to next 16th note instance  
@@ -2085,7 +2151,7 @@ function SoundPlayBuffers()
  var pt;
  var things;
 
- t16 = m_CurrentPlayTime/4; // a quarter note delay divided by 4 is a 16th note duration
+ t16 = m_CurrentPlayTime/16; // a measure delay divided by 16 is a 16th note duration
  things = []; 
 
  if (m_PlaySixteenthIndex < m_PlaySixteenthEnd && m_PlaySixteenthIndex >= 0) // indexes still in range?
@@ -2099,7 +2165,7 @@ function SoundPlayBuffers()
       }
     }
    if (things.length > 0)      // find anything?
-     SoundPlayThings(things);  // yup, play 'em all
+     SoundPlayThingsEngine(things);  // yup, play 'em all
    m_PlaySixteenthIndex++;     // move index to next 16th note instance
    if (m_PlaySixteenthIndex < m_PlaySixteenthEnd) // still in range?
      setTimeout(function() { SoundPlayBuffers(); }, t16); // yes, advance to next 1/16th note slice
@@ -2111,6 +2177,26 @@ function SoundPlayBuffers()
   }
 }
 
+function TestVolume()
+{
+ var chord, high, low, vol, things, wave;
+
+ chord = new PlayChord(0, 0, m_cpMajor, 53);  // F major
+ high = new PlayNote(67, null);               // G5
+ low  = new PlayNote(38, null);               // D2
+
+ vol = m_MasterVol;
+ wave = m_CurrentWave;
+
+ things = []; 
+
+ things.push(new PlayThing("C", null, chord, wave, vol, 2));
+ things.push(new PlayThing("N", high, null, wave, vol, 2));
+ things.push(new PlayThing("N", low, null, wave, vol, 2));
+
+ SoundPlayThingsEngine(things);
+
+}
 
 ////////////////////////////////////////////////
 //       G e n e r a t e    H T M L
@@ -2848,6 +2934,52 @@ function GenGuitarOtherScale(key, notes)
  return html;
 }
 
+function GenGuitarPlayBoard()
+{
+ var i, k, html;
+ var midi, midiNum, sw;
+ var td;
+ 
+ html = "<table>";
+ 
+ m_mapPlayInst = new Map();
+
+ sw = fretStartSize;
+ for (i=m_arrInstruments[m_Guitar].Strings - 1; i>=0; i--)
+  {
+   html += "<tr>";
+   for (k=0; k<m_arrInstruments[m_Guitar].Frets; k++)
+    {
+     midiNum = m_arrGuitar[i][k]; // get midi note of string and fret
+     midi = m_mapMidiNotes.get(midiNum);
+     if (k == 0) // before the nut
+       w = fretBeforeNut;   // 25 pixels
+     else  
+       w = sw;
+     if (k >= m_CurrentGuitarCapo)
+      {
+       td = "tdPI_" + i + "_" + k;
+       html += "<td class='fretPlay' style='width:" + w + "vw;' id='" + td + "' onclick='ComposePlayNoteSound(new PlayNote(" + midi.toString() + ", null));'>";
+       html += NoteText(midi.Offset) + midi.Octave;
+       if (m_mapPlayInst.has(midiNum) == true)
+         m_mapPlayInst.get(midiNum).push(td);
+       else
+         m_mapPlayInst.set(midiNum, [td]);  // so the map will contain keys of midi numbers and the value is an array of TD id's that need to be set if the note comes up
+      }
+     else
+      {
+       html += "<td class='fretPlay' style='width:" + w.toString() + "vw; background-color:lightgray;'>";
+      }  
+     html += "</td>";
+     sw -=  fretDecrease; // 1 pixel
+    }
+   html += "</tr>";
+  }
+ html += GenGuitarMarks();
+ html += "</table>"; 
+
+ document.getElementById("divPlayInst").innerHTML = html;
+}
 
 ////////////////////////////////////////////////
 //           B a s s    G u i t a r     
@@ -3218,6 +3350,53 @@ function GenBassOtherScale(key, notes)
  html += "</table></td></tr></table>";
 
  return html;
+}
+
+function GenBassPlayBoard()
+{
+ var i, k, html;
+ var midiNum, midi, sw;
+ var td;
+ 
+ html = "<table>";
+ 
+ m_mapPlayInst = new Map();
+
+ sw = fretStartSize;
+ for (i=m_arrInstruments[m_Bass].Strings - 1; i>=0; i--)
+  {
+   html += "<tr>";
+   for (k=0; k<m_arrInstruments[m_Bass].Frets; k++)
+    {
+     midiNum = m_arrBass[i][k]; // get midi note of string and fret
+     midi = m_mapMidiNotes.get(midiNum);
+     if (k == 0) // before the nut
+       w = fretBeforeNut;   // 25 pixels
+     else  
+       w = sw;
+     if (k >= m_CurrentBassCapo)
+      {
+       td = "tdPI_" + i + "_" + k;
+       html += "<td class='fretPlay' style='width:" + w + "vw;' id='" + td + "' onclick='ComposePlayNoteSound(new PlayNote(" + midi.toString() + ", null));'>";
+       html += NoteText(midi.Offset) + midi.Octave;
+       if (m_mapPlayInst.has(midiNum) == true)
+         m_mapPlayInst.get(midiNum).push(td);
+       else
+         m_mapPlayInst.set(midiNum, [td]);  // so the map will contain keys of midi numbers and the value is an array of TD id's that need to be set if the note comes up
+      }
+     else
+      {
+       html += "<td class='fretPlay' style='width:" + w.toString() + "vw; background-color:lightgray;'>";
+      }  
+     html += "</td>";
+     sw -=  fretDecrease; // 1 pixel
+    }
+   html += "</tr>";
+  }
+ html += GenBassMarks();
+ html += "</table>"; 
+
+ document.getElementById("divPlayInst").innerHTML = html;
 }
 
 ////////////////////////////////////////////////
@@ -3591,6 +3770,52 @@ function GenMandolinOtherScale(key, notes)
  return html;
 }
 
+function GenMandolinPlayBoard()
+{
+ var i, k, html;
+ var midi, midiNum, sw;
+ var td;
+ 
+ html = "<table>";
+ 
+ m_mapPlayInst = new Map();
+
+ sw = fretStartSize;
+ for (i=m_arrInstruments[m_Mandolin].Strings - 1; i>=0; i--)
+  {
+   html += "<tr>";
+   for (k=0; k<m_arrInstruments[m_Mandolin].Frets; k++)
+    {
+     midiNum = m_arrMandolin[i][k]; // get midi note of string and fret
+     midi = m_mapMidiNotes.get(midiNum);
+     if (k == 0) // before the nut
+       w = fretBeforeNut;   // 25 pixels
+     else  
+       w = sw;
+     if (k >= m_CurrentMandolinCapo)
+      {
+       td = "tdPI_" + i + "_" + k;
+       html += "<td class='fretPlay' style='width:" + w + "vw;' id='" + td + "' onclick='ComposePlayNoteSound(new PlayNote(" + midi.toString() + ", null));'>";
+       html += NoteText(midi.Offset + midi.Octave);
+       if (m_mapPlayInst.has(midiNum) == true)
+         m_mapPlayInst.get(midiNum).push(td);
+       else
+         m_mapPlayInst.set(midiNum, [td]);  // so the map will contain keys of midi numbers and the value is an array of TD id's that need to be set if the note comes up
+      }
+     else
+      {
+       html += "<td class='fretPlay' style='width:" + w.toString() + "vw; background-color:lightgray;'>";
+      }  
+     html += "</td>";
+     sw -=  fretDecrease; // 1 pixel
+    }
+   html += "</tr>";
+  }
+ html += GenMandolinMarks();
+ html += "</table>"; 
+
+ document.getElementById("divPlayInst").innerHTML = html;
+}
 ////////////////////////////////////////////////
 //                 U k u l e l e     
 ////////////////////////////////////////////////
@@ -3962,6 +4187,53 @@ function GenUkuleleOtherScale(key, notes)
  return html;
 }
 
+function GenUkulelePlayBoard()
+{
+ var i, k, html;
+ var midi, midiNum, sw;
+ var td;
+ 
+ html = "<table>";
+ 
+ m_mapPlayInst = new Map();
+
+ sw = fretStartSize;
+ for (i=m_arrInstruments[m_Ukulele].Strings - 1; i>=0; i--)
+  {
+   html += "<tr>";
+   for (k=0; k<m_arrInstruments[m_Ukulele].Frets; k++)
+    {
+     midiNum = m_arrUkulele[i][k]; // get midi note of string and fret
+     midi = m_mapMidiNotes.get(midiNum);
+     if (k == 0) // before the nut
+       w = fretBeforeNut;   // 25 pixels
+     else  
+       w = sw;
+     if (k >= m_CurrentUkuleleCapo)
+      {
+       td = "tdPI_" + i + "_" + k;
+       html += "<td class='fretPlay' style='width:" + w + "vw;' id='" + td + "' onclick='ComposePlayNoteSound(new PlayNote(" + midi.toString() + ", null));'>";
+       html += NoteText(midi.Offset) + midi.Octave;
+       if (m_mapPlayInst.has(midiNum) == true)
+         m_mapPlayInst.get(midiNum).push(td);
+       else
+         m_mapPlayInst.set(midiNum, [td]);  // so the map will contain keys of midi numbers and the value is an array of TD id's that need to be set if the note comes up
+      }
+     else
+      {
+       html += "<td class='fretPlay' style='width:" + w.toString() + "vw; background-color:lightgray;'>";
+      }  
+     html += "</td>";
+     sw -=  fretDecrease; // 1 pixel
+    }
+   html += "</tr>";
+  }
+ html += GenUkuleleMarks();
+ html += "</table>"; 
+
+ document.getElementById("divPlayInst").innerHTML = html;
+}
+
 ////////////////////////////////////////////////
 //            K e y b o a r d     
 ////////////////////////////////////////////////
@@ -4324,6 +4596,83 @@ function GenPianoOtherScale(key, notes) // Key object, array of Note objects
  return html; 
 }
 
+function GenPianoPlayBoard()
+{
+ var k;
+ var html;
+ var w;
+ var i, o, x, text;
+ var wMidi, midi, midiNum;
+ var pWW, pBW;
+
+ pWW = pianoWhiteWidth * 0.5;
+ pBW = pianoBlackWidth * 0.5;
+
+ html = "<table><tr><td><div style='position:relative; width:" + pianoWhiteWidth * 7 + "vw; height:" + pianoWhiteHeight + "vw;'>";
+
+ off = 0;             // note offset, c = 0
+ w = 0;               // div x position
+ wMidi = 24;
+ 
+ x = 0;
+ 
+ for (o=0;o<7; o++)
+  {
+   midiNum = wMidi;
+   w = x;
+   for (k=0; k<7; k++)  // 7 white keys from C to B
+    {
+     midi = m_mapMidiNotes.get(midiNum);
+     if (midi != undefined)
+       m_mapPlayInst.set(midiNum, ["dyPW_" + midiNum]);  
+     html += "<div class='pianoPWhite' style='left:" + w.toString() + "vw;' onclick='ComposePlayNoteSound(new PlayNote(" + midiNum.toString() +", null));'>";
+     html += "<div id='dyPW_" + midiNum + "' class='pianoPWhiteText' style='color:black; background-Color:white;'>" + NoteText(midi.Offset) + "</div>";
+     html += "</div>";
+     
+     if (k==2 || k==6)  // E or B  key ??
+      {
+       midiNum += 1; // next white key
+      }
+     else
+      { 
+       midiNum += 2; // rest of the white keys are up 2
+      }
+     w += pWW;
+    }
+   w =  x + pWW - (pBW / 2);  // center black keys in middle of 1st white key
+   midiNum = wMidi + 1;  // starting midi note of black keys
+   for (k=0; k<5; k++) // 5 black keys
+    {
+     midi = m_mapMidiNotes.get(midiNum);
+     midi = m_mapMidiNotes.get(midiNum);
+     if (midi != undefined)
+       m_mapPlayInst.set(midiNum, ["dyPB_" + midiNum]);  
+     text = NoteText(midi.Offset);
+     i = text.indexOf("/");
+     if (i>0)
+       text = text.substring(0,i) + "<br>" + text.substring(i+1);
+     html += "<div class='pianoPBlack' style='left:" + w.toString() + "vw;' onclick='PlayNoteSound(new PlayNote(" + midiNum.toString() +", null));'>";
+     html += "<div id='dyPB_" + midiNum + "' class='pianoPBlackText' style='color:black; background-Color:white;'>" + text + "</div>";
+     html += "</div>"; 
+     if (k==1 || k==4) // is the next key an f# or c#
+      {
+       w += pWW * 2;  // move next f# or c# over 2 white key widths
+       midiNum += 3;                 // note offset is bumped 3
+      }
+     else
+      {
+       w += pWW;   // these keys are next to each other  
+       midiNum += 2;               
+      }
+    }
+   wMidi += 12;
+   x += pWW * 7;
+  }
+ html += "</div></td></tr></table>";
+
+ document.getElementById("divPlayInst").innerHTML = html;
+
+}
 
 //////////////////////////////////////////////
 //            Load Combo Boxes
@@ -4556,6 +4905,14 @@ function dynaChordsAllRootsButtons()
 function eventRadInstrument(inst) // Instrument radio button click
 {
  m_CurrentInstrument = inst;
+ switch(m_CurrentInstrument)
+  {
+   case m_Guitar:   GenGuitarPlayBoard();   break;
+   case m_Bass:     GenBassPlayBoard();     break;
+   case m_Mandolin: GenMandolinPlayBoard(); break;
+   case m_Ukulele:  GenUkulelePlayBoard();  break;
+   case m_Keyboard: GenPianoPlayBoard();    break;
+  }
 }
 
 function eventcboKeysTH_Change() // Traditional Harmony Keys dropdown selection change 
@@ -5075,6 +5432,45 @@ function eventBtnSubmit()
  SubmitForm();
 }
 
+function eventSliderBPM()
+{
+ var bpm = parseInt(document.getElementById("beatsPerMinute").value);
+ 
+ document.getElementById("spanBPM").innerHTML = bpm + " bpm";  // need to calculate milliseconds between a measure
+
+ m_CurrentPlayTime = Math.round(1000 * 60/bpm) * 4;    //  60 / 60 = 1,  60/120 = 0.5
+
+}
+
+function eventSliderVol()
+{
+ var vol = document.getElementById("audioVolumeRecord").value;
+ 
+ document.getElementById("spanVol").innerHTML = vol + " Vol";  // need to calculate milliseconds between a measure
+}
+
+
+function eventSliderLength()
+{
+ var len = document.getElementById("audioLengthRecord").value;
+ 
+ document.getElementById("spanLength").innerHTML = len + " Dur";  // need to calculate milliseconds between a measure
+
+ m_CurrentPlayPercLenth = parseFloat(len);
+}
+
+function eventSliderMaster()
+{
+ var vol;
+
+ vol = parseFloat(document.getElementById("audioVolumeControl").value);
+
+ document.getElementById("spanMasterVol").innerHTML = vol;
+
+ m_MasterVol = vol;
+
+}
+
 
 ////////////////////////////////////////////////
 //               S h o w   
@@ -5354,6 +5750,15 @@ function ShowPlayBuffer()
     }
    html += "</tr></table>";
    document.getElementById("tdPlayBuffer" + i).innerHTML = html;
+  }
+
+ switch(m_CurrentInstrument)
+  {
+   case m_Guitar:   GenGuitarPlayBoard();   break;
+   case m_Bass:     GenBassPlayBoard();     break;
+   case m_Mandolin: GenMandolinPlayBoard(); break;
+   case m_Ukulele:  GenUkulelePlayBoard();  break;
+   case m_Keyboard: GenPianoPlayBoard();    break;
   }
 }
 
@@ -5656,9 +6061,6 @@ function SubmitForm()
    AppendRecordThing(form, i);
   }
 
- AppendText(form, "lP", m_arrPlayBuffers.length); 
- AppendText(form, "lPB", m_arrPlayBuffers[0].length);  // so if these change it won't break when loading them
-
  for (i=0; i<m_arrPlayBuffers.length; i++)
   {
    for (k=0; k<m_arrPlayBuffers[i].length; k++)
@@ -5718,6 +6120,8 @@ function ProcessForm()
   {
    m_arrRecordBuffer = [];
    v = parseInt(params.get("lR"));
+   if (v > 100  || v<0) // someone messing with args?
+     return;  
    for (k=0; k<v; k++)
     {
      ReadRecordThing(params, k);
@@ -5725,25 +6129,17 @@ function ProcessForm()
    ShowRecordBuffer();
   }
 
- if (params.has("lP") == true && params.has("lPB") == true)
+ m_arrPlayBuffers = [];
+ for(i=0; i<5; i++)
   {
-   v = parseInt(params.get("lP"));
-   v2 = parseInt(params.get("lPB"));
-   m_arrPlayBuffers = [];
-   for(i=0; i<v; i++)
+   m_arrPlayBuffers[i] = [];
+   for (k=0; k<m_PlaySixteenthCount; k++)
     {
-     m_arrPlayBuffers[i] = [];
-     for (k=0; k<v2; k++)
-      {
-       m_arrPlayBuffers[i][k] = null;
-       ReadPlayThing(params, i, k);
-      }
+     m_arrPlayBuffers[i][k] = null;
+     ReadPlayThing(params, i, k);
     }
-   ShowPlayBuffer();
-   return true;
   }
-
- return false;  // return true if this found any m_arrPlayBuffer items, returning false will initialize m_arrPlayBuffer to nulls
+ ShowPlayBuffer();
 }
 
 // call the constructors
@@ -5828,8 +6224,8 @@ function ProcessForm()
    </select>
   </td>
   <td colspan=2>
-    &nbsp; &nbsp; <input type="range" id="audioVolumeControl" min="0" max="2" value="0.4" step="0.01" /> &nbsp; &nbsp;
-    <input type="button" class="btn" value="Test" onclick="PlayChordSound(new PlayChord(0, 0, 0, 48));">
+    &nbsp; &nbsp; <input type="range" id="audioVolumeControl" min="0" max="1" value="0.2" step="0.01" onchange="eventSliderMaster();" /> &nbsp; <span id="spanMasterVol" class="fretMark"></span> &nbsp; &nbsp;
+    <input type="button" class="btn" value="Test" onclick="TestVolume();">
   </td>
  </tr>
  <tr>
@@ -5989,7 +6385,7 @@ function ProcessForm()
         </select>
       </td></tr>
       <tr><td>
-       <input type="range" id="audioVolumeRecord" style="width:8.7vw;" min="0" max="2" value="0.3" step="0.01" />
+       <input type="range" id="audioVolumeRecord" style="width:5.3vw; font-size:2.2vw;" min="0" max="1" value="0.3" step="0.01" onchange="eventSliderVol();">&nbsp;<span id="spanVol" class="fretMark">0.3</span>
       </td></tr>
       </table>
      </td>
@@ -6019,6 +6415,8 @@ function ProcessForm()
        </select>
       </td>
      </tr>
+     <tr><td><input type="range" id="beatsPerMinute" style="width:7.1vw; font-size:1.2vw;" min="40" max="200" value="100" step="1" onchange="eventSliderBPM();" />&nbsp;<span id="spanBPM" class="fretMark">100</span></td></tr>
+     <tr><td><input type="range" id="audioLengthRecord" style="width:7.1vw; font-size:1.2vw;" min="0.2" max="1" value="0.5" step="0.1" onchange="eventSliderLength();">&nbsp;<span id="spanLength" class="fretMark">0.5</span></td></tr>
      <tr><td><input type="button" class="btnBuff" id="btnPlaySpecific" value="Play" onclick='eventBtnPlaySelectedBuffer();'></td></tr>
      <tr><td><input type="button" class="btnBuff" value="Clear" onclick='eventBtnClearSelectedBuffer();'></td></tr>
      <tr><td><input type="button" class="btnBuff" value="Clear All" onclick='eventBtnClearAllBuffers();'></td></tr>
@@ -6039,6 +6437,9 @@ function ProcessForm()
    </td>
   </tr>
  </table>
+</div>
+<br>
+<div id="divPlayInst">
 </div>
 </div>
 
@@ -6062,19 +6463,15 @@ function ProcessForm()
 
  eventCboTimeSignature_Change();   // sets default time signatuire
 
- if (ProcessForm() == false)       // check for and extract URL arguments, if none found have to setup m_arrPlayBuffer arrays
-  {
-   for(i=0; i<5; i++)
-    {
-     m_arrPlayBuffers[i] = [];  
-     for (k=0; k<m_PlaySixteenthCount; k++)
-      {
-       m_arrPlayBuffers[i][k] = null; // each entry is a 1/16th time 
-      }
-    }
-  }
+ eventSliderMaster();
+ eventSliderVol();
+ eventSliderLength();
+ eventSliderBPM();                 
+
  m_PlaySixteenthIndex = -1;
- ShowPlayBuffer();
+
+ ProcessForm();
+ 
 
 </script>
 </body>
