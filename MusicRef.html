@@ -70,9 +70,9 @@
   .tdRecBuffOctave { cursor:pointer; color:blue; }
   .tdRecordBuffTop { cursor:pointer; background-color:lime; }
   .tdRecordBuffBot { cursor:pointer; background-color:red; }
-  .tdRecordBufferN { font-size:1.042vw; padding:0.521vw; color:#000044; cursor:pointer; border:0.2vw solid cyan; }
-  .tdRecordBufferC { font-size:1.042vw; padding:0.521vw; color:#000044; cursor:pointer; border:0.2vw solid blue; }
-  .tdRecordBufferS { font-size:1.042vw; padding:0.521vw; color:#000044; border:0.2vw solid red; text-align:center; }
+  .tdRecordBufferN { font-size:1.042vw; padding:0.521vw; color:#000044; cursor:pointer; border:0.2vw solid cyan; display:inline-block; height:6.0vw; }
+  .tdRecordBufferC { font-size:1.042vw; padding:0.521vw; color:#000044; cursor:pointer; border:0.2vw solid blue; display:inline-block; height:6.0vw; }
+  .tdRecordBufferS { font-size:1.042vw; padding:0.521vw; color:#000044; border:0.2vw solid red; text-align:center; display:inline-block; height:6.0vw; }
           .divPlay { font-size:0.84vw; border:0.001vw solid navy; text-align:center; color:black; }
            .tdPlay { overflow:hidden; display:inline-block; white-space:nowrap; }
        .tdPlayArea { overflow:scroll; }
@@ -93,6 +93,8 @@
  
 </style>
 <script type="text/javascript">
+
+//@ts-check
 
 // special characters 
 
@@ -130,7 +132,7 @@ var blueNote = "#6FA8DC"; // a light blue
 //    Global Variables
 /////////////////////////////
 
-var m_Version = "1.2.6";     
+var m_Version = "1.2.7";     
 var m_Audio = null;             // used in frequency generation for gui items clicked on
 var m_CurrentWave = "square";   // sine square triangle sawtooth
 var m_CurrentVolume = 0;        // obtained from volume control
@@ -236,58 +238,67 @@ var m_arrPlayInstTDs = [];  // a list of tds that need to set to "", they were t
 
 var m_arrFingering = []; // array of fingering, either numbers 1 2 3 4 or letter I M R P. Loaded when option changes.
 
-var m_arrMajorKeys = [new Note(0,"C",""),new Note(7,"G",""),new Note(2,"D",""),new Note(9,"A",""),new Note(4,"E",""),new Note(11, "B",""),new Note(6,"F","#"),new Note(1,"C","#"),new Note(5,"F",""),new Note(10,"B","b"),new Note(3,"E","b"),new Note(8,"A","b"),new Note(1,"D","b"),new Note(6,"G","b"),new Note(11,"C","b")];
-var m_arrMinorKeys = [new Note(9,"A",""),new Note(4,"E",""),new Note(11,"B",""),new Note(5,"F","#"),new Note(1,"C","#"),new Note(8, "G","#"),new Note(3,"D","#"),new Note(10,"A","#"),new Note(2,"D",""),new Note(7,"G",""),new Note(0,"C",""),new Note(5,"F",""),new Note(10,"B","b"),new Note(3,"E","b"),new Note(8,"A","b")];
+var m_arrMajorKeys = [];  // passed to Mode constructor, contains a list of Note objects that the mode presents as a Key selection
+var m_arrMinorKeys = [];
 
 //////////////////////////////////
 //   Object Class Construction
 //////////////////////////////////
 
-function Instrument(id, name, strings, frets)  // ID m_Guitar etc,   "Guitar", # of strings, # of frets
+class Instrument
 {
- this.ID = id;
- this.InstrumentName = name;
- this.Strings = strings;         // number of strings
- this.Frets = frets;             // number of frets
- this.Tunings = [];     // tuning arrays
-}
-
-function Tuning(id, tuningName, arrMidiNotes)
-{
- this.TuningID = id;
- this.TuningName = tuningName;
- this.TuningMidiNotes = arrMidiNotes;  // array of midi notes, starting with top string (low E on guitar)
-}
-
-function Note(iOffset, letter, sharpOrFlat) // offset int (c=0), letter string C, D, etc, sharpOrFlat string (#, b or "")
-{
- var offset;
-
- if (iOffset > 11)
-   offset = iOffset - 12;
- else 
-   offset = iOffset;
-   
- this.Offset = offset;           // 0 = C
- this.SharpFlat = sharpOrFlat;   // bb, b, "", #, or ##.  This routine will not produce either bbb or ###
- if (sharpOrFlat != null)        // note is not in key
+ constructor(id, name, strings, frets)  // ID m_Guitar etc,   "Guitar", # of strings, # of frets
   {
-   this.Letter = letter;           // C thru B
-   switch(this.SharpFlat)          // set Text to the letter and proper # or b symbol
-    { 
-     case "bb": this.Text = letter + symFlat + symFlat;   this.SharpFlatOffset = -2; break; // -2 thru 2
-     case "b":  this.Text = letter + symFlat;             this.SharpFlatOffset = -1; break;
-     case "":   this.Text = letter;                       this.SharpFlatOffset = 0;  break;
-     case "#":  this.Text = letter + symSharp;            this.SharpFlatOffset = 1;  break;
-     case "##": this.Text = letter + symSharp + symSharp; this.SharpFlatOffset = 2;  break;
-     default: throw new Error("function Note(offset, letter, sharpOrFlat) invalid sharpOrFlat value"); 
+   this.ID = id;
+   this.InstrumentName = name;
+   this.Strings = strings;         // number of strings
+   this.Frets = frets;             // number of frets
+   this.Tunings = [];     // tuning arrays  
+  }
+}
+
+class Tuning
+{
+ constructor(id, tuningName, arrMidiNotes) 
+  {
+   this.TuningID = id;
+   this.TuningName = tuningName;
+   this.TuningMidiNotes = arrMidiNotes;  // array of midi notes, starting with top string (low E on guitar)
+  }
+}
+
+class Note
+{
+ constructor(iOffset, letter, sharpOrFlat) // offset int (c=0), letter string C, D, etc, sharpOrFlat string (#, b or "")
+  {
+   var offset;
+
+   if (iOffset > 11)
+     offset = iOffset - 12;
+   else 
+     offset = iOffset;
+   
+   this.Offset = offset;           // 0 = C
+   this.SharpFlat = sharpOrFlat;   // bb, b, "", #, or ##.  This routine will not produce either bbb or ###
+   if (sharpOrFlat != null)        // note is not in key
+    {
+     this.Letter = letter;           // C thru B
+     switch(this.SharpFlat)          // set Text to the letter and proper # or b symbol
+      { 
+       case "bb": this.Text = letter + symFlat + symFlat;   this.SharpFlatOffset = -2; break; // -2 thru 2
+       case "b":  this.Text = letter + symFlat;             this.SharpFlatOffset = -1; break;
+       case "":   this.Text = letter;                       this.SharpFlatOffset = 0;  break;
+       case "#":  this.Text = letter + symSharp;            this.SharpFlatOffset = 1;  break;
+       case "##": this.Text = letter + symSharp + symSharp; this.SharpFlatOffset = 2;  break;
+       default: throw new Error("function Note(offset, letter, sharpOrFlat) invalid sharpOrFlat value"); 
+      }
+    }
+   else
+    {
+     this.Text = letter; // sharpOrFlat was null, the note is out of key, Text will be D#/Eb style
     }
   }
- else
-  {
-   this.Text = letter; // sharpOrFlat was null, the note is out of key, Text will be D#/Eb style
-  }
- this.NextNote = function(step)  // object function that returns the next Note object in the current mode from this note based on the step
+ NextNote(step)  // object function that returns the next Note object in the current mode from this note based on the step
   {                              // this is used by the Key object to generate a list of notes in the key where the notes of the key always increment to the next letter
    var next;                     // so starting from the root each new note will be the next note letter in the series, eg D E F# G A B C#.  Sharps & Flats added as necessary.
    var nType; // 1=EF & BC          some modes end up with very wild sharp flat setups, check out gypsy minor results.
@@ -323,7 +334,7 @@ function Note(iOffset, letter, sharpOrFlat) // offset int (c=0), letter string C
            case "##": return new Note(this.Offset + 1, next, "#");  // C## To D#
            default: throw new Error("Note.NextNote(step) Invalid this.SharpFlat");  
           }
-        } break;
+        } 
        case 2:
         {
          switch(this.SharpFlat)
@@ -335,7 +346,7 @@ function Note(iOffset, letter, sharpOrFlat) // offset int (c=0), letter string C
            case "##": return new Note(this.Offset + 2, next, "##"); // C## To D##
            default: throw new Error("Note.NextNote(step) Invalid this.SharpFlat value");
           }
-        } break;
+        } 
        case 3:
         {
          switch(this.SharpFlat)
@@ -347,7 +358,7 @@ function Note(iOffset, letter, sharpOrFlat) // offset int (c=0), letter string C
            case "##": return new Note(this.Offset + 3, next, "#"); // C## To D#
            default: throw new Error("Note.NextNote(step) Invalid this.SharpFlat value");
           }
-        } break;
+        } 
       }
     }
    else 
@@ -365,7 +376,7 @@ function Note(iOffset, letter, sharpOrFlat) // offset int (c=0), letter string C
            case "##": return new Note(this.Offset + 1, next, "##");    // C## To D#
            default: throw new Error("Note.NextNote(step) Invalid this.SharpFlat value");
           }
-        } break;
+        } 
        case 2: // step == 2
         {
          switch(this.SharpFlat) // again, the next note always must be the next letter in the series regardless of step or the number of steps between the letters
@@ -377,7 +388,7 @@ function Note(iOffset, letter, sharpOrFlat) // offset int (c=0), letter string C
            case "##": throw new Error("F### ?");                     // not going to do ###s or bbb's
            default: throw new Error("Note.NextNote(step) Invalid this.SharpFlat value");
           }
-        } break;
+        } 
        case 3: // step == 3
         {
          switch(this.SharpFlat)
@@ -389,118 +400,129 @@ function Note(iOffset, letter, sharpOrFlat) // offset int (c=0), letter string C
            case "##": throw new Error("F### ?");                     
            default: throw new Error("Note.NextNote(step) Invalid this.SharpFlat value");
           }
-        } break;
+        } 
       }
     } 
-  };
+  }
 } 
 
 // chord pattern consists of a name and an array of pitches
 
-function ChordPattern(id, strName, strAbbrev, arrPitches, arrNames)
+class ChordPattern
 {
- this.ID = id;                           // unique id
- this.Name = strName;                    // Major, Minor, Dorian etc
- this.ShortName = strAbbrev;             // symbols etc
- this.Pitches = arrPitches;              // array of distances of chord notes from the chord's root note, integers
- this.PitchNames = arrNames;             // array of strings denoting the short name of each note of a chord, root, major third, perfect 5th etc
+ constructor(id, strName, strAbbrev, arrPitches, arrNames)
+  {
+   this.ID = id;                           // unique id
+   this.Name = strName;                    // Major, Minor, Dorian etc
+   this.ShortName = strAbbrev;             // symbols etc
+   this.Pitches = arrPitches;              // array of distances of chord notes from the chord's root note, integers
+   this.PitchNames = arrNames;             // array of strings denoting the short name of each note of a chord, root, major third, perfect 5th etc
  
- // Finger Placements, these arrays are imported from the c# program "GuitarChord", the .js is copied and pasted below quite a ways down in the code
+   // Finger Placements, these arrays are imported from the c# program "GuitarChord", the .js is copied and pasted below quite a ways down in the code
 
- this.PatternGuitar = [];
- this.PatternBass = [];
- this.PatternMandolin = [];
- this.PatternUkulele = [];
- this.PatternKeyboard = [];
+   this.PatternGuitar = [];
+   this.PatternBass = [];
+   this.PatternMandolin = [];
+   this.PatternUkulele = [];
+   this.PatternKeyboard = [];
 
- this.Root="";
- this.Third="";
- this.Fifth="";
- this.Seventh="";
- this.Ninth="";
+   this.Root="";
+   this.Third="";
+   this.Fifth="";
+   this.Seventh="";
+   this.Ninth="";
 
- switch(arrPitches[0])
-  {
-   case 0: this.Root="1";   break;
-   case 1: this.Root="#1";  break;
-   case 2: this.Root="##1"; break;
-  }
+   switch(arrPitches[0])
+    {
+     case 0: this.Root="1";   break;
+     case 1: this.Root="#1";  break;
+     case 2: this.Root="##1"; break;
+    }
 
- switch(arrPitches[1])
-  {
-   case 2: this.Third="bb3"; break;
-   case 3: this.Third="b3";  break;
-   case 4: this.Third="3";   break;
-   case 5: this.Third="#3";  break;
-   case 6: this.Third="##3"; break;
-  }
+   switch(arrPitches[1])
+    {
+     case 2: this.Third="bb3"; break;
+     case 3: this.Third="b3";  break;
+     case 4: this.Third="3";   break;
+     case 5: this.Third="#3";  break;
+     case 6: this.Third="##3"; break;
+    }
 
- switch(arrPitches[2])
-  {
-   case 5: this.Fifth="bb5"; break;
-   case 6: this.Fifth="b5";  break;
-   case 7: this.Fifth="5";   break;
-   case 8: this.Fifth="#5";  break;
-   case 9: this.Fifth="##5"; break;
-  }
+   switch(arrPitches[2])
+    {
+     case 5: this.Fifth="bb5"; break;
+     case 6: this.Fifth="b5";  break;
+     case 7: this.Fifth="5";   break;
+     case 8: this.Fifth="#5";  break;
+     case 9: this.Fifth="##5"; break;
+    }
 
- switch(arrPitches[3])
-  {
-   case 9: if (this.Name=="Dim 7th") this.Seventh="bb7"; else this.Seventh="6"; break;
-   case 10: this.Seventh="b7";  break;
-   case 11: this.Seventh="7";   break;
-   case 12: this.Seventh="#7";  break;
-   case 13: this.Seventh="##7"; break;
-  }
+   switch(arrPitches[3])
+    {
+     case 9: if (this.Name=="Dim 7th") this.Seventh="bb7"; else this.Seventh="6"; break;
+     case 10: this.Seventh="b7";  break;
+     case 11: this.Seventh="7";   break;
+     case 12: this.Seventh="#7";  break;
+     case 13: this.Seventh="##7"; break;
+    }
 
- switch(arrPitches[4])
-  {
-   case 12: this.Ninth="bb9"; break;
-   case 13: this.Ninth="b9";  break;
-   case 14: this.Ninth="9";   break;
-   case 15: this.Ninth="#9";  break;
-   case 16: this.Ninth="##9"; break;
-  }
+   switch(arrPitches[4])
+    {
+     case 12: this.Ninth="bb9"; break;
+     case 13: this.Ninth="b9";  break;
+     case 14: this.Ninth="9";   break;
+     case 15: this.Ninth="#9";  break;
+     case 16: this.Ninth="##9"; break;
+    }
 
- this.Formula=this.Root;
+   this.Formula=this.Root;
  
- if (this.Third != "")   this.Formula+="-"+this.Third;
- if (this.Fifth != "")   this.Formula+="-"+this.Fifth;
- if (this.Seventh != "") this.Formula+="-"+this.Seventh;
- if (this.Ninth != "")   this.Formula+="-"+this.Ninth;
-
+   if (this.Third != "")   this.Formula+="-"+this.Third;
+   if (this.Fifth != "")   this.Formula+="-"+this.Fifth;
+   if (this.Seventh != "") this.Formula+="-"+this.Seventh;
+   if (this.Ninth != "")   this.Formula+="-"+this.Ninth;
+  }
 }
 
 // Fingering object are stored in the Placement and BarrePlacement object below
 
-function Fingering(str, fret)
+class Fingering
 {
- this.Str = str;    // string number, top string is 0 (low E on guitar)
- this.Fret = fret;  // fret number
+ constructor(str, fret)
+  {
+   this.Str = str;    // string number, top string is 0 (low E on guitar)
+   this.Fret = fret;  // fret number
+  }
 }
 
 // Fingering for the barre chord index finger, it has the ShowNote property when true the Index finger's note info is part of the chord and displayed
 
-function BarreIndex(str, fret, showNote) // this object is only stored in the instrument barre fingering array
+class BarreIndex
 {
- this.Str = str;
- this.Fret = fret;
- this.ShowNote = showNote;  // 1, show the note, it's part of the cord, 0, don't show the note, just show the "I"
-}
+ constructor(str, fret, showNote) // this object is only stored in the instrument barre fingering array
+  {
+   this.Str = str;
+   this.Fret = fret;
+   this.ShowNote = showNote;  // 1, show the note, it's part of the cord, 0, don't show the note, just show the "I"
+  }
+} 
 
 // placements, chord fingerings
 
-function Placement(id, instrument, offset, arrIndex, arrMiddle, arrRing, arrPinky, arrOpen, arrNoPlay)
+class Placement
 {
- this.ID = id;
- this.Instrument = instrument;  // m_Guitar etc
- this.Offset = offset;          // C = 0
- this.Index = arrIndex;         // list of Fingering for the index finger
- this.Middle = arrMiddle;       // middle finger
- this.Ring = arrRing;
- this.Pinky = arrPinky;
- this.Open = arrOpen;           // open notes on either the nut or capo
- this.NoPlay = arrNoPlay;       // string shouldn't be played, it's note is not part of the chord or the string's note is not the root of the chord such as E string in the case of A major chord
+ constructor(id, instrument, offset, arrIndex, arrMiddle, arrRing, arrPinky, arrOpen, arrNoPlay)
+  {
+   this.ID = id;
+   this.Instrument = instrument;  // m_Guitar etc
+   this.Offset = offset;          // C = 0
+   this.Index = arrIndex;         // list of Fingering for the index finger
+   this.Middle = arrMiddle;       // middle finger
+   this.Ring = arrRing;
+   this.Pinky = arrPinky;
+   this.Open = arrOpen;           // open notes on either the nut or capo
+   this.NoPlay = arrNoPlay;       // string shouldn't be played, it's note is not part of the chord or the string's note is not the root of the chord such as E string in the case of A major chord
+  }
 }
 
 // C C#/Db D D#/Eb E  F  F#/Gb G G#/Ab A A#/Bb B/Cb
@@ -512,73 +534,76 @@ function Placement(id, instrument, offset, arrIndex, arrMiddle, arrRing, arrPink
 // so the A major pattern needs to be moved up 4 frets to play a D major.  The shift upwards is not from the nut, but rather from the 1st fret "Bb major" position of the barre chord.
 // the Bb major lookup B offset is 10.  The 10 Offsets array result is 0, the A major barre from Bb doesn't need to slide up.    
 
-function BarrePlacement(id, offset, chordPattern, instrument, arrIndex, arrMiddle, arrRing, arrPinky, arrNoPlay)
+class BarrePlacement
 {
- var i, k, fa;
+ constructor(id, offset, chordPattern, instrument, arrIndex, arrMiddle, arrRing, arrPinky, arrNoPlay)
+  {
+   var i, k, fa;
 
- this.ID = id;                  // unique id
- this.Offset = offset;          // c=0
- this.CP = chordPattern;        // m_cpMajor = 0
- this.Instrument = instrument;  // m_Guitar etc
- switch(offset)
-  {
-   case 9: // is it the A pattern?
-     this.Offsets = [2,3,4,5,6,7,8,9,10,11,0,1,2,3];   // Bb B C Db D -  steps to take to wrap around to C.  14 entries, how far the barre's can go up the fretboard
-     break;
-   case 4: // E
-     this.Offsets = [7,8,9,10,11,0,1,2,3,4,5,6,7,8];   // F Gb G Ab A Bb B C, starting from E next note is F  to wrap F to C is 7 steps
-     break;
-   case 2: // D
-     this.Offsets = [9,10,11,0,1,2,3,4,5,6,7,8,9,10];   // Eb E F Gb G Ab A Bb B C, starting from D next note is Eb, to wrap Eb to C is 9 steps
-     break;
-   case 0: // C
-     this.Offsets = [11,0,1,2,3,4,5,6,7,9,9,10,11,0];   // Db D Eb E F Gb G Ab A Bb B C, starting from C next note is Db, wrapping Db to C is 11 
-     break;
-  }
- this.Index = [];  // store finger positions for each barre chord starting with 1st barre above  Bb for the A pattern, F for the E pattern
- this.Middle = [];
- this.Ring = [];
- this.Pinky = [];
- this.NoPlay = []; // no open strings
+   this.ID = id;                  // unique id
+   this.Offset = offset;          // c=0
+   this.CP = chordPattern;        // m_cpMajor = 0
+   this.Instrument = instrument;  // m_Guitar etc
+   switch(offset)
+    {
+     case 9: // is it the A pattern?
+       this.Offsets = [2,3,4,5,6,7,8,9,10,11,0,1,2,3];   // Bb B C Db D -  steps to take to wrap around to C.  14 entries, how far the barre's can go up the fretboard
+       break;
+     case 4: // E
+       this.Offsets = [7,8,9,10,11,0,1,2,3,4,5,6,7,8];   // F Gb G Ab A Bb B C, starting from E next note is F  to wrap F to C is 7 steps
+       break;
+     case 2: // D
+       this.Offsets = [9,10,11,0,1,2,3,4,5,6,7,8,9,10];   // Eb E F Gb G Ab A Bb B C, starting from D next note is Eb, to wrap Eb to C is 9 steps
+       break;
+     case 0: // C
+       this.Offsets = [11,0,1,2,3,4,5,6,7,9,9,10,11,0];   // Db D Eb E F Gb G Ab A Bb B C, starting from C next note is Db, wrapping Db to C is 11 
+       break;
+    }
+   this.Index = [];  // store finger positions for each barre chord starting with 1st barre above  Bb for the A pattern, F for the E pattern
+   this.Middle = [];
+   this.Ring = [];
+   this.Pinky = [];
+   this.NoPlay = []; // no open strings
 
- // Fingering objects are a bit different than the above placements
- // Index Fingering.Fret = 0  and all others are # of frets past the Index 
- // so the barre chord can moved about on the fretboard
+   // Fingering objects are a bit different than the above placements
+   // Index Fingering.Fret = 0  and all others are # of frets past the Index 
+   // so the barre chord can moved about on the fretboard
 
-for (i=1; i<14; i++)  // for A major barre starting with Bb for the A pattern and F for the E pattern, they are stored in the array at index 0
-  {
-   fa = [];
-   for (k=0; k<arrIndex.length; k++)
-     fa[k]= new BarreIndex(arrIndex[k].Str, arrIndex[k].Fret + i, arrIndex[k].ShowNote);
-   this.Index[i-1] = fa;
-  }
- for (i=1; i<14; i++)
-  {
-   fa = [];
-   for (k=0; k<arrMiddle.length; k++)
-     fa[k]= new Fingering(arrMiddle[k].Str, arrMiddle[k].Fret + i);
-   this.Middle[i-1] = fa;
-  }
- for (i=1; i<14; i++)
-  {
-   fa = [];
-   for (k=0; k<arrRing.length; k++)
-     fa[k]= new Fingering(arrRing[k].Str, arrRing[k].Fret + i);
-   this.Ring[i-1] = fa;
-  }
- for (i=1; i<14; i++)
-  {
-   fa = [];
-   for (k=0; k<arrPinky.length; k++)
-     fa[k]= new Fingering(arrPinky[k].Str, arrPinky[k].Fret + i);
-   this.Pinky[i-1] = fa;
-  }
- for (i=1; i<14; i++)
-  {
-   fa = [];
-   for (k=0; k<arrNoPlay.length; k++)
-     fa[k]= new Fingering(arrNoPlay[k].Str, arrNoPlay[k].Fret + i);
-   this.NoPlay[i-1] = fa;
+  for (i=1; i<14; i++)  // for A major barre starting with Bb for the A pattern and F for the E pattern, they are stored in the array at index 0
+    {
+     fa = [];
+     for (k=0; k<arrIndex.length; k++)
+       fa[k]= new BarreIndex(arrIndex[k].Str, arrIndex[k].Fret + i, arrIndex[k].ShowNote);
+     this.Index[i-1] = fa;
+    }
+   for (i=1; i<14; i++)
+    {
+     fa = [];
+     for (k=0; k<arrMiddle.length; k++)
+       fa[k]= new Fingering(arrMiddle[k].Str, arrMiddle[k].Fret + i);
+     this.Middle[i-1] = fa;
+    }
+   for (i=1; i<14; i++)
+    {
+     fa = [];
+     for (k=0; k<arrRing.length; k++)
+       fa[k]= new Fingering(arrRing[k].Str, arrRing[k].Fret + i);
+     this.Ring[i-1] = fa;
+    }
+   for (i=1; i<14; i++)
+    {
+     fa = [];
+     for (k=0; k<arrPinky.length; k++)
+       fa[k]= new Fingering(arrPinky[k].Str, arrPinky[k].Fret + i);
+     this.Pinky[i-1] = fa;
+    }
+   for (i=1; i<14; i++)
+    {
+     fa = [];
+     for (k=0; k<arrNoPlay.length; k++)
+       fa[k]= new Fingering(arrNoPlay[k].Str, arrNoPlay[k].Fret + i);
+     this.NoPlay[i-1] = fa;
+    }
   }
 }
 
@@ -586,14 +611,17 @@ for (i=1; i<14; i++)  // for A major barre starting with Bb for the A pattern an
 // the Name object function returns the note's name based on the current Key, if sharp or flat it will return either #  or b based on the notes of the key
 // the MidiName object function returns the name along with the midi note's octave as well, 48 would return C3
 
-function MidiNote(id, nMidi, nOffset, nOctive, fFreq)
+class MidiNote
 {
- this.ID = id;             // unique id
- this.Number = nMidi;      // midi note C4 = 60
- this.Offset = nOffset;    // C = 0
- this.Octave = nOctive;    // 4 is middle C
- this.Frequency = fFreq;   // in hertz
- this.Name = function(key) // name does not contain octive numbers
+ constructor(id, nMidi, nOffset, nOctive, fFreq)
+  {
+   this.ID = id;             // unique id
+   this.Number = nMidi;      // midi note C4 = 60
+   this.Offset = nOffset;    // C = 0
+   this.Octave = nOctive;    // 4 is middle C
+   this.Frequency = fFreq;   // in hertz
+  }
+ Name(key) // name does not contain octive numbers
   {
    var note;
    
@@ -602,8 +630,8 @@ function MidiNote(id, nMidi, nOffset, nOctive, fFreq)
      return NoteText(this.Offset);
    else 
      return note.Text; 
-  };   
- this.MidiName = function(key) 
+  }   
+ MidiName(key) 
   {
    var note;
 
@@ -613,80 +641,88 @@ function MidiNote(id, nMidi, nOffset, nOctive, fFreq)
    else
      return note.Text + this.Octave.toString(); 
   };
- this.MidiNameViaNote = function(note)
+ MidiNameViaNote(note)
   {
    if (note == null)
      return NoteText(this.Offset) + "(" + this.Octave.toString() + ")";
    else
      return note.Text + this.Octave.toString(); 
-  };
+  }
 }
 
 // modes: ionian, dorian etc
 
-function Mode(nNdx, sBGColor, sName, arrPitches, arrChordType, arrKeyList) 
+class Mode
 {
- this.ID=nNdx;                  // unique id
- this.ModeName=sName;           // ionian, dorian etc
- this.Sequences=arrPitches;     // list of steps, pitches between chords, Major is 2,2,1,2,2,2,1
- this.ChordType=arrChordType;   // list of chord types for each chord in the mode, Major is m_cpMajor,m_cpMinor,m_cpMinor,m_cpMajor,m_cpMajor,m_cpMinor,cDim
- this.Background=sBGColor;      // background color in the combo box drop down
- this.KeyList = arrKeyList;     // Array of key "Note" objects to display for the mode
+ constructor(nNdx, sBGColor, sName, arrPitches, arrChordType, arrKeyList) 
+  {
+   this.ID=nNdx;                  // unique id
+   this.ModeName=sName;           // ionian, dorian etc
+   this.Sequences=arrPitches;     // list of steps, pitches between chords, Major is 2,2,1,2,2,2,1
+   this.ChordType=arrChordType;   // list of chord types for each chord in the mode, Major is m_cpMajor,m_cpMinor,m_cpMinor,m_cpMajor,m_cpMajor,m_cpMinor,cDim
+   this.Background=sBGColor;      // background color in the combo box drop down
+   this.KeyList = arrKeyList;     // Array of key "Note" objects to display for the mode
+  }
 }
 
 // oddball scales that are not traditional modes, blues, pentatonics etc
 
-function Scale(id, sBGColor, sName, arrPitches, arrLookups)
+class Scale
 {
- this.ID = id;                       // unique id, not really used, should probably remove it
- this.Background = sBGColor;         // dropdown color, only works on PC browsers
- this.ScaleName = sName;             // name of the scale, "Blues Major"
- this.Sequences = arrPitches;        // list of steps between notes
- this.LookUps = arrLookups;          // a index into the m_Key.Notes array and the next note formula 
+ constructor(id, sBGColor, sName, arrPitches, arrLookups) 
+  {
+   this.ID = id;                       // unique id, not really used, should probably remove it
+   this.Background = sBGColor;         // dropdown color, only works on PC browsers
+   this.ScaleName = sName;             // name of the scale, "Blues Major"
+   this.Sequences = arrPitches;        // list of steps between notes
+   this.LookUps = arrLookups;          // a index into the m_Key.Notes array and the next note formula 
+  }
 }
 
 // key signature
 
-function Key(mode, startNote) // mode index, starting Note object
+class Key
 {
- var os, i, found, k;
-
- this.Offset = startNote.Offset;  // c = 0
- this.Mode = mode;
- this.Notes = [];        // list of note names with special characters for sharps and flats
- this.Offsets = [];      // offset notes of the key
- this.LookUp = [];       // a way to find the note name in the key only knowing what the offset is C = 0
-
- this.BaseMidi = GetBaseMidiNote(startNote.Offset);
-
- os = startNote.Offset;       // get the key's starting note offset, c = 0
- this.Offsets[0] = os;
- this.Notes[0] = startNote;   // add the 1st note of the key
- for (i=1; i<m_arrModes[mode].Sequences.length; i++)          // add the next  notes of key, start with 1
+ constructor(mode, startNote) // mode index, starting Note object
   {
-   this.Notes[i] = this.Notes[i-1].NextNote(m_arrModes[mode].Sequences[i-1]); // populate the Notes array
-   os += m_arrModes[mode].Sequences[i-1];   // move to the next offset based on the current mode's pitch sequence
-   if (os >= 12)        // if offset >= 12 
-     os -= 12;          // wrap it back around to 0
-   this.Offsets[i] = os; // populate the Offsets array
-  }
+   var os, i, found, k;
 
- for (i=0; i<12; i++) // build a list of all 12 offsets with the appropriate index of notes in this key, entries of offsets of notes not in this key will be -1 
-  {
-   found = false;
-   for (k=0; k<this.Offsets.length; k++) 
+   this.Offset = startNote.Offset;  // c = 0
+   this.Mode = mode;
+   this.Notes = [];        // list of note names with special characters for sharps and flats
+   this.Offsets = [];      // offset notes of the key
+   this.LookUp = [];       // a way to find the note name in the key only knowing what the offset is C = 0
+
+   this.BaseMidi = GetBaseMidiNote(startNote.Offset);
+
+   os = startNote.Offset;       // get the key's starting note offset, c = 0
+   this.Offsets[0] = os;
+   this.Notes[0] = startNote;   // add the 1st note of the key
+   for (i=1; i<m_arrModes[mode].Sequences.length; i++)          // add the next  notes of key, start with 1
     {
-     if (i == this.Offsets[k])
-      {
-       this.LookUp.push(k);  // save the index to the this.Notes array
-       found = true;
-      }
+     this.Notes[i] = this.Notes[i-1].NextNote(m_arrModes[mode].Sequences[i-1]); // populate the Notes array
+     os += m_arrModes[mode].Sequences[i-1];   // move to the next offset based on the current mode's pitch sequence
+     if (os >= 12)        // if offset >= 12 
+       os -= 12;          // wrap it back around to 0
+     this.Offsets[i] = os; // populate the Offsets array
     }
-   if (found == false)
-     this.LookUp.push(-1); // offset of note is not in this key
-  }
 
- this.OffsetNote = function(offset) // return Note object
+   for (i=0; i<12; i++) // build a list of all 12 offsets with the appropriate index of notes in this key, entries of offsets of notes not in this key will be -1 
+    {
+     found = false;
+     for (k=0; k<this.Offsets.length; k++) 
+      {
+       if (i == this.Offsets[k])
+        {
+         this.LookUp.push(k);  // save the index to the this.Notes array
+         found = true;
+        }
+      }
+     if (found == false)
+       this.LookUp.push(-1); // offset of note is not in this key
+    }
+  }
+ OffsetNote(offset) // return Note object
   {
    if (this.LookUp[offset] >=0)
      return this.Notes[this.LookUp[offset]];
@@ -694,9 +730,8 @@ function Key(mode, startNote) // mode index, starting Note object
     {
      return null;
     }
-  };
-
- this.NoteIndex = function(note) // note object, returns index into note array
+  }
+ NoteIndex(note) // note object, returns index into note array
   {
    var i;
 
@@ -706,138 +741,155 @@ function Key(mode, startNote) // mode index, starting Note object
        return i;
     }
    return -1;
-  };
-
+  }
 }
 
-function PlayNote(midiNum, text) // midi num, text
+class PlayNote
 {
- this.Midi = m_mapMidiNotes.get(midiNum);
- this.Text = text;
+ constructor(midiNum, text) // midi num, text
+  {
+   this.Midi = m_mapMidiNotes.get(midiNum);
+   this.Text = text;
+  }
 }
 
 // since this function can be called after a chord is placed all the values to reconstruct it have to be available at runtime, can't rely on m_Key or m_CurrentMode.
 
-function PlayChord(mode, keyNdx, patNdx, midiBase) // mode ndx, key index into a mode's keylist array (can be -1), chord pattern index, midi starting note
+class PlayChord
 {
- var key, text, note, midi;
- var k, m;
-
- this.Mode = mode;
- this.KeyIndex = keyNdx;
- this.Pattern = patNdx;
- this.Notes = [];
-
- if (keyNdx >= 0)
-   key = new Key(mode, m_arrModes[mode].KeyList[keyNdx]);
- else
-   key = null;
-
- for (k=0; k<m_arrChordPatterns[patNdx].Pitches.length; k++)
+ constructor(mode, keyNdx, patNdx, midiBase) // mode ndx, key index into a mode's keylist array (can be -1), chord pattern index, midi starting note
   {
-   m = midiBase + m_arrChordPatterns[patNdx].Pitches[k];
-   midi = m_mapMidiNotes.get(m);
-   if (key == null)
-     text = NoteText(midi.Offset);
+   var key, text, note, midi;
+   var k, m;
+
+   this.Mode = mode;
+   this.KeyIndex = keyNdx;
+   this.Pattern = patNdx;
+   this.Notes = [];
+
+   if (keyNdx >= 0)
+     key = new Key(mode, m_arrModes[mode].KeyList[keyNdx]);
    else
+     key = null;
+
+   for (k=0; k<m_arrChordPatterns[patNdx].Pitches.length; k++)
     {
-     note = key.OffsetNote(midi.Offset);
-     if (note == null)
+     m = midiBase + m_arrChordPatterns[patNdx].Pitches[k];
+     midi = m_mapMidiNotes.get(m);
+     if (key == null)
        text = NoteText(midi.Offset);
      else
-       text = note.Text;
+      {
+       note = key.OffsetNote(midi.Offset);
+       if (note == null)
+         text = NoteText(midi.Offset);
+       else
+         text = note.Text;
+      }
+     this.Notes[k] = new PlayNote(m, text);
     }
-   this.Notes[k] = new PlayNote(m, text);
-  }
 
- this.Text = this.Notes[0].Text + m_arrChordPatterns[patNdx].ShortName;
+   this.Text = this.Notes[0].Text + m_arrChordPatterns[patNdx].ShortName;
+  }
 }
 
-function PlayScale(mode, keyNdx, midiBase, otherScale) // mode index, index into mode.KeyList array, midi note of tonic, index into m_arrScales (can be < 0)
+class PlayScale
 {
- var i, k, midiNum;
- var key, note, next, notes, ndx;  // generate array of PlayNote objects
- var midi;
-
- this.Mode = mode;
- this.KeyIndex = keyNdx;
- this.MidiBase = midiBase;
- this.OtherScale = otherScale;
-
- key = new Key(mode, m_arrModes[mode].KeyList[keyNdx]); // build the key
-
- midiNum = midiBase;  // start from the intrument's base note 
-
- notes = [];
-
- if (otherScale<0) // is it an other scale?  m_arrScales
+ constructor(mode, keyNdx, midiBase, otherScale) // mode index, index into mode.KeyList array, midi note of tonic, index into m_arrScales (can be < 0)
   {
-   this.Text = m_arrModes[mode].ModeName;               // nope, it's a mode 
-   for (i=0; i<m_arrModes[mode].Sequences.length; i++)  // go thru the mode's sequences
+   var i, k, midiNum;
+   var key, note, next, notes, ndx;  // generate array of PlayNote objects
+   var midi;
+
+   this.Mode = mode;
+   this.KeyIndex = keyNdx;
+   this.MidiBase = midiBase;
+   this.OtherScale = otherScale;
+
+   key = new Key(mode, m_arrModes[mode].KeyList[keyNdx]); // build the key
+
+   midiNum = midiBase;  // start from the intrument's base note 
+
+   notes = [];
+
+   if (otherScale<0) // is it an other scale?  m_arrScales
     {
-     notes[i] = new PlayNote(midiNum, key.Notes[i].Text); // add the PlayNote from the key
-     midiNum += m_arrModes[mode].Sequences[i];            // next note
-    }
-   notes.push(new PlayNote(midiNum, key.Notes[0].Text)); // add the tonic octave
-  }
- else
-  {
-   this.Text = m_arrScales[otherScale].ScaleName;  
-   for (i=0; i<m_arrScales[otherScale].Sequences.length; i++) // other scale, blues and such
-    {
-     midi = m_mapMidiNotes.get(midiNum);             // get Midi object
-     note = null;
-     for (k=0; k<key.Notes.length; k++)              // see if note is in key
+     this.Text = m_arrModes[mode].ModeName;               // nope, it's a mode 
+     for (i=0; i<m_arrModes[mode].Sequences.length; i++)  // go thru the mode's sequences
       {
-       if (key.Notes[k].Offset == midi.Offset)
-        note = m_Key.Notes[k];                       // it is, grab the Note object to obtain text
+       notes[i] = new PlayNote(midiNum, key.Notes[i].Text); // add the PlayNote from the key
+       midiNum += m_arrModes[mode].Sequences[i];            // next note
       }
-     if (note != null)                               // was it found?
-       notes[i] = new PlayNote(midiNum, note.Text);  // yes, add the PlayNote object for it
-     else
+     notes.push(new PlayNote(midiNum, key.Notes[0].Text)); // add the tonic octave
+    }
+   else
+    {
+     this.Text = m_arrScales[otherScale].ScaleName;  
+     for (i=0; i<m_arrScales[otherScale].Sequences.length; i++) // other scale, blues and such
       {
-       if (m_arrScales[otherScale].LookUps[i] != null)  // no, note wasn't found in key, see if the other scale has an adaption for a key Note object, aka raise 2nd
+       midi = m_mapMidiNotes.get(midiNum);             // get Midi object
+       note = null;
+       for (k=0; k<key.Notes.length; k++)              // see if note is in key
         {
-         ndx = m_arrScales[otherScale].LookUps[i][0];  // grab the index to the key object Note array from other scale that needs to be adapted (aka Blues raise 2nd note)
-         note = key.Notes[ndx];                                       // get the key Note object to alter
-         next = note.NextNote(m_arrScales[otherScale].LookUps[i][1]); // perform the scale operation to alter the note
-         notes[i] = new PlayNote(midiNum, next.Text);                 // add the Play note for the altered note
+         if (key.Notes[k].Offset == midi.Offset)
+          note = m_Key.Notes[k];                       // it is, grab the Note object to obtain text
         }
+       if (note != null)                               // was it found?
+         notes[i] = new PlayNote(midiNum, note.Text);  // yes, add the PlayNote object for it
        else
         {
-         note = new Note(midi.Offset, NoteText(midi.Offset), null);  // So there wasn't an adaption entry for a key Note object
-         notes[i] = new PlayNote(midiNum, note.Text);           // just use the C#/Db notation
+         if (m_arrScales[otherScale].LookUps[i] != null)  // no, note wasn't found in key, see if the other scale has an adaption for a key Note object, aka raise 2nd
+          {
+           ndx = m_arrScales[otherScale].LookUps[i][0];  // grab the index to the key object Note array from other scale that needs to be adapted (aka Blues raise 2nd note)
+           note = key.Notes[ndx];                                       // get the key Note object to alter
+           next = note.NextNote(m_arrScales[otherScale].LookUps[i][1]); // perform the scale operation to alter the note
+           notes[i] = new PlayNote(midiNum, next.Text);                 // add the Play note for the altered note
+          }
+         else
+          {
+           note = new Note(midi.Offset, NoteText(midi.Offset), null);  // So there wasn't an adaption entry for a key Note object
+           notes[i] = new PlayNote(midiNum, note.Text);           // just use the C#/Db notation
+          }
         }
+       midiNum += m_arrScales[m_CurrentScale].Sequences[i];  // next note
       }
-     midiNum += m_arrScales[m_CurrentScale].Sequences[i];  // next note
+     notes.push(new PlayNote(midiNum, key.Notes[0].Text));   // push the tonic's octave
     }
-   notes.push(new PlayNote(midiNum, key.Notes[0].Text));   // push the tonic's octave
+   this.Notes = notes; // finish the constructor
   }
- this.Notes = notes; // finish the constructor
 }
 
-function RecordThing(recordType, note, chord, scale)
+class RecordThing
 {
- this.RecordType = recordType;  // N note, C chord, S scale
- this.Note = note;              // PlayNote object, can be null based on above type
- this.Chord = chord;            // PlayChord object, can be null
- this.Scale = scale;            // PlayScale object, can be null
+ constructor(recordType, note, chord, scale)
+  {
+   this.RecordType = recordType;  // N note, C chord, S scale
+   this.Note = note;              // PlayNote object, can be null based on above type
+   this.Chord = chord;            // PlayChord object, can be null
+   this.Scale = scale;            // PlayScale object, can be null
+  }
 }
 
-function PlayThing(playThingType, note, chord, wave, vol, time) // N C R, mode ndx, key Object, chord pat ndx, array of PlayNote, wave form text, volume, delay.
+class PlayThing
 {
- this.PlayType = playThingType;  // N note, C chord, R rest
- this.Note = note;               // PlayNote object, can be null based on type
- this.Chord = chord;             // PlayChord object, can be null
- this.WaveType = wave;           // text, either 'square', 'triangle', 'sine' etc
- this.Volume = vol;              // value obtained from volume control
- this.Time = 1/time;             // 1/1 = whole note, 1/2=half, 1/4=quarter, 1/8=eighth note, 1/16=sixteenth note
- this.DisplayTime = time;        // unaltered version of time
+ constructor(playThingType, note, chord, wave, vol, time) // N C R, mode ndx, key Object, chord pat ndx, array of PlayNote, wave form text, volume, delay.
+  {
+   this.PlayType = playThingType;  // N note, C chord, R rest
+   this.Note = note;               // PlayNote object, can be null based on type
+   this.Chord = chord;             // PlayChord object, can be null
+   this.WaveType = wave;           // text, either 'square', 'triangle', 'sine' etc
+   this.Volume = vol;              // value obtained from volume control
+   this.Time = 1/time;             // 1/1 = whole note, 1/2=half, 1/4=quarter, 1/8=eighth note, 1/16=sixteenth note
+   this.DisplayTime = time;        // unaltered version of time
+  }
 }
 
-function PlaySet(arrPlayThings)
+class PlaySet
 {
- this.PlayThings = arrPlayThings; // each thing played on separate channels
+ constructor(arrPlayThings)
+  {
+   this.PlayThings = arrPlayThings; // each thing played on separate channels
+  }
 }
 
 //////////////////////////////////
@@ -846,6 +898,8 @@ function PlaySet(arrPlayThings)
 
 function makeInstruments()
 {
+ var i;
+
  m_arrInstruments[m_Guitar] = new Instrument(m_Guitar, "Guitar", 6, 24); // 6 strings 24 frets
  m_arrInstruments[m_Guitar].Tunings[0] =  new Tuning(0, "Standard Tuning", [40, 45, 50, 55, 59, 64]); // E2 A2 D3 G3 B3 E4  midi notes
  m_arrInstruments[m_Guitar].Tunings[1] =  new Tuning(1, "Half-Step Down", [39, 44, 49, 54, 58, 63]);
@@ -1054,6 +1108,9 @@ function makeMidiNotes() // why isn't id the midi note number?  why have id at a
 
 function makeModes()
 {
+ m_arrMajorKeys = [new Note(0,"C",""),new Note(7,"G",""),new Note(2,"D",""),new Note(9,"A",""),new Note(4,"E",""),new Note(11, "B",""),new Note(6,"F","#"),new Note(1,"C","#"),new Note(5,"F",""),new Note(10,"B","b"),new Note(3,"E","b"),new Note(8,"A","b"),new Note(1,"D","b"),new Note(6,"G","b"),new Note(11,"C","b")];
+ m_arrMinorKeys = [new Note(9,"A",""),new Note(4,"E",""),new Note(11,"B",""),new Note(5,"F","#"),new Note(1,"C","#"),new Note(8, "G","#"),new Note(3,"D","#"),new Note(10,"A","#"),new Note(2,"D",""),new Note(7,"G",""),new Note(0,"C",""),new Note(5,"F",""),new Note(10,"B","b"),new Note(3,"E","b"),new Note(8,"A","b")];
+
  m_arrModes[0]=new Mode(0,"#7BBDFF","Ionian (Major)",[2,2,1,2,2,2,1],[m_cpMajor,m_cpMinor,m_cpMinor,m_cpMajor,m_cpMajor,m_cpMinor,m_cpDim], m_arrMajorKeys);
  
  m_arrModes[1]=new Mode(1,"#7BBDFF","Dorian",[2,1,2,2,2,1,2],[m_cpMinor,m_cpMinor,m_cpMajor,m_cpMajor,m_cpMinor,m_cpDim,m_cpMajor], m_arrMinorKeys);
@@ -1408,6 +1465,7 @@ function GetWhichNoteInChord(chord, offset, midi)  // chord is ndx to m_arrChord
  var pat = m_arrChordPatterns[chord];
  var off = m_mapMidiNotes.get(midi).Offset;  // get offset of midi note, c = 0
  var note;
+ var i;
 
  for(i=0; i<pat.Pitches.length; i++) // 1st pitch is always 0 for the root
   {
@@ -1608,6 +1666,7 @@ function ScaleOctaveFwd(buffNdx)
  var thing;
  var maxed;
  var midi;
+ var i;
  
  thing = m_arrRecordBuffer[buffNdx];
  for (i=0; i<thing.Scale.Notes.length; i++)
@@ -1633,6 +1692,7 @@ function ScaleOctaveBack(buffNdx) // transpose a scale's notes down an octave
  var thing;
  var maxed;
  var midi;
+ var i;
 
  thing = m_arrRecordBuffer[buffNdx];
  for (i=0; i<thing.Scale.Notes.length; i++)
@@ -1658,6 +1718,7 @@ function ChordOctaveFwd(buffNdx)
  var thing;
  var maxed;
  var midi;
+ var i;
  
  thing = m_arrRecordBuffer[buffNdx];
  for (i=0; i<thing.Chord.Notes.length; i++)
@@ -1683,6 +1744,7 @@ function ChordOctaveBack(buffNdx) // transpose a scale's notes down an octave
  var thing;
  var maxed;
  var midi;
+ var i;
 
  thing = m_arrRecordBuffer[buffNdx];
  for (i=0; i<thing.Chord.Notes.length; i++)
@@ -1709,6 +1771,7 @@ function PlayScaleSound(playScale, direction) // PlayScale object
  var playThing;
  var recordThing;
  var vol;
+ var i;
 
  vol = m_MasterVol;
 
@@ -1840,6 +1903,7 @@ function SoundPlayThingGUI(playThing, milliPerMeasure)
  var midiNote;
  var notes;
  var volume;
+ var i;
 
  if (m_Audio == null)
    m_Audio = new(window.AudioContext || window.webkitAudioContext)();
@@ -1876,7 +1940,7 @@ function SoundPlayThingBuffers(playThing, milliseconds)
 {
  var oscillators = []; 
  var midiNote;
- var notes;
+ var notes, map;
  var volumes = [];
  var i, k, c;
  var ctrl;
@@ -1941,12 +2005,13 @@ function SoundPlayThingsEngine(playThings)
  var oscillators;
  var volumes; 
  var midiNote;
- var notes;
+ var notes, map;
  var playDurations;
  var playVolumes;
  var playWaves;
  var i, k, c;
  var milliseconds;
+ var ctrl;
 
  if (m_Audio == null)
   m_Audio = new(window.AudioContext || window.webkitAudioContext)();
@@ -2065,43 +2130,31 @@ function FindLastThing(buffer)
  return 0; // none found
 }
 
-function SoundPlaySpecificBuffer(buffNdx)
+function SoundPlayCheckedBuffers()
 {
- var final;
-
- if (m_CurrentGUIThing >= 0 || m_PlaySixteenthIndex >=0)
-   return; // currently playing
- 
- final = FindLastThing(buffNdx); 
-
- if (final == 0)
-  {
-   alert("No notes or chords were added to the selected staff");
-   return;
-  }
-
- m_PlaySixteenthEnd = final;
-
- document.getElementById("btnPlaySpecific").disabled = true; 
-
- m_PlaySixteenthIndex = 0;
- SoundPlaySpecificBufferEngine(buffNdx);     // start engine
-}
-
-function SoundPlayAllBuffers()
-{
- var last, final;
+ var last, final, none;
  var i;
 
- if (m_CurrentGUIThing >= 0 || m_PlaySixteenthIndex >=0)
+ if (m_CurrentGUIThing >= 0 || m_PlaySixteenthIndex >=0)  // check if stuff is already playing
    return;
 
  final = 0;
- for (i=0; i<m_arrPlayBuffers.length; i++)
+ none = true;
+ for (i=0; i<m_arrPlayBuffers.length; i++)  // go thru checked buffers and find the last note
   {
-   last = FindLastThing(i);
-   if (last > final)
-     final = last;
+   if (document.getElementById("chkPlayBuffer" + i).checked == true)
+    {
+     none = false;
+     last = FindLastThing(i);
+     if (last > final)
+       final = last;
+    }
+  }
+
+ if (none == true)
+  {
+   alert("No items are checked to play");
+   return;
   }
 
  if (final == 0)
@@ -2110,7 +2163,7 @@ function SoundPlayAllBuffers()
    return;
   }
 
- document.getElementById("btnPlayAll").disabled = true; 
+ document.getElementById("btnPlay").disabled = true; 
 
  m_PlaySixteenthEnd = final;
 
@@ -2118,38 +2171,12 @@ function SoundPlayAllBuffers()
  SoundPlayBuffers();
 }
 
-function SoundPlaySpecificBufferEngine(buffer)
-{
- var delay;
- var t16;
- var pt;
-
- t16 = m_CurrentPlayTime / 16; // delay between 16th notes
-
- if (m_PlaySixteenthIndex < m_PlaySixteenthEnd && m_PlaySixteenthIndex >= 0) // indexes still in range?
-  {
-   pt = m_arrPlayBuffers[buffer][m_PlaySixteenthIndex]; // see if a play object is present
-   if (pt != null)                                      // null's are basically a rest
-    {
-     delay = pt.Time * m_CurrentPlayTime * m_CurrentPlayPercLenth;   // figure out milliseconds to play the object
-     SoundPlayThingBuffers(pt, delay); // play it
-    }
-   m_PlaySixteenthIndex++;  // move index to next 16th note instance  
-   if (m_PlaySixteenthIndex < m_PlaySixteenthEnd) // still in range?
-     setTimeout(function() { SoundPlaySpecificBufferEngine(buffer); }, t16); // yes, advance to next PlaySet
-   else
-    {
-     document.getElementById("btnPlaySpecific").disabled = false; 
-     m_PlaySixteenthIndex = -1; // not in range, turn off sound engine 
-    }
-  }
-}
-
 function SoundPlayBuffers()
 {
  var t16;
  var pt;
  var things;
+ var i;
 
  t16 = m_CurrentPlayTime/16; // a measure delay divided by 16 is a 16th note duration
  things = []; 
@@ -2158,21 +2185,24 @@ function SoundPlayBuffers()
   {
    for (i=0; i<m_arrPlayBuffers.length; i++)  // check each buffer at current 16th note step index
     {
-     pt = m_arrPlayBuffers[i][m_PlaySixteenthIndex]; // see if a play object is present
-     if (pt != null)                                 // null's are basically a rest
+     if (document.getElementById("chkPlayBuffer" + i).checked == true)
       {
-       things.push(pt);  // add to the list of things to play for this 1/16 note time slice
+       pt = m_arrPlayBuffers[i][m_PlaySixteenthIndex]; // see if a play object is present
+       if (pt != null)                                 // null's are basically a rest
+        {
+         things.push(pt);  // add to the list of things to play for this 1/16 note time slice
+        }
       }
     }
    if (things.length > 0)      // find anything?
-     SoundPlayThingsEngine(things);  // yup, play 'em all
+       SoundPlayThingsEngine(things);  // yup, play 'em all
    m_PlaySixteenthIndex++;     // move index to next 16th note instance
    if (m_PlaySixteenthIndex < m_PlaySixteenthEnd) // still in range?
      setTimeout(function() { SoundPlayBuffers(); }, t16); // yes, advance to next 1/16th note slice
    else
     {
      m_PlaySixteenthIndex = -1; // not in range, turn off sound engine 
-     document.getElementById("btnPlayAll").disabled = false;
+     document.getElementById("btnPlay").disabled = false;
     }
   }
 }
@@ -2313,6 +2343,7 @@ function GenStringCellScale(width, midiNote, scaleNum, notes)
  var oMidi; 
  var note;
  var text;
+ var i;
 
  oMidi = m_mapMidiNotes.get(midiNote);
  note = null;
@@ -2450,10 +2481,10 @@ function GenOtherScaleInfo(key, notes) // Key object, array of Note objects
 {
  var s="";
  var i;
- var midiNum;
- var midi;
+ var midiNum, midi;
+ var keyNdx;
  var color;
- var noteText;
+ var note, noteText;
 
  midiNum = key.BaseMidi + notes[0].Offset;     // 48 is C3
 
@@ -2502,8 +2533,8 @@ function genModeChords()
  var pattern;
  var s;
  var cn;
- var midi, m;
- var notes;
+ var midi;
+ var i;
  
  s="<TABLE>";
  s+="<TR><TD class='scaleInfo'>Chord Progression</TD>";
@@ -2661,7 +2692,7 @@ function GenGuitarBarreStringElement(chord, offset, wstr, fret) // ChordPatteren
 function GenGuitarBarreShowNote(chord, offset, wstr, fret) // chord (index to m_arrChordPattern), offset c=0, string (low = 0), fret #
 { 
  // for barre need to not return fingerings for open A and open E
- var i, fo;
+ var i, k, fo;
 
  for (i=0; i<m_arrGuitarBarre.length; i++)
   {
@@ -2813,7 +2844,7 @@ function GenGuitarStringScale(wstr, key, notes) // which string, and an array of
 function GenGuitarMarks()
 {
  var html = "<tr>";
- var fret;
+ var fret, w;
  var sw = fretMarkStart; // 30 pixels, have to slide this over a bit to line up the dots like a fretboard
 
  for (fret=0; fret<m_arrInstruments[m_Guitar].Frets; fret++)
@@ -2938,7 +2969,7 @@ function GenGuitarPlayBoard()
 {
  var i, k, html;
  var midi, midiNum, sw;
- var td;
+ var td, w;
  
  html = "<table>";
  
@@ -3087,7 +3118,7 @@ function GenBassBarreStringElement(chord, offset, wstr, fret) // ChordPatteren i
 
 function GenBassBarreShowNote(chord, offset, wstr, fret) // chord (index to m_arrChordPattern), offset c=0, string (low = 0), fret #
 { 
-var i, fo;
+var i, k, fo;
 
  for (i=0; i<m_arrBassBarre.length; i++)
   {
@@ -3239,7 +3270,7 @@ function GenBassStringScale(wstr, key, notes) // which string, array of Note obj
 function GenBassMarks()
 {
  var html = "<tr>";
- var fret;
+ var fret, w;
  var sw = fretMarkStart; // 30 pixels, have to slide this over a bit to line up the dots like a fretboard
 
  for (fret=0; fret<m_arrInstruments[m_Bass].Frets; fret++)
@@ -3356,7 +3387,7 @@ function GenBassPlayBoard()
 {
  var i, k, html;
  var midiNum, midi, sw;
- var td;
+ var td, w;
  
  html = "<table>";
  
@@ -3658,7 +3689,7 @@ var midi, midiNum;
 function GenMandolinMarks()
 {
  var html = "<tr>";
- var fret;
+ var fret, w;
  var sw = fretMarkStart; // 30 pixels, have to slide this over a bit to line up the dots like a fretboard
 
  for (fret=0; fret<m_arrInstruments[m_Mandolin].Frets; fret++)
@@ -3774,7 +3805,7 @@ function GenMandolinPlayBoard()
 {
  var i, k, html;
  var midi, midiNum, sw;
- var td;
+ var td, w;
  
  html = "<table>";
  
@@ -3922,7 +3953,7 @@ function GenUkuleleBarreStringElement(chord, offset, wstr, fret) // ChordPattere
 
 function GenUkuleleBarreShowNote(chord, offset, wstr, fret) // chord (index to m_arrChordPattern), offset c=0, string (low = 0), fret #
 { 
- var i, fo;
+ var i, k, fo;
 
  for (i=0; i<m_arrUkuleleBarre.length; i++)
   {
@@ -4074,7 +4105,7 @@ var midi, midiNum;
 function GenUkuleleMarks()
 {
  var html = "<tr>";
- var fret;
+ var fret, w;
  var sw = fretMarkStart; // 30 pixels, have to slide this over a bit to line up the dots like a fretboard
 
  for (fret=0; fret<m_arrInstruments[m_Ukulele].Frets; fret++)
@@ -4191,7 +4222,7 @@ function GenUkulelePlayBoard()
 {
  var i, k, html;
  var midi, midiNum, sw;
- var td;
+ var td, w;
  
  html = "<table>";
  
@@ -4307,8 +4338,8 @@ function GenPianoChord(octaves, chord, offset, key) // return divs of piano keys
 {                                                   
  var pat = m_arrChordPatterns[chord];
  var html;
- var k;     
- var x;     // x position of each octave set of keys
+ var k, i;     
+ var x, w;     // x position of each octave set of keys
  var o;
  var wMidi, sMidi, midi;
  var arrChordNotes = [];
@@ -4340,7 +4371,6 @@ function GenPianoChord(octaves, chord, offset, key) // return divs of piano keys
 
  for (o=0; o<octaves; o++)
   {
-   off = 0;             // note offset, c = 0
    w = x;               // div x position
    midi = wMidi;
    for (k=0; k<7; k++)  // 7 white keys from C to B
@@ -4391,7 +4421,7 @@ function GenPianoScaleKeys(octaves, key, arrScaleNotes) // return divs of piano 
 {
  var html;
  var k;     
- var x;     // x position of each octave set of keys
+ var x, w;     // x position of each octave set of keys
  var o;
  var wMidi, midi, pn;
 
@@ -4403,7 +4433,6 @@ function GenPianoScaleKeys(octaves, key, arrScaleNotes) // return divs of piano 
 
  for (o=0; o<octaves; o++)
   {
-   off = 0;             // note offset, c = 0
    w = x;               // div x position
    midi = wMidi;
    for (k=0; k<7; k++)  // 7 white keys from C to B
@@ -4454,7 +4483,7 @@ function GenPianoOtherScaleKeys(octaves, key, arrScaleNotes, notes) // return di
 {
  var html;
  var k;     
- var x;     // x position of each octave set of keys
+ var x, w;     // x position of each octave set of keys
  var o;
  var wMidi, midi, pn;
 
@@ -4466,7 +4495,6 @@ function GenPianoOtherScaleKeys(octaves, key, arrScaleNotes, notes) // return di
 
  for (o=0; o<octaves; o++)
   {
-   off = 0;             // note offset, c = 0
    w = x;               // div x position
    midi = wMidi;
    for (k=0; k<7; k++)  // 7 white keys from C to B
@@ -4610,7 +4638,6 @@ function GenPianoPlayBoard()
 
  html = "<table><tr><td><div style='position:relative; width:" + pianoWhiteWidth * 7 + "vw; height:" + pianoWhiteHeight + "vw;'>";
 
- off = 0;             // note offset, c = 0
  w = 0;               // div x position
  wMidi = 24;
  
@@ -4678,27 +4705,11 @@ function GenPianoPlayBoard()
 //            Load Combo Boxes
 //////////////////////////////////////////////
 
-function dynaInstLoader(cboName)
-{
- var i, oOption;
-
- document.getElementById(cboName).options.length=0;
- for (i=0;i<m_arrInstruments.length;i++)
-  {
-   oOption=document.createElement("OPTION");
-   oOption.style.backgroundColor="white";
-   oOption.text=m_arrInstruments[i].InstrumentName;
-   oOption.value=m_arrInstruments[i].ID;
-   document.getElementById(cboName).options.add(oOption);
-  } 
- m_CurrentInstrument = m_arrInstruments[0].ID;
-}
-
-function dynaModesLoaderTH(cboName)
+function dynaModesLoaderTH()
 {
  var i,oOption;
  
- document.getElementById(cboName).options.length=0;
+ document.getElementById("cboModesTH").options.length=0;
  
  for (i=0;i<m_arrModes.length;i++)
   {
@@ -4708,17 +4719,17 @@ function dynaModesLoaderTH(cboName)
      oOption.style.backgroundColor=m_arrModes[i].Background;
      oOption.text=m_arrModes[i].ModeName;
      oOption.value=m_arrModes[i].ID;
-     document.getElementById(cboName).options.add(oOption);
+     document.getElementById("cboModesTH").options.add(oOption);
     }
   } 
- eventcboModesTH_Change();
+ eventCboModesTH_Change();
 }
 
-function dynaModesLoaderChord(cboName)
+function dynaModesLoaderChord()
 {
  var i,oOption;
  
- document.getElementById(cboName).options.length=0;
+ document.getElementById("cboModesChord").options.length=0;
  
  for (i=0;i<m_arrModes.length;i++)
   {
@@ -4728,17 +4739,17 @@ function dynaModesLoaderChord(cboName)
      oOption.style.backgroundColor=m_arrModes[i].Background;
      oOption.text=m_arrModes[i].ModeName;
      oOption.value=m_arrModes[i].ID;
-     document.getElementById(cboName).options.add(oOption);
+     document.getElementById("cboModesChord").options.add(oOption);
     }
   } 
- eventcboModesChord_Change();
+ eventCboModesChord_Change();
 }
 
-function dynaModesLoaderScale(cboName)
+function dynaModesLoaderScale()
 {
  var i,oOption;
  
- document.getElementById(cboName).options.length=0;
+ document.getElementById("cboModesScale").options.length=0;
  
  for (i=0;i<m_arrModes.length;i++)
   {
@@ -4748,17 +4759,17 @@ function dynaModesLoaderScale(cboName)
      oOption.style.backgroundColor=m_arrModes[i].Background;
      oOption.text=m_arrModes[i].ModeName;
      oOption.value=m_arrModes[i].ID;
-     document.getElementById(cboName).options.add(oOption);
+     document.getElementById("cboModesScale").options.add(oOption);
     }
   } 
  eventcboModesScale_Change();
 }
 
-function dynaOtherScaleLoader(cboName)
+function dynaOtherScaleLoader()
 {
  var i,oOption;
  
- document.getElementById(cboName).options.length=0;
+ document.getElementById("cboOtherScales").options.length=0;
  
  for (i=0;i<m_arrScales.length;i++)
   {
@@ -4766,28 +4777,9 @@ function dynaOtherScaleLoader(cboName)
    oOption.style.backgroundColor=m_arrScales[i].Background;
    oOption.text=m_arrScales[i].ScaleName;
    oOption.value=i.toString();
-   document.getElementById(cboName).options.add(oOption);
+   document.getElementById("cboOtherScales").options.add(oOption);
   } 
  eventcboOtherScales_Change();
-}
-
-function dynaPatternsLoaderChord(cboName)
-{
- var s,i,oOption;
- 
- document.getElementById(cboName).options.length=0;
- 
- for (i=0;i<m_arrChordPatterns.length;i++)
-  {
-   oOption=document.createElement("OPTION");
-   s=m_arrChordPatterns[i].Name+" ";
-   s+="("+m_arrChordPatterns[i].Formula+")";
-   oOption.text=s;
-   oOption.value=i;
-
-   document.getElementById(cboName).options.add(oOption);
-  } 
- eventcboPatternsChord_Change();
 }
 
 function dynaCapoLoader()
@@ -4915,7 +4907,7 @@ function eventRadInstrument(inst) // Instrument radio button click
   }
 }
 
-function eventcboKeysTH_Change() // Traditional Harmony Keys dropdown selection change 
+function eventCboKeysTH_Change() // Traditional Harmony Keys dropdown selection change 
 {
  m_CurrentKey = parseInt(document.getElementById("cboKeysTH").options[document.getElementById("cboKeysTH").selectedIndex].value);
 
@@ -4926,74 +4918,123 @@ function eventcboKeysTH_Change() // Traditional Harmony Keys dropdown selection 
  THShowModeChords();
 }
 
-function eventcboModesTH_Change() // Traditional Harmony Modes dropdown selection change
+function eventCboModesTH_Change() // Traditional Harmony Modes dropdown selection change
 {
+ var loadKeys, oOption;
  var i;
+ var nm;
 
- m_CurrentMode = parseInt(document.getElementById("cboModesTH").options[document.getElementById("cboModesTH").selectedIndex].value);
+ nm = parseInt(document.getElementById("cboModesTH").options[document.getElementById("cboModesTH").selectedIndex].value);
 
- document.getElementById("cboKeysTH").options.length = 0;
-
- for (i=0;i<m_arrModes[m_CurrentMode].KeyList.length;i++)
+ loadKeys = true;
+ if (m_CurrentMode >= 0 && document.getElementById("cboKeysTH").optionslength > 0)
   {
-   oOption=document.createElement("OPTION");
-   oOption.style.backgroundColor=m_arrModes[m_CurrentMode].Background;
-   oOption.text="Key of " + m_arrModes[m_CurrentMode].KeyList[i].Text;
-   oOption.value=i;
-   document.getElementById("cboKeysTH").options.add(oOption);
+   if (m_arrModes[m_CurrentMode].KeyList[0].Offset == m_arrModes[nm].KeyList[0].Offset) // do the modes share the same key list?
+    {
+     loadKeys = false; // no need to reload the Key combo box
+    }
   }
 
- m_CurrentKey = 0;
+ m_CurrentMode = nm;
+  
+ if (loadKeys == true)
+  {
+   document.getElementById("cboKeysTH").options.length = 0;
+
+   for (i=0;i<m_arrModes[m_CurrentMode].KeyList.length;i++)
+    {
+     oOption=document.createElement("OPTION");
+     oOption.style.backgroundColor=m_arrModes[m_CurrentMode].Background;
+     oOption.text="Key of " + m_arrModes[m_CurrentMode].KeyList[i].Text;
+     oOption.value=i;
+     document.getElementById("cboKeysTH").options.add(oOption);
+    }
+   m_CurrentKey = 0;
+  }
+
  m_Key = new Key(m_CurrentMode, m_arrModes[m_CurrentMode].KeyList[m_CurrentKey]);
  THShowChords();
  THShowScale();
  THShowModeChords();
 }
 
-function eventcboModesChord_Change()   // Chords section Modes dropdown selection change
+function eventCboModesChord_Change()   // Chords section Modes dropdown selection change
 {
+ var loadKeys, oOption;
  var i;
+ var nm;
 
- m_CurrentMode = parseInt(document.getElementById("cboModesChord").options[document.getElementById("cboModesChord").selectedIndex].value);
+ nm = parseInt(document.getElementById("cboModesChord").options[document.getElementById("cboModesChord").selectedIndex].value);
 
- document.getElementById("cboKeysChord").options.length = 0;
-
- for (i=0;i<m_arrModes[m_CurrentMode].KeyList.length;i++)
+ loadKeys = true;
+ if (m_CurrentMode >= 0 && document.getElementById("cboKeysChord").optionslength > 0)
   {
-   oOption=document.createElement("OPTION");
-   oOption.style.backgroundColor=m_arrModes[m_CurrentMode].Background;
-   oOption.text="Key of " + m_arrModes[m_CurrentMode].KeyList[i].Text;
-   oOption.value=i;
-   document.getElementById("cboKeysChord").options.add(oOption);
+   if (m_arrModes[m_CurrentMode].KeyList[0].Offset == m_arrModes[nm].KeyList[0].Offset) // do the modes share the same key list?
+    {
+     loadKeys = false; // no need to reload the Key combo box
+    }
   }
 
- eventcboKeysChord_Change();  // fire the keys dropdown change to with the default selection
+ m_CurrentMode = nm;
+
+ if (loadKeys == true)
+  { 
+   document.getElementById("cboKeysChord").options.length = 0;
+
+   for (i=0;i<m_arrModes[m_CurrentMode].KeyList.length;i++)
+    {
+     oOption=document.createElement("OPTION");
+     oOption.style.backgroundColor=m_arrModes[m_CurrentMode].Background;
+     oOption.text="Key of " + m_arrModes[m_CurrentMode].KeyList[i].Text;
+     oOption.value=i;
+     document.getElementById("cboKeysChord").options.add(oOption);
+    }
+  } 
+ eventCboKeysChord_Change();  // fire the keys dropdown change to with the default selection
 }
 
 function eventcboModesScale_Change() // Scales section Modes dropdown selection change
 {
+ var loadKeys, oOption;
  var i;
+ var nm;
 
- m_CurrentMode = parseInt(document.getElementById("cboModesScale").options[document.getElementById("cboModesScale").selectedIndex].value);
+ nm = parseInt(document.getElementById("cboModesScale").options[document.getElementById("cboModesScale").selectedIndex].value);
 
- document.getElementById("cboKeysScale").options.length = 0;
-
- for (i=0;i<m_arrModes[m_CurrentMode].KeyList.length;i++)
+ loadKeys = true;
+ if (m_CurrentMode >= 0 && document.getElementById("cboKeysScale").options.length > 0)
   {
-   oOption=document.createElement("OPTION");
-   oOption.style.backgroundColor=m_arrModes[m_CurrentMode].Background;
-   oOption.text="Key of " + m_arrModes[m_CurrentMode].KeyList[i].Text;
-   oOption.value=i;
-   document.getElementById("cboKeysScale").options.add(oOption);
+   if (m_arrModes[m_CurrentMode].KeyList[0].Offset == m_arrModes[nm].KeyList[0].Offset) // do the modes share the same key list?
+    {
+     loadKeys = false; // no need to reload the Key combo box
+    }
+  }
+
+ m_CurrentMode = nm;
+
+ if (loadKeys == true)
+  {
+   document.getElementById("cboKeysScale").options.length = 0;
+   for (i=0;i<m_arrModes[m_CurrentMode].KeyList.length;i++)
+    {
+     oOption=document.createElement("OPTION");
+     oOption.style.backgroundColor=m_arrModes[m_CurrentMode].Background;
+     oOption.text="Key of " + m_arrModes[m_CurrentMode].KeyList[i].Text;
+     oOption.value=i;
+     document.getElementById("cboKeysScale").options.add(oOption);
+    }
   }
 
  eventcboKeysScale_Change();
 }
 
 
-function eventcboKeysChord_Change() // Chord section Keys dropdown selection change
+function eventCboKeysChord_Change() // Chord section Keys dropdown selection change
 {
  var html, i;
+
+ if (document.getElementById("cboKeysChord").options.length == 0)
+   return;
 
  m_CurrentKey = parseInt(document.getElementById("cboKeysChord").options[document.getElementById("cboKeysChord").selectedIndex].value);
 
@@ -5206,7 +5247,7 @@ function eventBtnChordClear_Click() // Chords section Clear button click
 
 function eventBtnScaleAdd_Click() // Scales section Add button click
 {
- var html, table;
+ var html, table, row, td;
 
  table = document.getElementById("tableScales");
 
@@ -5245,7 +5286,7 @@ function eventBtnScaleClear_Click() // Scales section Clear button click
 
 function eventBtnOtherScaleAdd_Click()
 {
- var html, table;
+ var html, table, row, td;
  var notes = [];
  var offset;
  var note;
@@ -5379,6 +5420,8 @@ function eventCboTimeSignature_Change()
 
 function eventTDPlaySixteenth_Click(buffer, sixteenth)
 {
+ var i;
+
  m_CurrentPlayBuffer = buffer; // set which of the play buffers is selected
  for (i=0; i<5; i++)
   {
@@ -5390,11 +5433,6 @@ function eventTDPlaySixteenth_Click(buffer, sixteenth)
  ShowPlayBuffer();
 }
 
-function eventBtnPlaySelectedBuffer()
-{
- SoundPlaySpecificBuffer(m_CurrentPlayBuffer);
-}
-
 function eventBtnClearSelectedBuffer()
 {
  var i;
@@ -5404,21 +5442,9 @@ function eventBtnClearSelectedBuffer()
  ShowPlayBuffer();
 }
 
-function eventBtnClearAllBuffers()
+function eventBtnPlayBuffers()
 {
- var i, k;
-
- for (k=0; k<m_arrPlayBuffers.length; k++)
-  {
-   for(i=0; i<m_arrPlayBuffers[k].length; i++)
-     m_arrPlayBuffers[k][i] = null;
-  }
- ShowPlayBuffer();
-}
-
-function eventBtnPlayAllBuffers()
-{
- SoundPlayAllBuffers();
+ SoundPlayCheckedBuffers();
 }
 
 function eventRadPlayBufferSelect(buffer)
@@ -5463,7 +5489,7 @@ function eventSliderMaster()
 {
  var vol;
 
- vol = parseFloat(document.getElementById("audioVolumeControl").value);
+ vol = document.getElementById("audioVolumeControl").value;
 
  document.getElementById("spanMasterVol").innerHTML = vol;
 
@@ -5482,7 +5508,7 @@ function THShowChords()
 {
  var pattern;
  var i;
- var cn;
+ var cn, s;
  var midi;
 
  if (m_CurrentKey == -1 || m_CurrentMode == -1)
@@ -5503,11 +5529,11 @@ function THShowChords()
    document.getElementById('tdChord' + i.toString()).innerHTML = GenChordInfo(pattern, cn, m_Key, midi);
    switch(m_CurrentInstrument)
     {
-     case m_Guitar:   s = GenGuitar(pattern, cn, m_Key, midi);   break;
-     case m_Bass:     s = GenBass(pattern, cn, m_Key, midi);     break;
-     case m_Mandolin: s = GenMandolin(pattern, cn, m_Key, midi); break;
-     case m_Ukulele:  s = GenUkulele(pattern, cn, m_Key, midi);  break;
-     case m_Keyboard: s = GenPianoChord(3, pattern, cn, m_Key, midi); break; 
+     case m_Guitar:   s = GenGuitar(pattern, cn, m_Key);   break;
+     case m_Bass:     s = GenBass(pattern, cn, m_Key);     break;
+     case m_Mandolin: s = GenMandolin(pattern, cn, m_Key); break;
+     case m_Ukulele:  s = GenUkulele(pattern, cn, m_Key);  break;
+     case m_Keyboard: s = GenPianoChord(3, pattern, cn, m_Key); break; 
     }
    document.getElementById('tdChordInst' + i.toString()).innerHTML = s;
    midi += m_arrModes[m_CurrentMode].Sequences[i];
@@ -5564,9 +5590,9 @@ function ShowRecordBuffer()
 {
  var html;
  var rt;
- var i;
+ var i, k;
 
- html = "<table><tr>";
+ html = "";
 
  for (i=0; i<m_arrRecordBuffer.length; i++)
   {
@@ -5575,24 +5601,14 @@ function ShowRecordBuffer()
     {
      case "N":
       {
-       html += "<td class='tdRecordBufferN'><table>";
+       html += "<div class='tdRecordBufferN'><table>";
        html += "<tr><td class='tdRecordBuffTop' onclick='ComposePlayNoteSound(new PlayNote(" + rt.Note.Midi.Number + ", " + Quotes(rt.Note.Text) + "));'>&nbsp;</td></tr>";
        html += "<tr><td>" +  rt.Note.Text + rt.Note.Midi.Octave + "</td></tr>";
-       html += "<tr><td class='tdRecordBuffBot' onclick='AddNoteToStave(" + i + ");'>&nbsp;</td></tr></table>";
-      } break;
-     case "x":
-      {
-       html += "<td class='tdRecordBufferC'><table>";
-       html += "<tr><td class='tdRecordBuffTop' onclick='ComposePlayChordSound(new PlayChord(" + rt.Chord.Mode + ", " + rt.Chord.KeyIndex + ", " + rt.Chord.Pattern + ", " + rt.Chord.Notes[0].Midi.Number + "));'>&nbsp;</td></tr>";
-       html += "<tr><td><table><tr><td colspan='" + rt.Chord.Notes.length + "'>" + rt.Chord.Text + "</td></tr><tr>";
-       for (k=0; k<rt.Chord.Notes.length; k++)
-         html += "<td class='tdRecChordNote'>" + rt.Chord.Notes[k].Text + "</td>";
-       html += "</tr></table></tr></td>";
-       html += "<tr><td class='tdRecordBuffBot' onclick='AddChordToStave(" + i + ");'>&nbsp;</td></tr></table>";
+       html += "<tr><td class='tdRecordBuffBot' onclick='AddNoteToStave(" + i + ");'>&nbsp;</td></tr></table></div>";
       } break;
      case "C":
       {
-       html += "<td class='tdRecordBufferC'><table>";
+       html += "<div class='tdRecordBufferC'><table>";
        html += "<tr><td class='tdRecordBuffTop' onclick='ComposePlayChordSound(new PlayChord(" + rt.Chord.Mode + ", " + rt.Chord.KeyIndex + ", " + rt.Chord.Pattern + ", " + rt.Chord.Notes[0].Midi.Number + "));'>&nbsp;</td></tr>";
        html += "<tr>";
        html += "<td><table><tr>";
@@ -5605,11 +5621,11 @@ function ShowRecordBuffer()
          html += "<td class='tdRecChordNote' onclick='AddChordNoteToStave(" + i + ", " + k + ");'>" + rt.Chord.Notes[k].Text + rt.Chord.Notes[k].Midi.Octave + "</td>";
        html += "</tr></table></td>";
        html += "</tr></td>";
-       html += "<tr><td class='tdRecordBuffBot' onclick='AddChordToStave(" + i + ");'>&nbsp;</td></tr></table>";
+       html += "<tr><td class='tdRecordBuffBot' onclick='AddChordToStave(" + i + ");'>&nbsp;</td></tr></table></div>";
       } break;
      case "S":
       {
-       html += "<td class='tdRecordBufferS'><table>";
+       html += "<div class='tdRecordBufferS'><table>";
        html += "<tr><td class='tdRecBuffScale'>" + rt.Scale.Text + "</td></tr>";
        html += "<tr><td><table><tr>";
        html += "<td class='tdRecBuffOctave' onclick='ScaleOctaveBack(" + i + ");'>" + symBack + "</td>";
@@ -5620,11 +5636,10 @@ function ShowRecordBuffer()
          html += "<tr><td class='tdRecordBuffBot' onclick='AddScaleNoteToStave(" + i + ", " + k + ");'>&nbsp;</td></tr></table></td>";
         }
        html += "<td class='tdRecBuffOctave' onclick='ScaleOctaveFwd(" + i + ");'>" + symFwd + "</td>";
-       html += "</tr></table></tr></table></td>";
+       html += "</tr></table></tr></table></div>";
       } break;
     }
   }
- html += "</tr></table>";
 
  document.getElementById("divRecordBuffer").innerHTML = html;
 }
@@ -5673,9 +5688,9 @@ return html;
 function ShowPlayBuffer()
 {
  var html;
- var i, k;
+ var i, k, j;
  var measures, n16Ndx;
- var n16, n8, n4;
+ var n16, n16Count;
  var fg, bg; 
  var quarter;
  
@@ -5684,26 +5699,18 @@ function ShowPlayBuffer()
    case 1: // 4/4 time
     {
      n16 = 16;  // 16 16th notes in a measure
-     n8 = 8;
-     n4 = 4;
     } break;
    case 2: // 3/4 time
     {
      n16 = 12;
-     n8 = 6;
-     n4 = 3;
     } break;
    case 3: // 2/4 time
     {
      n16 = 8;
-     n8 = 4;
-     n4 = 2;
     } break;
    case 4: // 6/8 time
     {
      n16 = 24; // xxxx xxxx xxxx xxxx xxxx xxxx |
-     n8 = 12;  // zz zz zz zz zz zz | zz zz zz zz zz zz 
-     n4 = 6;   // xxxxxx | xxxxxx
     } break;
   }
  
@@ -5783,7 +5790,6 @@ function openPage(pageNum, pageName, btn)
    btns[i].style.backgroundColor = ""; // bg color diverts back to the css class
   }
  
-
   // Show the specific tab content
  document.getElementById(pageName).style.display = "block";
 
@@ -5798,27 +5804,29 @@ function openPage(pageNum, pageName, btn)
     } break;
    case 1:
     {
-     dynaModesLoaderTH("cboModesTH");
-     THShowChords();
+     m_CurrentMode = parseInt(document.getElementById("cboModesTH").options[document.getElementById("cboModesTH").selectedIndex].value);
+     m_CurrentKey = parseInt(document.getElementById("cboKeysTH").options[document.getElementById("cboKeysTH").selectedIndex].value);
+     m_Key = new Key(m_CurrentMode, m_arrModes[m_CurrentMode].KeyList[m_CurrentKey]);
     } break;
    case 2:
     {
-     dynaModesLoaderChord("cboModesChord");
-     dynaChordsAllRootsButtons();
-     THHideChords();
+     m_CurrentMode = parseInt(document.getElementById("cboModesChord").options[document.getElementById("cboModesChord").selectedIndex].value);
+     m_CurrentKey = parseInt(document.getElementById("cboKeysChord").options[document.getElementById("cboKeysChord").selectedIndex].value);
+     m_Key = new Key(m_CurrentMode, m_arrModes[m_CurrentMode].KeyList[m_CurrentKey]);
     } break;
    case 3:
     {
-     dynaModesLoaderScale("cboModesScale");
-     dynaOtherScaleLoader("cboOtherScales");
-     THHideChords();
+     m_CurrentMode = parseInt(document.getElementById("cboModesScale").options[document.getElementById("cboModesScale").selectedIndex].value);
+     m_CurrentKey = parseInt(document.getElementById("cboKeysScale").options[document.getElementById("cboKeysScale").selectedIndex].value);
+     m_Key = new Key(m_CurrentMode, m_arrModes[m_CurrentMode].KeyList[m_CurrentKey]);
     } break;
    case 4:
-    {
-     THHideChords();
-     ShowRecordBuffer();
-    } break;
+     {
+      ShowRecordBuffer();
+      ShowPlayBuffer();
+     } break;
   }
+
 }
 
 // Serialization
@@ -5861,7 +5869,7 @@ function AppendRecordThing(form, recNdx)
      AppendText(form, "rSM" + recNdx, rt.Scale.Mode);
      AppendText(form, "rSK" + recNdx, rt.Scale.KeyIndex);
      AppendText(form, "rSN" + recNdx, rt.Scale.MidiBase);
-     AppendText(form, "rsO" + recNdx, rt.Scale.OtherScale);
+     AppendText(form, "rSO" + recNdx, rt.Scale.OtherScale);
     } break;
   } 
 }
@@ -5937,7 +5945,7 @@ function AppendPlayThing(form, ndx, sndx)
    case "square":   wt = "s1"; break;
    case "sine":     wt = "s2"; break;
    case "sawtooth": wt = "s3"; break;
-   case "triangle": tw = "t";  break;
+   case "triangle": wt = "t";  break;
    default: throw new Error("invalid wavetype");
   }
  AppendText(form, "pW" + ndx + "_" + sndx, wt);             // abbreviate this to save on URL arg length
@@ -5963,7 +5971,7 @@ function AppendPlayThing(form, ndx, sndx)
 function ReadPlayThing(params, ndx, sndx)
 {
  var pt, wt, wave;
- var note, chord;
+ var note, chord, vol, time;
  var v1, v2, v3, v4;
 
  if (params.has("pT" + ndx + "_" + sndx) == false)  // plaything type?
@@ -6030,7 +6038,7 @@ function SubmitForm()
 {
  var form;
  var cbos, vars, cbo;
- var i;
+ var i, k, v;
 
  form = document.createElement("form");
  form.method = "get";
@@ -6054,6 +6062,10 @@ function SubmitForm()
    v = cbo.options[cbo.selectedIndex].value;
    AppendText(form, vars[i], v);
   }
+
+ AppendText(form, "cT", m_CurrentTimeSignature);
+ AppendText(form, "rB", document.getElementById("beatsPerMinute").value);
+ AppendText(form, "rD", m_CurrentPlayPercLenth);
 
  AppendText(form, "lR", m_arrRecordBuffer.length.toString());
  for (i=0; i<m_arrRecordBuffer.length; i++)
@@ -6115,6 +6127,27 @@ function ProcessForm()
       }
     }
   } 
+
+ if (params.has("cT") == true)
+  {
+   v = parseInt(params.get("cT"));
+   document.getElementById("cboStaveTime").selectedIndex = v;
+   eventCboTimeSignature_Change();
+  }
+
+ if (params.has("rB") == true)
+  {
+   v = parseInt(params.get("rB"));
+   document.getElementById("beatsPerMinute").value = v;
+   eventSliderBPM();
+  }
+
+ if (params.has("rD") == true)
+  {
+   v = parseFloat(params.get("rD"));
+   document.getElementById("audioLengthRecord").value = v;
+   eventSliderLength();
+  }
 
  if (params.has("lR") == true)
   {
@@ -6243,8 +6276,8 @@ function ProcessForm()
 <div id="divTabHarmony" class="tabContent">
 <table>
  <tr valign=middle>
-  <td><select id="cboModesTH" onchange="eventcboModesTH_Change();"></select></td>
-  <td><select id="cboKeysTH" title="Choose Key" onchange="eventcboKeysTH_Change();"></select></td>
+  <td><select id="cboModesTH" onchange="eventCboModesTH_Change();"></select></td>
+  <td><select id="cboKeysTH" title="Choose Key" onchange="eventCboKeysTH_Change();"></select></td>
   <td id='tdModeChordsTH'></td>
   <td id='tdHarmonyInstrument' class='tdHarmonyInst'></td>
  </tr>
@@ -6336,8 +6369,8 @@ function ProcessForm()
 <div id="divTabChords" class="tabContent">
 <table>
  <tr valign=middle>
-  <td><select id="cboModesChord" onchange="eventcboModesChord_Change();"></select></td>
-  <td><select id="cboKeysChord" title="Choose Key" onchange="eventcboKeysChord_Change();"></select></td>
+  <td><select id="cboModesChord" onchange="eventCboModesChord_Change();"></select></td>
+  <td><select id="cboKeysChord" title="Choose Key" onchange="eventCboKeysChord_Change();"></select></td>
   <td id='tdChordRoots'></td>
   <td><input class="btn" type="button" value="Clear" onclick="eventBtnChordClear_Click();">
  </tr>
@@ -6389,7 +6422,7 @@ function ProcessForm()
       </td></tr>
       </table>
      </td>
-     <td style="max-width:87vw; width:76vw; border:0.052vw solid black; overflow:hidden;"><div style="overflow-x:auto;" id="divRecordBuffer"></div></td>
+     <td><div style="max-width:77vw; width:77vw; height:8.9vw; border:0.052vw solid blue; white-space:nowrap; overflow-x:scroll;" id="divRecordBuffer"> </div></td>
      <td>
       <table>
        <tr><td class="tdRec"><input type="checkbox" name="choose" class="radBtn" id="chkRecord" onclick="eventChkRecord_Click();"><label for="chkRecord">Choose</label></td></tr>
@@ -6417,21 +6450,39 @@ function ProcessForm()
      </tr>
      <tr><td><input type="range" id="beatsPerMinute" style="width:7.1vw; font-size:1.2vw;" min="40" max="200" value="100" step="1" onchange="eventSliderBPM();" />&nbsp;<span id="spanBPM" class="fretMark">100</span></td></tr>
      <tr><td><input type="range" id="audioLengthRecord" style="width:7.1vw; font-size:1.2vw;" min="0.2" max="1" value="0.5" step="0.1" onchange="eventSliderLength();">&nbsp;<span id="spanLength" class="fretMark">0.5</span></td></tr>
-     <tr><td><input type="button" class="btnBuff" id="btnPlaySpecific" value="Play" onclick='eventBtnPlaySelectedBuffer();'></td></tr>
-     <tr><td><input type="button" class="btnBuff" value="Clear" onclick='eventBtnClearSelectedBuffer();'></td></tr>
-     <tr><td><input type="button" class="btnBuff" value="Clear All" onclick='eventBtnClearAllBuffers();'></td></tr>
-     <tr><td><input type="button" class="btnBuff" id="btnPlayAll" value="Play All" onclick='eventBtnPlayAllBuffers();'></td></tr>
+     <tr><td><input type="button" class="btnBuff" style="color:darkblue;"  value="Clear" onclick='eventBtnClearSelectedBuffer();'></td></tr>
+     <tr><td><input type="button" class="btnBuff" style="color:#024020;" id="btnPlay" value="Play" onclick='eventBtnPlayBuffers();'></td></tr>
      <tr><td><input type="button" class="btnBuff" id="btnSubmit" value="Bookmark" onclick='eventBtnSubmit();'></td></tr> 
     </table>
    </td>
    <td style="width:86vw; max-width:85vw; overflow-x:hidden;">
     <div style="overflow-x:scroll;">
     <table>
-     <tr><td><input type="radio" class="radBtn" name="radPlayBuffer" id="radPlayBuffer0" value="0" onclick="eventRadPlayBufferSelect(0);"></td><td class="tdPlayBuffer" id="tdPlayBuffer0"></td></tr>
-     <tr><td><input type="radio" class="radBtn" name="radPlayBuffer" id="radPlayBuffer1" value="1" onclick="eventRadPlayBufferSelect(1);"></td><td class="tdPlayBuffer" id="tdPlayBuffer1"></td></tr>
-     <tr><td><input type="radio" class="radBtn" name="radPlayBuffer" id="radPlayBuffer2" value="2" onclick="eventRadPlayBufferSelect(2);"></td><td class="tdPlayBuffer" id="tdPlayBuffer2"></td></tr>
-     <tr><td><input type="radio" class="radBtn" name="radPlayBuffer" id="radPlayBuffer3" value="3" onclick="eventRadPlayBufferSelect(3);"></td><td class="tdPlayBuffer" id="tdPlayBuffer3"></td></tr>
-     <tr><td><input type="radio" class="radBtn" name="radPlayBuffer" id="radPlayBuffer4" value="4" onclick="eventRadPlayBufferSelect(4);"></td><td class="tdPlayBuffer" id="tdPlayBuffer4"></td></tr>
+     <tr>
+      <td><input type="radio" class="radBtn" style="accent-color:darkblue;" name="radPlayBuffer" id="radPlayBuffer0" value="0" onclick="eventRadPlayBufferSelect(0);"></td>
+      <td><input type="checkbox" class="radBtn" style="accent-color:#024020;" id="chkPlayBuffer0" checked value="0"></td>
+      <td class="tdPlayBuffer" id="tdPlayBuffer0"></td>
+     </tr>
+     <tr>
+      <td><input type="radio" class="radBtn" style="accent-color:darkblue;" name="radPlayBuffer" id="radPlayBuffer1" value="1" onclick="eventRadPlayBufferSelect(1);"></td>
+      <td><input type="checkbox" class="radBtn" style="accent-color:#024020;" id="chkPlayBuffer1" checked value="0"></td>
+      <td class="tdPlayBuffer" id="tdPlayBuffer1"></td>
+     </tr>
+     <tr>
+      <td><input type="radio" class="radBtn" style="accent-color:darkblue;" name="radPlayBuffer" id="radPlayBuffer2" value="2" onclick="eventRadPlayBufferSelect(2);"></td>
+      <td><input type="checkbox" class="radBtn" style="accent-color:#024020;" id="chkPlayBuffer2" checked value="0"></td>
+      <td class="tdPlayBuffer" id="tdPlayBuffer2"></td>
+     </tr>
+     <tr>
+      <td><input type="radio" class="radBtn" style="accent-color:darkblue;" name="radPlayBuffer" id="radPlayBuffer3" value="3" onclick="eventRadPlayBufferSelect(3);"></td>
+      <td><input type="checkbox" class="radBtn" style="accent-color:#024020;"  id="chkPlayBuffer3" checked value="0"></td>
+      <td class="tdPlayBuffer" id="tdPlayBuffer3"></td>
+     </tr>
+     <tr>
+      <td><input type="radio" class="radBtn" style="accent-color:darkblue;" name="radPlayBuffer" id="radPlayBuffer4" value="4" onclick="eventRadPlayBufferSelect(4);"></td>
+      <td><input type="checkbox" class="radBtn" style="accent-color:#024020;"  id="chkPlayBuffer4" checked value="0"></td>
+      <td class="tdPlayBuffer" id="tdPlayBuffer4"></td>
+     </tr>
     </table>
    </div>
    </td>
@@ -6456,6 +6507,16 @@ function ProcessForm()
 
  dynaCapoLoader();   // load instrument capos
  dynaTuneLoader();   // load instrument alt tuning
+
+ 
+ dynaModesLoaderTH();        
+ THShowChords();
+
+ dynaModesLoaderChord();    // chords tab
+ dynaChordsAllRootsButtons();             
+
+ dynaModesLoaderScale();    // scale tab
+ dynaOtherScaleLoader();
 
  document.getElementById("tdVersion").innerHTML = "Music Reference Copyright © 2023 Brian L Hughes Version " + m_Version;
 
