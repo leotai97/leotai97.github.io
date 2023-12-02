@@ -1,0 +1,139 @@
+<html>
+<script>
+
+var m_TotalMinutes = 0;
+var m_CounterID = 0;
+
+function figureTime()
+{
+ var f,t,r,ratio,i,h;
+ var days, rs, rd;
+
+ f = parseInt(document.getElementById("cboFrom").options[document.getElementById("cboFrom").selectedIndex].value);
+ t = parseInt(document.getElementById("cboTo").options[document.getElementById("cboTo").selectedIndex].value);
+
+ days = parseInt(document.getElementById("txtDays").value, 10);
+ if (days == NaN)
+   days = 1;
+
+ if (f == t)
+  {
+   if (days > 1)
+     h = days * 24;
+   else
+     h = 24;
+  }
+ else
+  {
+   h = t - f;
+   if (days > 1)
+     h += days * 24;
+  }
+
+ rs = h * 3; // r * ratio * 60;
+
+ rd = h + " EQ Hours " + rs + " RL Minutes";
+
+ document.getElementById("divResult").innerHTML = rd;
+
+ m_TotalMinutes = rs;
+ 
+}
+
+function loadDropDowns(cboName)
+{
+ var oOption;
+ var s,h;
+
+ for(i=0;i<24;i++)
+  {
+   oOption=document.createElement("OPTION");
+   if (i<12)
+     h = i;
+   else
+     h = i - 12;
+   if (h == 0)
+     h = 12;
+   if (i<12)
+    {
+     s = h.toString() + ":00 ";
+     s += "AM";
+    }
+   else
+    {
+     s = h.toString() + ":00 ";
+     s += "PM";
+    }
+   oOption.text = s;  
+   oOption.value=i;
+   document.getElementById(cboName).options.add(oOption);
+  }
+}
+
+function resetButton()
+{
+ document.getElementById("btnTimer").value="Start Timer";
+}
+
+function startTimer()
+{
+ if (m_TotalMinutes == 0)
+   return;
+
+ if (m_CounterID != 0)
+  {
+   clearInterval(m_CounterID);
+   resetButton();
+   return;
+  }
+
+ m_CounterID=setInterval(timer, 60000);
+ document.getElementById("btnTimer").value=m_TotalMinutes;
+}
+
+function timer()
+{
+ m_TotalMinutes--;
+ if (m_TotalMinutes <= 0)
+  {
+   clearInterval(m_CounterID);
+   resetButton();
+   alert("Finished!")
+   return;
+  }
+ document.getElementById("btnTimer").value=m_TotalMinutes; // watch for spelling
+}
+
+</script>
+
+<body>
+<div>Everquest Time Calculator</div>
+<br>
+<table>
+ <tr>
+  <td>EQ From
+  <td><select id="cboFrom"></select></td>
+  <td>EQ To
+  <td><select id="cboTo"></select></td>
+ </tr>
+ <tr>
+  <td>Days
+  <td colspan=2><input type="text" id="txtDays" value="1">
+  <td><input type="button" value="Calculate" onclick="figureTime();">
+ <tr>
+ <tr>
+  <td colspan=5>
+ </tr>
+ <tr>
+  <td colspan=3><div id="divResult"></div>
+  <td><input type="button" id="btnTimer" value="Start Timer" onclick="startTimer();">
+ </tr>
+</table>
+
+<script>
+  loadDropDowns("cboFrom");
+  loadDropDowns("cboTo");
+</script>
+</body>
+</html>
+
